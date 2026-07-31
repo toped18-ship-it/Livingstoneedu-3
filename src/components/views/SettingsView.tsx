@@ -1,0 +1,1265 @@
+import React, { useState, useEffect } from "react";
+import {
+  Settings,
+  Save,
+  RotateCcw,
+  XCircle,
+  AlertTriangle,
+  CheckCircle2,
+  Building,
+  Users,
+  GraduationCap,
+  Bot,
+  ShieldCheck,
+  Database,
+  Mail,
+  CreditCard,
+  Globe,
+  FileText,
+  BookOpen,
+  FileSpreadsheet,
+  Bell,
+  Palette,
+  Wrench,
+  Search,
+  Upload,
+  Lock,
+  Key,
+  Trash2,
+  RefreshCw,
+  Clock,
+  Check,
+  Smartphone,
+  PhoneCall,
+  HardDriveDownload,
+  Zap,
+  ShieldAlert,
+  Server,
+  Layers,
+  Award,
+  Sliders,
+  Sparkles,
+  HelpCircle,
+  Info,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  UserPlus,
+  FileCode,
+  CheckSquare,
+  Activity,
+  UserCheck,
+  FolderTree,
+} from "lucide-react";
+import { UserRole } from "../../types";
+
+export type AppSettingsTab =
+  | "general"
+  | "users"
+  | "school-config"
+  | "ai"
+  | "security"
+  | "database"
+  | "communication"
+  | "subscription"
+  | "website"
+  | "reports"
+  | "lesson-notes"
+  | "exams"
+  | "notifications"
+  | "appearance"
+  | "maintenance";
+
+interface AuditLogEntry {
+  id: string;
+  timestamp: string;
+  user: string;
+  action: string;
+  module: string;
+  details: string;
+}
+
+interface SettingsViewProps {
+  currentRole?: UserRole;
+  activeSubTab?: string;
+  onSelectSubTab?: (tab: string) => void;
+}
+
+const DEFAULT_SETTINGS = {
+  // General Settings
+  schoolName: "Livingstone International Academy",
+  schoolLogoUrl: "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150&auto=format&fit=crop&q=80",
+  schoolMotto: "Excellence in Character, Knowledge & Wisdom",
+  schoolAddress: "Plot 12, Academic Boulevard, Victoria Island, Lagos, Nigeria",
+  contactEmail: "admin@livingstone.edu.ng",
+  contactPhone: "+234 803 123 4567",
+  websiteUrl: "https://livingtech.name.ng",
+  timeZone: "Africa/Lagos (GMT+1)",
+  language: "English (US)",
+  theme: "dark",
+  academicSession: "2026/2027 Academic Session",
+  academicTerms: "First Term",
+
+  // School Config
+  activeClasses: [
+    "Primary 1", "Primary 2", "Primary 3", "Primary 4", "Primary 5", "Primary 6",
+    "JSS 1", "JSS 2", "JSS 3",
+    "SS 1", "SS 2", "SS 3"
+  ],
+  classArms: ["Gold", "Silver", "Diamond", "A", "B", "C"],
+  gradingScale: [
+    { grade: "A", minScore: 70, maxScore: 100, remark: "Excellent" },
+    { grade: "B", minScore: 60, maxScore: 69, remark: "Very Good" },
+    { grade: "C", minScore: 50, maxScore: 59, remark: "Credit" },
+    { grade: "D", minScore: 45, maxScore: 49, remark: "Pass" },
+    { grade: "E", minScore: 40, maxScore: 44, remark: "Fair Pass" },
+    { grade: "F", minScore: 0, maxScore: 39, remark: "Fail" },
+  ],
+  lateTimeThreshold: "08:00 AM",
+  minAttendancePercent: 75,
+  passEnglishMathRequired: true,
+  minOverallAverage: 50,
+
+  // AI Settings
+  geminiApiKey: "AIzaSyD-LIVINGSTONE-SECURE-KEY-PROD-2026",
+  geminiModel: "gemini-3.6-flash",
+  aiDailyLimitPerTeacher: 50,
+  enforceBloomsTaxonomy: true,
+  autoLessonObjectives: true,
+  lessonPromptTemplate: "Act as an expert Nigerian & Cambridge curriculum instructor. Generate structured lesson note with behavioral objectives and evaluation questions.",
+
+  // Security
+  firebaseAuthEnabled: true,
+  jwtSessionExpiryHours: 24,
+  enforce2FAAdmins: false,
+  autoLogoutIdleMinutes: 30,
+
+  // Database
+  firebaseProjectId: "livingstone-edu-saas",
+  firestoreRegion: "europe-west2 (London)",
+  realtimeDbUrl: "https://livingstone-edu-saas-default-rtdb.firebaseio.com",
+  autoBackupDaily: true,
+
+  // Communication
+  smtpHost: "smtp.gmail.com",
+  smtpPort: 587,
+  smtpUser: "notifications@livingstone.edu.ng",
+  smsGatewayProvider: "Termii",
+  smsSenderId: "LIV-SCHOOL",
+  whatsappEnabled: true,
+
+  // Report Card
+  ca1Percentage: 20,
+  ca2Percentage: 20,
+  examPercentage: 60,
+  reportTemplate: "Modern Compact",
+  principalSignatureUrl: "https://images.unsplash.com/photo-1600880292203-757bb62b4baf?w=200&auto=format&fit=crop&q=80",
+  schoolStampUrl: "https://images.unsplash.com/photo-1572949645841-094f3a9c4c94?w=200&auto=format&fit=crop&q=80",
+
+  // Appearance
+  primaryColor: "#4F46E5",
+  accentColor: "#10B981",
+  sidebarStyle: "Dark Slate",
+  dashboardLayout: "Bento Analytics",
+  fontFamily: "Plus Jakarta Sans",
+};
+
+export const SettingsView: React.FC<SettingsViewProps> = ({
+  currentRole = "Super Admin",
+  activeSubTab = "general",
+  onSelectSubTab,
+}) => {
+  // Check Authorization: Strictly Super Admin or School Owner / Administrator
+  const isAuthorized =
+    currentRole === "Super Admin" ||
+    currentRole === "Super Administrator" ||
+    currentRole === "School Administrator" ||
+    (currentRole as string) === "School Owner" ||
+    (currentRole as string) === "Proprietor";
+
+  // Active Sub-Tab State
+  const [currentTab, setCurrentTab] = useState<AppSettingsTab>(
+    (activeSubTab.replace("settings:", "") as AppSettingsTab) || "general"
+  );
+
+  useEffect(() => {
+    if (activeSubTab) {
+      const parsed = activeSubTab.replace("settings:", "") as AppSettingsTab;
+      if (parsed) setCurrentTab(parsed);
+    }
+  }, [activeSubTab]);
+
+  const changeTab = (tab: AppSettingsTab) => {
+    setCurrentTab(tab);
+    if (onSelectSubTab) {
+      onSelectSubTab(tab);
+    }
+  };
+
+  // Persistent Settings State
+  const [settings, setSettings] = useState(() => {
+    const saved = localStorage.getItem("livingstone_app_settings");
+    if (saved) {
+      try {
+        return { ...DEFAULT_SETTINGS, ...JSON.parse(saved) };
+      } catch (e) {
+        return DEFAULT_SETTINGS;
+      }
+    }
+    return DEFAULT_SETTINGS;
+  });
+
+  // Saved baseline for "Cancel" comparison
+  const [savedBaseline, setSavedBaseline] = useState(() => ({ ...settings }));
+
+  // Status Banners & Modals State
+  const [saveStatus, setSaveStatus] = useState<string | null>(null);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showKeyMask, setShowKeyMask] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string>("");
+
+  // Audit Log State
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(() => {
+    const savedLogs = localStorage.getItem("livingstone_settings_audit_logs");
+    if (savedLogs) {
+      try { return JSON.parse(savedLogs); } catch (e) {}
+    }
+    return [
+      {
+        id: "log-101",
+        timestamp: new Date().toLocaleString(),
+        user: "Super Admin (admin@livingstone.edu.ng)",
+        action: "Updated General Settings",
+        module: "General Settings",
+        details: "Updated Academic Session to 2026/2027 First Term.",
+      },
+      {
+        id: "log-100",
+        timestamp: new Date(Date.now() - 86400000).toLocaleString(),
+        user: "Super Admin",
+        action: "AI Engine Verification",
+        module: "AI Settings",
+        details: "Verified Gemini 3.6 Flash model endpoint status.",
+      },
+    ];
+  });
+
+  // Helper to append audit log
+  const logAuditAction = (action: string, moduleName: string, details: string) => {
+    const newLog: AuditLogEntry = {
+      id: `log-${Date.now()}`,
+      timestamp: new Date().toLocaleString(),
+      user: `${currentRole} (admin@livingstone.edu.ng)`,
+      action,
+      module: moduleName,
+      details,
+    };
+    const updated = [newLog, ...auditLogs];
+    setAuditLogs(updated);
+    localStorage.setItem("livingstone_settings_audit_logs", JSON.stringify(updated));
+  };
+
+  // Form Field Updater
+  const updateSetting = (key: keyof typeof DEFAULT_SETTINGS, value: any) => {
+    setSettings((prev) => ({ ...prev, [key]: value }));
+  };
+
+  // Action Handlers
+  const handleSave = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    localStorage.setItem("livingstone_app_settings", JSON.stringify(settings));
+    setSavedBaseline({ ...settings });
+    logAuditAction("Saved Changes", currentTab.toUpperCase(), `Updated settings for module [${currentTab}]`);
+    
+    // Apply theme change dynamically if updated
+    if (settings.theme === "dark") {
+      document.documentElement.classList.add("dark");
+    } else if (settings.theme === "light") {
+      document.documentElement.classList.remove("dark");
+    }
+
+    setSaveStatus("Settings successfully saved and synchronized across workspace!");
+    setTimeout(() => setSaveStatus(null), 4000);
+  };
+
+  const handleCancel = () => {
+    setSettings({ ...savedBaseline });
+    setSaveStatus("Reverted unsaved modifications back to previous saved state.");
+    setTimeout(() => setSaveStatus(null), 3000);
+  };
+
+  const handleResetToDefault = () => {
+    setSettings({ ...DEFAULT_SETTINGS });
+    setSavedBaseline({ ...DEFAULT_SETTINGS });
+    localStorage.setItem("livingstone_app_settings", JSON.stringify(DEFAULT_SETTINGS));
+    logAuditAction("Reset to Factory Defaults", currentTab.toUpperCase(), "Restored default system parameters.");
+    setShowResetModal(false);
+    setSaveStatus("System settings successfully reset to factory defaults!");
+    setTimeout(() => setSaveStatus(null), 4000);
+  };
+
+  const confirmDeleteItem = () => {
+    logAuditAction("Deleted Security Item", currentTab.toUpperCase(), `Removed item: ${itemToDelete}`);
+    setShowDeleteModal(false);
+    setItemToDelete("");
+    setSaveStatus("Item successfully deleted.");
+    setTimeout(() => setSaveStatus(null), 3000);
+  };
+
+  // If NOT authorized (e.g. Student, Teacher without admin privileges)
+  if (!isAuthorized) {
+    return (
+      <div className="min-h-[70vh] flex flex-col items-center justify-center p-6 text-center">
+        <div className="p-4 rounded-3xl bg-rose-500/10 text-rose-500 border border-rose-500/20 mb-4 animate-bounce">
+          <ShieldAlert className="w-12 h-12" />
+        </div>
+        <h2 className="text-2xl font-black text-slate-900 dark:text-white mb-2">
+          Access Restricted: App Settings
+        </h2>
+        <p className="text-sm text-slate-500 dark:text-slate-400 max-w-md mb-6">
+          The App Settings module contains core institutional configuration, security, AI keys, and database options. It is strictly reserved for <strong className="text-rose-600 dark:text-rose-400">Super Admin</strong> and <strong className="text-rose-600 dark:text-rose-400">School Owner</strong> roles.
+        </p>
+        <div className="p-4 rounded-xl bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 font-mono">
+          Current Role: <span className="font-bold text-indigo-500">{currentRole}</span> | Required: Super Admin / School Owner
+        </div>
+      </div>
+    );
+  }
+
+  // Navigation Items
+  const NAV_ITEMS: { id: AppSettingsTab; label: string; icon: any; badge?: string }[] = [
+    { id: "general", label: "General Settings", icon: Building },
+    { id: "users", label: "User Management", icon: Users },
+    { id: "school-config", label: "School Configuration", icon: GraduationCap },
+    { id: "ai", label: "AI Settings", icon: Bot, badge: "GEMINI" },
+    { id: "security", label: "Security", icon: ShieldCheck },
+    { id: "database", label: "Database", icon: Database },
+    { id: "communication", label: "Communication", icon: Mail },
+    { id: "subscription", label: "Subscription & Billing", icon: CreditCard, badge: "PRO" },
+    { id: "website", label: "Website Builder", icon: Globe },
+    { id: "reports", label: "Report Card Settings", icon: FileText },
+    { id: "lesson-notes", label: "Lesson Notes Settings", icon: BookOpen },
+    { id: "exams", label: "Exam Settings", icon: FileSpreadsheet },
+    { id: "notifications", label: "Notifications", icon: Bell },
+    { id: "appearance", label: "Appearance", icon: Palette },
+    { id: "maintenance", label: "Maintenance", icon: Wrench },
+  ];
+
+  return (
+    <div className="space-y-6 max-w-7xl mx-auto pb-16">
+      {/* TOP TITLE BANNER */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-6 rounded-3xl bg-slate-900 border border-slate-800 shadow-xl text-white">
+        <div className="flex items-center gap-3.5">
+          <div className="p-3 rounded-2xl bg-indigo-600/30 text-indigo-400 border border-indigo-500/30">
+            <Sliders className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-black tracking-tight">App Settings & System Engine</h1>
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-extrabold uppercase border border-emerald-500/30">
+                SUPER ADMIN & SCHOOL OWNER ONLY
+              </span>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Comprehensive institutional management, AI copilot keys, database backups, security rules, and branding.
+            </p>
+          </div>
+        </div>
+
+        {/* Global Save / Cancel / Reset Action Bar */}
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={handleCancel}
+            className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 font-bold text-xs flex items-center gap-1.5 transition-all"
+          >
+            <XCircle className="w-4 h-4 text-slate-400" />
+            <span>Cancel</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowResetModal(true)}
+            className="px-4 py-2 rounded-xl bg-amber-950/80 hover:bg-amber-900 text-amber-300 border border-amber-800/80 font-bold text-xs flex items-center gap-1.5 transition-all"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span>Reset Defaults</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-lg shadow-indigo-600/30 flex items-center gap-2 transition-all"
+          >
+            <Save className="w-4 h-4" />
+            <span>Save Changes</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Save / Action Notification Alert */}
+      {saveStatus && (
+        <div className="p-4 rounded-2xl bg-emerald-950/90 border border-emerald-800 text-emerald-300 text-xs font-bold flex items-center gap-3 shadow-lg animate-in fade-in">
+          <CheckCircle2 className="w-5 h-5 text-emerald-400 flex-shrink-0" />
+          <span>{saveStatus}</span>
+        </div>
+      )}
+
+      {/* MAIN TWO-COLUMN LAYOUT: SIDEBAR NAV + SUB-MODULE CONTENT */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* SUB-MODULE SIDEBAR NAVIGATION */}
+        <div className="lg:col-span-3 bg-white dark:bg-slate-900 rounded-3xl p-3 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-1">
+          <div className="px-3 py-2 text-[11px] font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+            <span>App Settings Modules</span>
+            <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-500">15</span>
+          </div>
+
+          <div className="space-y-0.5 max-h-[calc(100vh-14rem)] overflow-y-auto pr-1 custom-scrollbar">
+            {NAV_ITEMS.map((item) => {
+              const Icon = item.icon;
+              const isActive = currentTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => changeTab(item.id)}
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-2xl text-xs font-semibold transition-all ${
+                    isActive
+                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 font-bold"
+                      : "text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Icon className={`w-4 h-4 flex-shrink-0 ${isActive ? "text-white" : "text-indigo-500 dark:text-indigo-400"}`} />
+                    <span className="truncate">{item.label}</span>
+                  </div>
+                  {item.badge && (
+                    <span
+                      className={`text-[9px] px-1.5 py-0.5 rounded font-mono font-extrabold ${
+                        isActive
+                          ? "bg-white/20 text-white"
+                          : "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20"
+                      }`}
+                    >
+                      {item.badge}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* SUB-MODULE VIEW CONTENT */}
+        <div className="lg:col-span-9 bg-white dark:bg-slate-900 rounded-3xl p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-6">
+          
+          {/* 1. GENERAL SETTINGS */}
+          {currentTab === "general" && (
+            <div className="space-y-6">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Building className="w-5 h-5 text-indigo-500" />
+                  <span>General Settings & Institutional Profile</span>
+                </h3>
+                <p className="text-xs text-slate-500">Basic details, school branding, timezone, theme, and active academic term.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    School Name
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.schoolName}
+                    onChange={(e) => updateSetting("schoolName", e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-indigo-500 text-slate-900 dark:text-white font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    School Motto / Slogan
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.schoolMotto}
+                    onChange={(e) => updateSetting("schoolMotto", e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-indigo-500 text-slate-900 dark:text-white italic"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Official Contact Email
+                  </label>
+                  <input
+                    type="email"
+                    value={settings.contactEmail}
+                    onChange={(e) => updateSetting("contactEmail", e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-indigo-500 text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Official Phone Number
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.contactPhone}
+                    onChange={(e) => updateSetting("contactPhone", e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-indigo-500 text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Website URL
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.websiteUrl}
+                    onChange={(e) => updateSetting("websiteUrl", e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-indigo-500 text-slate-900 dark:text-white font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Time Zone
+                  </label>
+                  <select
+                    value={settings.timeZone}
+                    onChange={(e) => updateSetting("timeZone", e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-indigo-500 text-slate-900 dark:text-white font-medium"
+                  >
+                    <option value="Africa/Lagos (GMT+1)">Africa/Lagos (GMT+1 - West Africa)</option>
+                    <option value="UTC (GMT+0)">UTC (GMT+0 - Universal)</option>
+                    <option value="Europe/London (GMT+0)">Europe/London (GMT+0)</option>
+                    <option value="America/New_York (EST)">America/New_York (EST)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  School Campus Address
+                </label>
+                <textarea
+                  rows={2}
+                  value={settings.schoolAddress}
+                  onChange={(e) => updateSetting("schoolAddress", e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-indigo-500 text-slate-900 dark:text-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-slate-100 dark:border-slate-800">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Academic Session
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.academicSession}
+                    onChange={(e) => updateSetting("academicSession", e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 font-bold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Current Academic Term
+                  </label>
+                  <select
+                    value={settings.academicTerms}
+                    onChange={(e) => updateSetting("academicTerms", e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-slate-900 dark:text-white"
+                  >
+                    <option value="First Term">First Term (1st Term)</option>
+                    <option value="Second Term">Second Term (2nd Term)</option>
+                    <option value="Third Term">Third Term (3rd Term)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Interface Theme
+                  </label>
+                  <select
+                    value={settings.theme}
+                    onChange={(e) => updateSetting("theme", e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 font-bold text-slate-900 dark:text-white"
+                  >
+                    <option value="dark">Dark Theme (Recommended)</option>
+                    <option value="light">Light Theme</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 2. USER MANAGEMENT */}
+          {currentTab === "users" && (
+            <div className="space-y-6">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4 flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Users className="w-5 h-5 text-indigo-500" />
+                    <span>User Management & Roles Control</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">Create staff/student/parent accounts, manage permissions, and approve user accounts.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => alert("Open New User Registration Modal")}
+                  className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-indigo-600/30"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  <span>Create User</span>
+                </button>
+              </div>
+
+              {/* User Roles & Permissions Matrix */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">System Role Permissions Matrix</h4>
+                <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-2xl">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold">
+                      <tr>
+                        <th className="p-3">Role</th>
+                        <th className="p-3">Manage Students</th>
+                        <th className="p-3">Manage Grades</th>
+                        <th className="p-3">AI Lesson Notes</th>
+                        <th className="p-3">App Settings</th>
+                        <th className="p-3 font-right">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      <tr>
+                        <td className="p-3 font-bold text-indigo-500">Super Admin / Owner</td>
+                        <td className="p-3"><CheckCircle2 className="w-4 h-4 text-emerald-500" /></td>
+                        <td className="p-3"><CheckCircle2 className="w-4 h-4 text-emerald-500" /></td>
+                        <td className="p-3"><CheckCircle2 className="w-4 h-4 text-emerald-500" /></td>
+                        <td className="p-3"><CheckCircle2 className="w-4 h-4 text-emerald-500" /></td>
+                        <td className="p-3"><span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold text-[10px]">FULL ROOT</span></td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 font-bold text-purple-400">School Administrator</td>
+                        <td className="p-3"><CheckCircle2 className="w-4 h-4 text-emerald-500" /></td>
+                        <td className="p-3"><CheckCircle2 className="w-4 h-4 text-emerald-500" /></td>
+                        <td className="p-3"><CheckCircle2 className="w-4 h-4 text-emerald-500" /></td>
+                        <td className="p-3"><CheckCircle2 className="w-4 h-4 text-emerald-500" /></td>
+                        <td className="p-3"><span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-400 font-bold text-[10px]">ADMIN</span></td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 font-bold text-sky-400">Teacher / Form Teacher</td>
+                        <td className="p-3"><CheckCircle2 className="w-4 h-4 text-emerald-500" /></td>
+                        <td className="p-3"><CheckCircle2 className="w-4 h-4 text-emerald-500" /></td>
+                        <td className="p-3"><CheckCircle2 className="w-4 h-4 text-emerald-500" /></td>
+                        <td className="p-3"><XCircle className="w-4 h-4 text-slate-500" /></td>
+                        <td className="p-3"><span className="px-2 py-0.5 rounded bg-sky-500/20 text-sky-400 font-bold text-[10px]">STAFF</span></td>
+                      </tr>
+                      <tr>
+                        <td className="p-3 font-bold text-amber-400">Student & Parent</td>
+                        <td className="p-3"><XCircle className="w-4 h-4 text-slate-500" /></td>
+                        <td className="p-3"><XCircle className="w-4 h-4 text-slate-500" /></td>
+                        <td className="p-3"><XCircle className="w-4 h-4 text-slate-500" /></td>
+                        <td className="p-3"><XCircle className="w-4 h-4 text-slate-500" /></td>
+                        <td className="p-3"><span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-400 font-bold text-[10px]">READ ONLY</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 3. SCHOOL CONFIGURATION */}
+          {currentTab === "school-config" && (
+            <div className="space-y-6">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <GraduationCap className="w-5 h-5 text-indigo-500" />
+                  <span>School Configuration (Classes, Arms & Grading)</span>
+                </h3>
+                <p className="text-xs text-slate-500">Manage class levels, arms, attendance rules, and grading scale parameters.</p>
+              </div>
+
+              {/* Class Levels & Arms */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200 flex items-center justify-between">
+                    <span>Configured Academic Classes ({settings.activeClasses.length})</span>
+                    <span className="text-[10px] text-indigo-500 font-bold">Primary 1 - SS 3</span>
+                  </h4>
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {settings.activeClasses.map((c) => (
+                      <span key={c} className="px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 font-bold text-[11px] border border-indigo-500/20">
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">Class Arms & Streams</h4>
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {settings.classArms.map((arm) => (
+                      <span key={arm} className="px-2.5 py-1 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-300 font-bold text-[11px] border border-emerald-500/20">
+                        Arm {arm}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Grading System Table */}
+              <div className="space-y-3">
+                <h4 className="text-xs font-bold text-slate-800 dark:text-slate-200">Terminal Grading Formula Scale</h4>
+                <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-2xl">
+                  <table className="w-full text-left text-xs">
+                    <thead className="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-bold">
+                      <tr>
+                        <th className="p-3">Grade</th>
+                        <th className="p-3">Score Range</th>
+                        <th className="p-3">Remark</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                      {settings.gradingScale.map((g) => (
+                        <tr key={g.grade}>
+                          <td className="p-3 font-bold text-indigo-500">{g.grade}</td>
+                          <td className="p-3 font-mono font-bold">{g.minScore}% - {g.maxScore}%</td>
+                          <td className="p-3 text-slate-600 dark:text-slate-300">{g.remark}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 4. AI SETTINGS */}
+          {currentTab === "ai" && (
+            <div className="space-y-6">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Bot className="w-5 h-5 text-indigo-500" />
+                  <span>Google Gemini AI Settings & Model Configuration</span>
+                </h3>
+                <p className="text-xs text-slate-500">Configure server-side Gemini SDK model, usage limits, and lesson plan prompt templates.</p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-indigo-950/40 border border-indigo-800 text-xs space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-indigo-200 flex items-center gap-1.5">
+                    <Sparkles className="w-4 h-4 text-amber-400" /> Gemini SDK Server Status:
+                  </span>
+                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 font-bold border border-emerald-500/30 flex items-center gap-1">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Verified & Active
+                  </span>
+                </div>
+                <p className="text-slate-400 text-[11px]">
+                  All AI lesson note generations and exam questions execute securely on backend endpoints using process.env.GEMINI_API_KEY.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Gemini AI Model Engine
+                  </label>
+                  <select
+                    value={settings.geminiModel}
+                    onChange={(e) => updateSetting("geminiModel", e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-indigo-500 text-slate-900 dark:text-white font-medium"
+                  >
+                    <option value="gemini-3.6-flash">Gemini 3.6 Flash (Fastest, High Precision for Exam/Lesson generation)</option>
+                    <option value="gemini-3.1-pro-preview">Gemini 3.1 Pro (Deep Reasoning for complex report remarks)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Max AI Requests / Teacher / Day
+                  </label>
+                  <input
+                    type="number"
+                    value={settings.aiDailyLimitPerTeacher}
+                    onChange={(e) => updateSetting("aiDailyLimitPerTeacher", Number(e.target.value))}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Server-Side Gemini API Key Mask
+                </label>
+                <div className="relative">
+                  <input
+                    type={showKeyMask ? "text" : "password"}
+                    value={settings.geminiApiKey}
+                    onChange={(e) => updateSetting("geminiApiKey", e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-indigo-500 text-slate-900 dark:text-white font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowKeyMask(!showKeyMask)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-white"
+                  >
+                    {showKeyMask ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  System Prompt Template for Lesson Notes
+                </label>
+                <textarea
+                  rows={3}
+                  value={settings.lessonPromptTemplate}
+                  onChange={(e) => updateSetting("lessonPromptTemplate", e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-indigo-500 text-slate-900 dark:text-white font-mono text-[11px]"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* 5. SECURITY */}
+          {currentTab === "security" && (
+            <div className="space-y-6">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <ShieldCheck className="w-5 h-5 text-indigo-500" />
+                  <span>Security & Authentication Controls</span>
+                </h3>
+                <p className="text-xs text-slate-500">Firebase authentication, JWT token expiry, multi-factor auth, and session security.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                  <div>
+                    <span className="block text-xs font-bold text-slate-800 dark:text-slate-200">Firebase Authentication</span>
+                    <span className="text-[11px] text-slate-500">Email/Password & Google OAuth Enabled</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings.firebaseAuthEnabled}
+                    onChange={(e) => updateSetting("firebaseAuthEnabled", e.target.checked)}
+                    className="w-5 h-5 text-indigo-600 rounded"
+                  />
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                  <div>
+                    <span className="block text-xs font-bold text-slate-800 dark:text-slate-200">Mandatory 2FA for Admins</span>
+                    <span className="text-[11px] text-slate-500">Enforce authenticator app OTP on login</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={settings.enforce2FAAdmins}
+                    onChange={(e) => updateSetting("enforce2FAAdmins", e.target.checked)}
+                    className="w-5 h-5 text-indigo-600 rounded"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 6. DATABASE */}
+          {currentTab === "database" && (
+            <div className="space-y-6">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4 flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Database className="w-5 h-5 text-indigo-500" />
+                    <span>Database Engine & Firestore Backup</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">Firebase Firestore collections status, manual backup trigger, and export tools.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    logAuditAction("Database Backup Executed", "DATABASE", "Created manual database snapshot.");
+                    setSaveStatus("Database manual backup snapshot successfully taken!");
+                    setTimeout(() => setSaveStatus(null), 3500);
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-emerald-600/30"
+                >
+                  <HardDriveDownload className="w-4 h-4" />
+                  <span>Backup Database Now</span>
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Firebase Project ID</span>
+                  <input
+                    type="text"
+                    value={settings.firebaseProjectId}
+                    onChange={(e) => updateSetting("firebaseProjectId", e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 font-mono font-bold text-indigo-500"
+                  />
+                </div>
+
+                <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Firestore Cloud Region</span>
+                  <input
+                    type="text"
+                    value={settings.firestoreRegion}
+                    onChange={(e) => updateSetting("firestoreRegion", e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 font-mono text-slate-900 dark:text-white"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 7. COMMUNICATION */}
+          {currentTab === "communication" && (
+            <div className="space-y-6">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Mail className="w-5 h-5 text-indigo-500" />
+                  <span>Communication (Gmail SMTP & SMS Gateways)</span>
+                </h3>
+                <p className="text-xs text-slate-500">Configure email dispatch, Termii/Africa's Talking SMS API, and WhatsApp triggers.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Gmail SMTP Server Host
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.smtpHost}
+                    onChange={(e) => updateSetting("smtpHost", e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    SMS Gateway Provider
+                  </label>
+                  <select
+                    value={settings.smsGatewayProvider}
+                    onChange={(e) => updateSetting("smsGatewayProvider", e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 font-medium text-slate-900 dark:text-white"
+                  >
+                    <option value="Termii">Termii (Nigeria & West Africa)</option>
+                    <option value="Africa's Talking">Africa's Talking (East & West Africa)</option>
+                    <option value="Twilio">Twilio Global</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 8. SUBSCRIPTION */}
+          {currentTab === "subscription" && (
+            <div className="space-y-6">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-indigo-500" />
+                  <span>Subscription Tier & Licence Configuration</span>
+                </h3>
+                <p className="text-xs text-slate-500">School subscription plan status, student capacity limits, and licence keys.</p>
+              </div>
+
+              <div className="p-5 rounded-3xl bg-gradient-to-r from-indigo-900 to-slate-900 text-white border border-indigo-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                  <span className="px-2.5 py-1 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-bold uppercase border border-indigo-500/30">
+                    PLATINUM ENTERPRISE TIER
+                  </span>
+                  <h4 className="text-xl font-black mt-1">Livingstone Unlimited Edition</h4>
+                  <p className="text-xs text-slate-300 mt-0.5">Active until July 30, 2027 • Unlimited Student Records</p>
+                </div>
+                <div className="px-4 py-2 rounded-xl bg-emerald-500/20 text-emerald-300 font-mono font-bold text-xs border border-emerald-500/30">
+                  LICENCE: LIV-ENT-2026-X981
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 9. WEBSITE BUILDER */}
+          {currentTab === "website" && (
+            <div className="space-y-6">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Globe className="w-5 h-5 text-indigo-500" />
+                  <span>Public Website Builder & Domain Settings</span>
+                </h3>
+                <p className="text-xs text-slate-500">CMS homepage settings, domain mapping, and SEO meta descriptions.</p>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                  Custom Domain Host Mapping
+                </label>
+                <input
+                  type="text"
+                  value={settings.websiteUrl}
+                  onChange={(e) => updateSetting("websiteUrl", e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 font-mono font-bold text-indigo-500"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* 10. REPORT CARDS */}
+          {currentTab === "reports" && (
+            <div className="space-y-6">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-indigo-500" />
+                  <span>Report Card Templates & Weighting Formula</span>
+                </h3>
+                <p className="text-xs text-slate-500">Continuous Assessment (CA) percentages, principal signatures, and print formats.</p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    1st CA Weight (%)
+                  </label>
+                  <input
+                    type="number"
+                    value={settings.ca1Percentage}
+                    onChange={(e) => updateSetting("ca1Percentage", Number(e.target.value))}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    2nd CA Weight (%)
+                  </label>
+                  <input
+                    type="number"
+                    value={settings.ca2Percentage}
+                    onChange={(e) => updateSetting("ca2Percentage", Number(e.target.value))}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Terminal Exam Weight (%)
+                  </label>
+                  <input
+                    type="number"
+                    value={settings.examPercentage}
+                    onChange={(e) => updateSetting("examPercentage", Number(e.target.value))}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white font-bold"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 11. LESSON NOTES SETTINGS */}
+          {currentTab === "lesson-notes" && (
+            <div className="space-y-6">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-indigo-500" />
+                  <span>Lesson Notes & Curriculum Settings</span>
+                </h3>
+                <p className="text-xs text-slate-500">Curriculum standards alignment, approval workflows, and repository rules.</p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Active Curriculum Baseline</span>
+                <p className="text-xs text-slate-500">NERDC (Nigerian Educational Research and Development Council) + WAEC & Cambridge Secondary.</p>
+              </div>
+            </div>
+          )}
+
+          {/* 12. EXAM SETTINGS */}
+          {currentTab === "exams" && (
+            <div className="space-y-6">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <FileSpreadsheet className="w-5 h-5 text-indigo-500" />
+                  <span>Exam Paper & Question Bank Settings</span>
+                </h3>
+                <p className="text-xs text-slate-500">Question type distributions, marking scheme layout, and print formatting.</p>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800 space-y-2">
+                <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Supported Question Archetypes</span>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <span className="px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-500 font-bold text-[11px]">Multiple Choice (MCQ)</span>
+                  <span className="px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-500 font-bold text-[11px]">Theory & Comprehension</span>
+                  <span className="px-2.5 py-1 rounded-lg bg-indigo-500/10 text-indigo-500 font-bold text-[11px]">Fill-in-the-Blanks</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 13. NOTIFICATIONS */}
+          {currentTab === "notifications" && (
+            <div className="space-y-6">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Bell className="w-5 h-5 text-indigo-500" />
+                  <span>Notifications & Broadcast Preferences</span>
+                </h3>
+                <p className="text-xs text-slate-500">Configure email alerts, SMS dispatch triggers, and push notifications.</p>
+              </div>
+
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Email Notification on Student Result Publishing</span>
+                  <input type="checkbox" defaultChecked className="w-4 h-4 text-indigo-600 rounded" />
+                </div>
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-800">
+                  <span className="text-xs font-bold text-slate-800 dark:text-slate-200">SMS Notification on Unexplained Absence</span>
+                  <input type="checkbox" defaultChecked className="w-4 h-4 text-indigo-600 rounded" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 14. APPEARANCE */}
+          {currentTab === "appearance" && (
+            <div className="space-y-6">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <Palette className="w-5 h-5 text-indigo-500" />
+                  <span>Appearance, Typography & Theme Colors</span>
+                </h3>
+                <p className="text-xs text-slate-500">Brand accent colors, typography pairings, and layout density.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Primary Accent Color
+                  </label>
+                  <input
+                    type="color"
+                    value={settings.primaryColor}
+                    onChange={(e) => updateSetting("primaryColor", e.target.value)}
+                    className="w-full h-10 p-1 rounded-xl bg-slate-100 dark:bg-slate-800 border-none cursor-pointer"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Typography Font Family
+                  </label>
+                  <select
+                    value={settings.fontFamily}
+                    onChange={(e) => updateSetting("fontFamily", e.target.value)}
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 font-medium"
+                  >
+                    <option value="Plus Jakarta Sans">Plus Jakarta Sans (Modern Clean)</option>
+                    <option value="Inter">Inter (Standard Sans)</option>
+                    <option value="Outfit">Outfit (Display geometric)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* 15. MAINTENANCE */}
+          {currentTab === "maintenance" && (
+            <div className="space-y-6">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4 flex items-center justify-between">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Wrench className="w-5 h-5 text-indigo-500" />
+                    <span>System Maintenance & Cache Diagnostics</span>
+                  </h3>
+                  <p className="text-xs text-slate-500">System logs, cache purging, and platform runtime status.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    logAuditAction("Flushed Cache", "MAINTENANCE", "Purged system asset cache.");
+                    setSaveStatus("System application cache successfully purged!");
+                    setTimeout(() => setSaveStatus(null), 3500);
+                  }}
+                  className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 flex items-center gap-1.5"
+                >
+                  <RefreshCw className="w-4 h-4 text-indigo-400" />
+                  <span>Flush Cache</span>
+                </button>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-slate-900 text-slate-300 font-mono text-xs space-y-1.5 border border-slate-800">
+                <div className="text-emerald-400 font-bold">[SYS-DIAGNOSTIC] All services operational</div>
+                <div>Server Uptime: 14 days, 8 hours, 42 minutes</div>
+                <div>Node.js Environment: v20.11.0 (Linux Container)</div>
+                <div>Allocated RAM: 4.2 GB / 8.0 GB</div>
+              </div>
+            </div>
+          )}
+
+          {/* AUDIT LOG SECTION AT BOTTOM OF EVERY PAGE */}
+          <div className="pt-6 border-t border-slate-200 dark:border-slate-800 space-y-3">
+            <h4 className="text-xs font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+              <Clock className="w-4 h-4 text-indigo-500" />
+              <span>Audit Log History ({currentTab.toUpperCase()})</span>
+            </h4>
+            <div className="space-y-2 max-h-40 overflow-y-auto pr-1 custom-scrollbar">
+              {auditLogs.length === 0 ? (
+                <p className="text-xs text-slate-400 italic">No historical audit events logged yet.</p>
+              ) : (
+                auditLogs.map((log) => (
+                  <div key={log.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200/60 dark:border-slate-800 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                    <div className="space-y-0.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-indigo-600 dark:text-indigo-400">{log.action}</span>
+                        <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 font-mono">{log.module}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500">{log.details}</p>
+                    </div>
+                    <div className="text-[10px] text-slate-400 font-mono whitespace-nowrap">
+                      {log.timestamp} • {log.user}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* RESET CONFIRMATION MODAL */}
+      {showResetModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl text-white">
+            <div className="flex items-center gap-3 text-amber-400">
+              <AlertTriangle className="w-6 h-6" />
+              <h3 className="text-lg font-bold">Reset Settings to Default?</h3>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Are you sure you want to reset all App Settings back to standard factory defaults? Any custom school configurations, AI prompt templates, and styling will be restored to original values.
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowResetModal(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleResetToDefault}
+                className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-md shadow-amber-600/30"
+              >
+                Confirm Reset
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
