@@ -1484,26 +1484,134 @@ app.get("/api/teacher/class-stats/:classId", (req, res) => {
   });
 });
 
-// 4. Lesson Note Management APIs
+// 4. Lesson Note & Curriculum Management APIs
+app.get("/api/teacher/lesson-notes/curriculum", (req, res) => {
+  const { className = "SS 2", subject = "Mathematics", term = "First Term", week = "Week 4" } = req.query;
+
+  // Derive topic and details based on NERDC database rules
+  const classStr = String(className);
+  const subjStr = String(subject);
+  const termStr = String(term);
+  const weekStr = String(week);
+
+  // Simple curriculum catalog rules
+  let topic = `${subjStr} Topic for ${weekStr}`;
+  let subTopic = `NERDC Standard ${classStr} ${subjStr} Syllabus`;
+  let nerdcRef = `NERDC ${classStr} ${subjStr} Syllabus Section`;
+
+  if (subjStr.includes("Math")) {
+    const topics: Record<string, { topic: string; subTopic: string }> = {
+      "Week 1": { topic: "Logarithms of Numbers > 1", subTopic: "Multiplication and Division using standard log tables" },
+      "Week 2": { topic: "Logarithms of Numbers < 1", subTopic: "Bar notation and evaluating negative characteristics" },
+      "Week 3": { topic: "Sequence and Series (Arithmetic Progression)", subTopic: "First term, common difference, and nth term formula" },
+      "Week 4": { topic: "Quadratic Equations & Roots Analysis", subTopic: "Factorization, Completing the Square, & Graphical Solution" },
+      "Week 5": { topic: "Simultaneous Linear & Quadratic Equations", subTopic: "Analytical and graphical solutions" },
+      "Week 6": { topic: "Mid-Term Review & Assessment", subTopic: "Revision of Weeks 1-5" },
+      "Week 7": { topic: "Geometric Progression (GP)", subTopic: "Common ratio, nth term, and sum of GP" },
+      "Week 8": { topic: "Trigonometric Sine and Cosine Rules", subTopic: "Derivation and application to non-right triangles" },
+      "Week 9": { topic: "Angles of Elevation and Depression", subTopic: "Heights, distances, and real-world surveying" },
+      "Week 10": { topic: "Statistics: Mean, Median, & Mode of Grouped Data", subTopic: "Frequency distribution tables and cumulative frequency" }
+    };
+    const key = Object.keys(topics).find(k => weekStr.includes(k)) || "Week 4";
+    topic = topics[key].topic;
+    subTopic = topics[key].subTopic;
+  } else if (subjStr.includes("Physics")) {
+    const topics: Record<string, { topic: string; subTopic: string }> = {
+      "Week 1": { topic: "Units, Dimensions, & Vectors", subTopic: "Scalar vs Vector quantities, resolution of vectors" },
+      "Week 2": { topic: "Motion: Speed, Velocity, & Acceleration", subTopic: "Equations of uniformly accelerated motion" },
+      "Week 3": { topic: "Projectiles & Circular Motion", subTopic: "Trajectory, time of flight, maximum height, and range" },
+      "Week 4": { topic: "Wave Motion & Sound Wave Properties", subTopic: "Production, propagation, speed of sound, echo, and SONAR" },
+      "Week 5": { topic: "Light Waves: Reflection & Refraction", subTopic: "Snell's Law, refractive index, total internal reflection" },
+      "Week 6": { topic: "Mid-Term Assessment", subTopic: "Revision of Physics fundamentals" },
+      "Week 7": { topic: "Lenses & Optical Instruments", subTopic: "Convex/concave lenses, microscope, telescope, and human eye" },
+      "Week 8": { topic: "Heat Energy & Temperature Measurement", subTopic: "Thermometers, specific heat capacity, latent heat" }
+    };
+    const key = Object.keys(topics).find(k => weekStr.includes(k)) || "Week 4";
+    topic = topics[key].topic;
+    subTopic = topics[key].subTopic;
+  } else if (subjStr.includes("Chemistry")) {
+    topic = "Periodic Table & Periodic Trends";
+    subTopic = "Groups, periods, atomic radius, ionization energy, electronegativity";
+  } else if (subjStr.includes("Biology")) {
+    topic = "Digestive System & Enzyme Action";
+    subTopic = "Alimentary canal structure, mechanical digestion, chemical breakdown by enzymes";
+  } else if (subjStr.includes("English")) {
+    topic = "Argumentative Essay Writing & Grammatical Concord";
+    subTopic = "Structuring persuasive arguments, thesis statements, subject-verb agreement";
+  } else if (subjStr.includes("Computer") || subjStr.includes("ICT")) {
+    topic = "Database Management Systems (DBMS) & SQL";
+    subTopic = "Introduction to relational databases, primary keys, tables, and SQL SELECT queries";
+  }
+
+  res.json({
+    success: true,
+    data: {
+      className: classStr,
+      subject: subjStr,
+      term: termStr,
+      week: weekStr,
+      topic,
+      subTopic,
+      objectives: [
+        `Understand fundamental concepts of ${topic}`,
+        `Solve 3 standard WAEC/NECO exam practice questions`,
+        `Apply knowledge to practical real-world scenarios`
+      ],
+      nerdcReference: nerdcRef,
+      foundInCurriculum: true
+    }
+  });
+});
+
 app.get("/api/teacher/lesson-notes", (req, res) => {
   res.json({ success: true, count: teacherLessonsStore.length, data: teacherLessonsStore });
 });
 
 app.post("/api/teacher/lesson-notes/generate", async (req, res) => {
-  const { subject = "Mathematics", classLevel = "SS2", topic = "Quadratic Equations", week = "Week 4", term = "First Term" } = req.body;
+  const { subject = "Mathematics", classLevel = "SS2", week = "Week 4", term = "First Term", lessonDuration = "40 mins", teachingDate = new Date().toISOString().split("T")[0] } = req.body;
+  let topic = req.body.topic;
+  let subTopic = req.body.subTopic;
+
+  // If topic is not provided or manual entry is omitted, automatically retrieve from curriculum!
+  if (!topic || topic.trim() === "") {
+    if (subject.includes("Math")) topic = "Quadratic Equations & Roots Analysis";
+    else if (subject.includes("Physics")) topic = "Wave Motion & Sound Wave Properties";
+    else if (subject.includes("Chemistry")) topic = "Periodic Table & Periodic Trends";
+    else if (subject.includes("Biology")) topic = "Digestive System & Enzyme Action";
+    else if (subject.includes("English")) topic = "Argumentative Essay Writing & Grammatical Concord";
+    else topic = `${subject} Core Concept Unit`;
+  }
+
+  if (!subTopic) {
+    subTopic = `Detailed NERDC Curriculum Study of ${topic}`;
+  }
 
   try {
     const ai = getGeminiAI();
     let generatedContent = "";
     if (ai) {
-      const prompt = `Act as an expert Nigerian Secondary School Master Teacher. Generate a comprehensive NERDC and WAEC compliant lesson note for ${subject}, Class: ${classLevel}, Term: ${term}, Week: ${week}, Topic: ${topic}. Include clear Behavioral Objectives, Step-by-step Teaching Steps, Worked Examples, Evaluation Questions, and Teaching Resources.`;
+      const prompt = `Act as an expert Nigerian Secondary School Master Teacher. Generate a comprehensive NERDC and WAEC compliant lesson note for ${subject}, Class: ${classLevel}, Term: ${term}, Week: ${week}, Topic: ${topic}, Sub-Topic: ${subTopic}. 
+
+Include:
+- Performance Objectives & Learning Outcomes
+- Previous Knowledge
+- Instructional Materials & Teaching Resources
+- References (NERDC Textbooks)
+- Lesson Introduction & Development
+- Teacher Activities & Learner Activities
+- Guided Practice & Class Discussion
+- Evaluation Questions & Assignment
+- Board Summary & Key Vocabulary
+- Moral Lesson & Inclusive Learning Strategy
+- Assessment Rubric`;
+
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: prompt,
       });
       generatedContent = response.text || "";
     } else {
-      generatedContent = `[NERDC & WAEC SYLLABUS ALIGNED LESSON NOTE]\n\nSubject: ${subject}\nClass: ${classLevel}\nWeek: ${week}\nTopic: ${topic}\n\n1. BEHAVIORAL OBJECTIVES:\nAt the end of this lesson, students should be able to:\n- Define key terms associated with ${topic}.\n- Solve 3 standard WAEC past questions on ${topic}.\n- Apply concepts to practical real-world scenarios.\n\n2. TEACHING CONTENT:\nDetailed explanation of ${topic} including formulas, step-by-step methods, and diagrams.\n\n3. EVALUATION QUESTIONS:\n1. Explain the fundamental principle of ${topic}.\n2. Solve: 2x^2 + 5x - 3 = 0.`;
+      generatedContent = `[NERDC & WAEC SYLLABUS ALIGNED LESSON NOTE]\n\nSchool: Livingstone International Academy\nSubject: ${subject}\nClass: ${classLevel}\nTerm: ${term}\nWeek: ${week}\nDuration: ${lessonDuration}\nDate: ${teachingDate}\nTopic: ${topic}\nSub-Topic: ${subTopic}\n\n1. PERFORMANCE OBJECTIVES:\nAt the end of this lesson, learners should be able to:\n- Explain the foundational principles of ${topic}.\n- Solve 3 standard WAEC/NECO examination problems on ${subTopic}.\n- Apply concepts to real-world industrial and daily life scenarios.\n\n2. PREVIOUS KNOWLEDGE:\nLearners have covered prerequisite concepts in previous weeks.\n\n3. INSTRUCTIONAL MATERIALS:\n- Whiteboard & Markers\n- Standard NERDC Approved Textbooks\n- Gemini AI Interactive Companion & Visual Charts\n\n4. LESSON DEVELOPMENT:\n- Introduction (5 mins): Hook learners with a real-life problem scenario.\n- Teacher Activity (15 mins): Explain core principles step-by-step with board illustrations.\n- Learner Activity (10 mins): Students work in pairs to solve guided practice problems.\n- Evaluation (5 mins): Quick oral and written check for understanding.\n- Summary & Moral Lesson (5 mins): Emphasize precision, discipline, and attention to detail.\n\n5. EVALUATION QUESTIONS:\n1. Define ${topic}.\n2. Explain two key applications of ${subTopic}.\n\n6. ASSIGNMENT:\nSolve questions 1-5 on page 42 of the textbook.`;
     }
 
     const newNote = {
@@ -1516,10 +1624,10 @@ app.post("/api/teacher/lesson-notes/generate", async (req, res) => {
       subject,
       class: classLevel,
       topic,
-      subTopic: `Detailed Study of ${topic}`,
+      subTopic,
       objectives: [
         `Understand concepts of ${topic}`,
-        `Solve WAEC standard questions`,
+        `Solve WAEC standard questions on ${subTopic}`,
         `Apply knowledge in practical assessments`
       ],
       content: generatedContent,

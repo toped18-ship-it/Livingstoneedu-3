@@ -153,6 +153,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     currentRole === "Principal" ||
     currentRole === "Admin";
   const isSuperAdmin = currentRole === "Super Administrator";
+  const isStudentOrParent = currentRole === "Student" || currentRole === "Parent";
 
   // Filter helper for search
   const matchesSearch = (text: string) => {
@@ -242,8 +243,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         {/* 2. ACADEMIC PORTAL ACCORDION */}
-        <div>
-          <button
+        {!isStudentOrParent && (
+          <div>
+            <button
             onClick={() => {
               if (isCollapsed) {
                 toggleCollapse();
@@ -289,7 +291,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </button>
               )}
 
-              {matchesSearch("AI Lesson Notes") && (
+              {!isStudentOrParent && matchesSearch("AI Lesson Notes") && (
                 <button
                   onClick={() => onSelectTab("academic-ai-lesson-notes")}
                   className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-colors ${
@@ -336,7 +338,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </button>
               )}
 
-              {matchesSearch("AI Exam Generator") && (
+              {!isStudentOrParent && matchesSearch("AI Exam Generator") && (
                 <button
                   onClick={() => onSelectTab("academic-ai-exam-generator")}
                   className={`flex items-center justify-between w-full px-2.5 py-1.5 rounded-md text-[11px] font-semibold transition-colors ${
@@ -413,252 +415,258 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
         </div>
+        )}
 
         {/* 3. STUDENTS ACCORDION */}
-        <div>
-          <button
-            onClick={() => {
-              if (isCollapsed) {
-                toggleCollapse();
-                setStudentsOpen(true);
-              } else {
-                setStudentsOpen(!studentsOpen);
-              }
-            }}
-            title={isCollapsed ? "Students" : undefined}
-            className={`w-full flex items-center ${
-              isCollapsed ? "justify-center px-0" : "justify-between px-3"
-            } py-2 rounded-lg text-xs font-semibold transition-all ${
-              isStudentsActive
-                ? "text-indigo-400 font-bold bg-slate-800/60"
-                : "hover:bg-slate-800/80 text-slate-300"
-            }`}
-          >
-            <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3"}`}>
-              <GraduationCap className="w-4 h-4 text-sky-400 flex-shrink-0" />
-              {!isCollapsed && <span>Students</span>}
-            </div>
-            {!isCollapsed &&
-              (studentsOpen ? (
-                <ChevronDown className="w-3.5 h-3.5 opacity-60" />
-              ) : (
-                <ChevronRight className="w-3.5 h-3.5 opacity-60" />
-              ))}
-          </button>
+        {!isStudentOrParent && (
+          <div>
+            <button
+              onClick={() => {
+                if (isCollapsed) {
+                  toggleCollapse();
+                  setStudentsOpen(true);
+                } else {
+                  setStudentsOpen(!studentsOpen);
+                }
+              }}
+              title={isCollapsed ? "Students" : undefined}
+              className={`w-full flex items-center ${
+                isCollapsed ? "justify-center px-0" : "justify-between px-3"
+              } py-2 rounded-lg text-xs font-semibold transition-all ${
+                isStudentsActive
+                  ? "text-indigo-400 font-bold bg-slate-800/60"
+                  : "hover:bg-slate-800/80 text-slate-300"
+              }`}
+            >
+              <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3"}`}>
+                <GraduationCap className="w-4 h-4 text-sky-400 flex-shrink-0" />
+                {!isCollapsed && <span>Students</span>}
+              </div>
+              {!isCollapsed &&
+                (studentsOpen ? (
+                  <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                ) : (
+                  <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                ))}
+            </button>
 
-          {(!isCollapsed && (studentsOpen || !!searchQuery.trim())) && (
-            <div className="ml-4 pl-2.5 border-l border-slate-800 mt-1 space-y-0.5">
-              {matchesSearch("Student Directory") && (
-                <button
-                  onClick={() => onSelectTab("students")}
-                  className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
-                    activeTab === "students"
-                      ? "bg-indigo-600/30 text-indigo-300 font-bold"
-                      : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  <Users className="w-3.5 h-3.5 text-sky-400" />
-                  <span>Student Directory</span>
-                </button>
-              )}
+            {(!isCollapsed && (studentsOpen || !!searchQuery.trim())) && (
+              <div className="ml-4 pl-2.5 border-l border-slate-800 mt-1 space-y-0.5">
+                {matchesSearch("Student Directory") && (
+                  <button
+                    onClick={() => onSelectTab("students")}
+                    className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                      activeTab === "students"
+                        ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                        : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5 text-sky-400" />
+                    <span>Student Directory</span>
+                  </button>
+                )}
 
-              {matchesSearch("Admission") && (
-                <button
-                  onClick={() => onSelectTab("students")}
-                  className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
-                    activeTab === "students"
-                      ? "bg-indigo-600/30 text-indigo-300 font-bold"
-                      : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  <UserPlus className="w-3.5 h-3.5 text-teal-400" />
-                  <span>Admission & Enrollment</span>
-                </button>
-              )}
+                {matchesSearch("Admission") && (
+                  <button
+                    onClick={() => onSelectTab("students")}
+                    className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                      activeTab === "students"
+                        ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                        : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <UserPlus className="w-3.5 h-3.5 text-teal-400" />
+                    <span>Admission & Enrollment</span>
+                  </button>
+                )}
 
-              {matchesSearch("Student Profile") && (
-                <button
-                  onClick={() => onSelectTab("students")}
-                  className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
-                    activeTab === "students"
-                      ? "bg-indigo-600/30 text-indigo-300 font-bold"
-                      : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  <UserCheck2 className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Student Profile</span>
-                </button>
-              )}
+                {matchesSearch("Student Profile") && (
+                  <button
+                    onClick={() => onSelectTab("students")}
+                    className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                      activeTab === "students"
+                        ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                        : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <UserCheck2 className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Student Profile</span>
+                  </button>
+                )}
 
-              {matchesSearch("Promotion") && (
-                <button
-                  onClick={() => onSelectTab("students")}
-                  className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
-                    activeTab === "students"
-                      ? "bg-indigo-600/30 text-indigo-300 font-bold"
-                      : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Class Promotion</span>
-                </button>
-              )}
+                {matchesSearch("Promotion") && (
+                  <button
+                    onClick={() => onSelectTab("students")}
+                    className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                      activeTab === "students"
+                        ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                        : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Class Promotion</span>
+                  </button>
+                )}
 
-              {matchesSearch("Student Transfer") && (
-                <button
-                  onClick={() => onSelectTab("students")}
-                  className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
-                    activeTab === "students"
-                      ? "bg-indigo-600/30 text-indigo-300 font-bold"
-                      : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  <ArrowRightLeft className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Student Transfer</span>
-                </button>
-              )}
+                {matchesSearch("Student Transfer") && (
+                  <button
+                    onClick={() => onSelectTab("students")}
+                    className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                      activeTab === "students"
+                        ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                        : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <ArrowRightLeft className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Student Transfer</span>
+                  </button>
+                )}
 
-              {matchesSearch("Alumni") && (
-                <button
-                  onClick={() => onSelectTab("students")}
-                  className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
-                    activeTab === "students"
-                      ? "bg-indigo-600/30 text-indigo-300 font-bold"
-                      : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  <Award className="w-3.5 h-3.5 text-purple-400" />
-                  <span>Alumni Network</span>
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+                {matchesSearch("Alumni") && (
+                  <button
+                    onClick={() => onSelectTab("students")}
+                    className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                      activeTab === "students"
+                        ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                        : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <Award className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Alumni Network</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 4. TEACHERS & STAFF ACCORDION */}
-        <div>
-          <button
-            onClick={() => {
-              if (isCollapsed) {
-                toggleCollapse();
-                setTeachersOpen(true);
-              } else {
-                setTeachersOpen(!teachersOpen);
-              }
-            }}
-            title={isCollapsed ? "Teachers & Staff" : undefined}
-            className={`w-full flex items-center ${
-              isCollapsed ? "justify-center px-0" : "justify-between px-3"
-            } py-2 rounded-lg text-xs font-semibold transition-all ${
-              isTeachersActive
-                ? "text-indigo-400 font-bold bg-slate-800/60"
-                : "hover:bg-slate-800/80 text-slate-300"
-            }`}
-          >
-            <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3"}`}>
-              <Users className="w-4 h-4 text-purple-400 flex-shrink-0" />
-              {!isCollapsed && <span>Teachers & Staff</span>}
-            </div>
-            {!isCollapsed &&
-              (teachersOpen ? (
-                <ChevronDown className="w-3.5 h-3.5 opacity-60" />
-              ) : (
-                <ChevronRight className="w-3.5 h-3.5 opacity-60" />
-              ))}
-          </button>
+        {!isStudentOrParent && (
+          <div>
+            <button
+              onClick={() => {
+                if (isCollapsed) {
+                  toggleCollapse();
+                  setTeachersOpen(true);
+                } else {
+                  setTeachersOpen(!teachersOpen);
+                }
+              }}
+              title={isCollapsed ? "Teachers & Staff" : undefined}
+              className={`w-full flex items-center ${
+                isCollapsed ? "justify-center px-0" : "justify-between px-3"
+              } py-2 rounded-lg text-xs font-semibold transition-all ${
+                isTeachersActive
+                  ? "text-indigo-400 font-bold bg-slate-800/60"
+                  : "hover:bg-slate-800/80 text-slate-300"
+              }`}
+            >
+              <div className={`flex items-center ${isCollapsed ? "justify-center" : "gap-3"}`}>
+                <Users className="w-4 h-4 text-purple-400 flex-shrink-0" />
+                {!isCollapsed && <span>Teachers & Staff</span>}
+              </div>
+              {!isCollapsed &&
+                (teachersOpen ? (
+                  <ChevronDown className="w-3.5 h-3.5 opacity-60" />
+                ) : (
+                  <ChevronRight className="w-3.5 h-3.5 opacity-60" />
+                ))}
+            </button>
 
-          {(!isCollapsed && (teachersOpen || !!searchQuery.trim())) && (
-            <div className="ml-4 pl-2.5 border-l border-slate-800 mt-1 space-y-0.5">
-              {matchesSearch("Teachers Directory") && (
-                <button
-                  onClick={() => onSelectTab("teachers")}
-                  className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
-                    activeTab === "teachers"
-                      ? "bg-indigo-600/30 text-indigo-300 font-bold"
-                      : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  <Users className="w-3.5 h-3.5 text-purple-400" />
-                  <span>Teachers Directory</span>
-                </button>
-              )}
+            {(!isCollapsed && (teachersOpen || !!searchQuery.trim())) && (
+              <div className="ml-4 pl-2.5 border-l border-slate-800 mt-1 space-y-0.5">
+                {matchesSearch("Teachers Directory") && (
+                  <button
+                    onClick={() => onSelectTab("teachers")}
+                    className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                      activeTab === "teachers"
+                        ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                        : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <Users className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Teachers Directory</span>
+                  </button>
+                )}
 
-              {matchesSearch("Teacher Workspace") && (
-                <button
-                  onClick={() => onSelectTab("teacher-portal")}
-                  className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
-                    activeTab === "teacher-portal"
-                      ? "bg-indigo-600/30 text-indigo-300 font-bold"
-                      : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  <UserCheck className="w-3.5 h-3.5 text-teal-400" />
-                  <span>Teacher Workspace</span>
-                </button>
-              )}
+                {matchesSearch("Teacher Workspace") && (
+                  <button
+                    onClick={() => onSelectTab("teacher-portal")}
+                    className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                      activeTab === "teacher-portal"
+                        ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                        : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <UserCheck className="w-3.5 h-3.5 text-teal-400" />
+                    <span>Teacher Workspace</span>
+                  </button>
+                )}
 
-              {matchesSearch("Staff Management") && (
-                <button
-                  onClick={() => onSelectTab("teachers")}
-                  className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
-                    activeTab === "teachers"
-                      ? "bg-indigo-600/30 text-indigo-300 font-bold"
-                      : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Staff Management</span>
-                </button>
-              )}
+                {matchesSearch("Staff Management") && (
+                  <button
+                    onClick={() => onSelectTab("teachers")}
+                    className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                      activeTab === "teachers"
+                        ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                        : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Staff Management</span>
+                  </button>
+                )}
 
-              {matchesSearch("Subject Allocation") && (
-                <button
-                  onClick={() => onSelectTab("teachers")}
-                  className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
-                    activeTab === "teachers"
-                      ? "bg-indigo-600/30 text-indigo-300 font-bold"
-                      : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Subject Allocation</span>
-                </button>
-              )}
+                {matchesSearch("Subject Allocation") && (
+                  <button
+                    onClick={() => onSelectTab("teachers")}
+                    className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                      activeTab === "teachers"
+                        ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                        : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <BookOpen className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Subject Allocation</span>
+                  </button>
+                )}
 
-              {matchesSearch("Timetable") && (
-                <button
-                  onClick={() => onSelectTab("teachers")}
-                  className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
-                    activeTab === "teachers"
-                      ? "bg-indigo-600/30 text-indigo-300 font-bold"
-                      : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  <Calendar className="w-3.5 h-3.5 text-rose-400" />
-                  <span>Timetable & Schedule</span>
-                </button>
-              )}
+                {matchesSearch("Timetable") && (
+                  <button
+                    onClick={() => onSelectTab("teachers")}
+                    className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                      activeTab === "teachers"
+                        ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                        : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <Calendar className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Timetable & Schedule</span>
+                  </button>
+                )}
 
-              {matchesSearch("Performance") && (
-                <button
-                  onClick={() => onSelectTab("teachers")}
-                  className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
-                    activeTab === "teachers"
-                      ? "bg-indigo-600/30 text-indigo-300 font-bold"
-                      : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>Staff Performance</span>
-                </button>
-              )}
-            </div>
-          )}
-        </div>
+                {matchesSearch("Performance") && (
+                  <button
+                    onClick={() => onSelectTab("teachers")}
+                    className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                      activeTab === "teachers"
+                        ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                        : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Staff Performance</span>
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* 5. FINANCE & TUITION FEES ACCORDION */}
-        <div>
-          <button
+        {!isStudentOrParent && (
+          <div>
+            <button
             onClick={() => {
               if (isCollapsed) {
                 toggleCollapse();
@@ -732,7 +740,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </button>
               )}
 
-              {matchesSearch("Debtors") && (
+              {!isStudentOrParent && matchesSearch("Debtors") && (
                 <button
                   onClick={() => onSelectTab("finance-debtors")}
                   className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
@@ -746,7 +754,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </button>
               )}
 
-              {matchesSearch("Expenses") && (
+              {!isStudentOrParent && matchesSearch("Expenses") && (
                 <button
                   onClick={() => onSelectTab("finance-expenses")}
                   className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
@@ -760,7 +768,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </button>
               )}
 
-              {matchesSearch("Financial Reports") && (
+              {!isStudentOrParent && matchesSearch("Financial Reports") && (
                 <button
                   onClick={() => onSelectTab("finance-reports")}
                   className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
@@ -776,10 +784,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
         </div>
+        )}
 
         {/* 6. LIBRARY ACCORDION */}
-        <div>
-          <button
+        {!isStudentOrParent && (
+          <div>
+            <button
             onClick={() => {
               if (isCollapsed) {
                 toggleCollapse();
@@ -869,9 +879,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
         </div>
+        )}
 
         {/* 7. TRANSPORT & BUSES */}
-        {matchesSearch("Transport & Buses") && (
+        {!isStudentOrParent && matchesSearch("Transport & Buses") && (
           <button
             onClick={() => onSelectTab("transport")}
             title={isCollapsed ? "Transport & Buses" : undefined}
@@ -889,7 +900,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         {/* 8. HOSTEL BOARDING */}
-        {matchesSearch("Hostel Boarding") && (
+        {!isStudentOrParent && matchesSearch("Hostel Boarding") && (
           <button
             onClick={() => onSelectTab("hostel")}
             title={isCollapsed ? "Hostel Boarding" : undefined}
@@ -925,8 +936,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         {/* 10. COMMUNICATION & NOTICES ACCORDION */}
-        <div>
-          <button
+        {!isStudentOrParent && (
+          <div>
+            <button
             onClick={() => {
               if (isCollapsed) {
                 toggleCollapse();
@@ -1030,6 +1042,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
           )}
         </div>
+        )}
 
         {/* 11. DEDICATED APP SETTINGS SECTION (SUPER ADMIN & SCHOOL OWNER) */}
         {isAdminUser && (

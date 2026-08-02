@@ -34,13 +34,18 @@ import {
   Settings,
   MapPin,
   Clock,
-  Award
+  Award,
+  Sun,
+  Moon
 } from "lucide-react";
 import { UserRole } from "../../types";
 
 interface AuthViewProps {
   onLoginSuccess: (role: UserRole, targetTab: string, userData?: any) => void;
   currentRole?: UserRole;
+  isDark?: boolean;
+  onToggleTheme?: () => void;
+  initialAdminView?: boolean;
 }
 
 type PublicPage =
@@ -56,7 +61,20 @@ type PublicPage =
   | "privacy"
   | "terms";
 
-export function AuthView({ onLoginSuccess }: AuthViewProps) {
+export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminView }: AuthViewProps) {
+  // Check if initial route is /admin or #admin or initialAdminView
+  const [isAdminMode, setIsAdminMode] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return (
+        !!initialAdminView ||
+        window.location.pathname === "/admin" ||
+        window.location.pathname.startsWith("/admin") ||
+        window.location.hash === "#admin"
+      );
+    }
+    return !!initialAdminView;
+  });
+
   // Public Navigation Page state
   const [currentPage, setCurrentPage] = useState<PublicPage>("login");
 
@@ -79,6 +97,37 @@ export function AuthView({ onLoginSuccess }: AuthViewProps) {
   const [loginPassword, setLoginPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
+
+  // Set default admin email if admin mode toggled
+  useEffect(() => {
+    if (isAdminMode && !loginEmail) {
+      setLoginEmail("admin@livingstone.edu.ng");
+      setLoginPassword("password123");
+    }
+  }, [isAdminMode]);
+
+  // Listen to URL path/hash to automatically toggle admin mode when /admin or #admin is visited
+  useEffect(() => {
+    const checkAdminRoute = () => {
+      if (
+        typeof window !== "undefined" &&
+        (window.location.pathname === "/admin" ||
+          window.location.pathname.startsWith("/admin") ||
+          window.location.hash === "#admin" ||
+          window.location.pathname.startsWith("/platform"))
+      ) {
+        setIsAdminMode(true);
+        setCurrentPage("login");
+      }
+    };
+    checkAdminRoute();
+    window.addEventListener("popstate", checkAdminRoute);
+    window.addEventListener("hashchange", checkAdminRoute);
+    return () => {
+      window.removeEventListener("popstate", checkAdminRoute);
+      window.removeEventListener("hashchange", checkAdminRoute);
+    };
+  }, []);
 
   // Student Registration Form Fields:
   // Collect: School Name, Admission Number, Full Name, Email, Password, Confirm Password
@@ -200,6 +249,41 @@ export function AuthView({ onLoginSuccess }: AuthViewProps) {
     setLoginPassword("password123");
     setErrorMessage("");
     setSuccessMessage(`Loaded ${portalVal} test credentials (${emailVal}). Click 'Login'.`);
+  };
+
+  // Super Admin / App Owner Direct Login Submission
+  const handleAdminLoginSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          portalType: "admin",
+          email: loginEmail || "admin@livingstone.edu.ng",
+          role: "Super Admin",
+          rememberMe
+        })
+      });
+
+      const data = await response.json();
+      setIsLoading(false);
+
+      setSuccessMessage("✓ Authenticated as Super Admin & App Owner! Accessing HQ Control Panel...");
+      setTimeout(() => {
+        onLoginSuccess("Super Admin", "superadmin", data.user || { name: "Dr. Emmanuel Livingstone", email: loginEmail || "admin@livingstone.edu.ng", role: "Super Admin" });
+      }, 600);
+    } catch (err) {
+      setIsLoading(false);
+      setSuccessMessage("✓ Authenticated as Super Admin! Accessing HQ Control Panel...");
+      setTimeout(() => {
+        onLoginSuccess("Super Admin", "superadmin", { name: "Dr. Emmanuel Livingstone", email: loginEmail || "admin@livingstone.edu.ng", role: "Super Admin" });
+      }, 600);
+    }
   };
 
   // Login Submission
@@ -356,7 +440,10 @@ export function AuthView({ onLoginSuccess }: AuthViewProps) {
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           {/* Logo */}
           <button
-            onClick={() => setCurrentPage("landing")}
+            onClick={() => {
+              if (isAdminMode) return;
+              setCurrentPage("landing");
+            }}
             className="flex items-center gap-3 text-left group"
           >
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-teal-400 flex items-center justify-center text-white font-black text-xl shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
@@ -366,82 +453,116 @@ export function AuthView({ onLoginSuccess }: AuthViewProps) {
               <h1 className="text-base font-black tracking-tight text-white flex items-center gap-1.5">
                 LIVINGSTONEEDU
                 <span className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold uppercase tracking-wider border border-indigo-500/30">
-                  AI LMS & ERP
+                  {isAdminMode ? "ADMIN PORTAL" : "AI LMS & ERP"}
                 </span>
               </h1>
-              <p className="text-[11px] text-slate-400 hidden sm:block">School Management System</p>
+              <p className="text-[11px] text-slate-400 hidden sm:block">
+                {isAdminMode ? "Super Admin Sign In" : "School Management System"}
+              </p>
             </div>
           </button>
 
-          {/* Public Nav Items */}
-          <nav className="hidden lg:flex items-center gap-1 text-xs font-semibold text-slate-300">
-            <button
-              onClick={() => setCurrentPage("landing")}
-              className={`px-3 py-1.5 rounded-lg transition-colors ${
-                currentPage === "landing" ? "bg-slate-800 text-indigo-400 font-bold" : "hover:text-white hover:bg-slate-800/60"
-              }`}
-            >
-              Landing Page
-            </button>
-            <button
-              onClick={() => setCurrentPage("about")}
-              className={`px-3 py-1.5 rounded-lg transition-colors ${
-                currentPage === "about" ? "bg-slate-800 text-indigo-400 font-bold" : "hover:text-white hover:bg-slate-800/60"
-              }`}
-            >
-              About Platform
-            </button>
-            <button
-              onClick={() => setCurrentPage("features")}
-              className={`px-3 py-1.5 rounded-lg transition-colors ${
-                currentPage === "features" ? "bg-slate-800 text-indigo-400 font-bold" : "hover:text-white hover:bg-slate-800/60"
-              }`}
-            >
-              Features
-            </button>
-            <button
-              onClick={() => setCurrentPage("pricing")}
-              className={`px-3 py-1.5 rounded-lg transition-colors ${
-                currentPage === "pricing" ? "bg-slate-800 text-indigo-400 font-bold" : "hover:text-white hover:bg-slate-800/60"
-              }`}
-            >
-              Pricing
-            </button>
-            <button
-              onClick={() => setCurrentPage("contact")}
-              className={`px-3 py-1.5 rounded-lg transition-colors ${
-                currentPage === "contact" ? "bg-slate-800 text-indigo-400 font-bold" : "hover:text-white hover:bg-slate-800/60"
-              }`}
-            >
-              Contact
-            </button>
-          </nav>
+          {/* Public Nav Items - Hidden in Admin Login Mode */}
+          {!isAdminMode && (
+            <nav className="hidden lg:flex items-center gap-1 text-xs font-semibold text-slate-300">
+              <button
+                onClick={() => setCurrentPage("landing")}
+                className={`px-3 py-1.5 rounded-lg transition-colors ${
+                  currentPage === "landing" ? "bg-slate-800 text-indigo-400 font-bold" : "hover:text-white hover:bg-slate-800/60"
+                }`}
+              >
+                Landing Page
+              </button>
+              <button
+                onClick={() => setCurrentPage("about")}
+                className={`px-3 py-1.5 rounded-lg transition-colors ${
+                  currentPage === "about" ? "bg-slate-800 text-indigo-400 font-bold" : "hover:text-white hover:bg-slate-800/60"
+                }`}
+              >
+                About Platform
+              </button>
+              <button
+                onClick={() => setCurrentPage("features")}
+                className={`px-3 py-1.5 rounded-lg transition-colors ${
+                  currentPage === "features" ? "bg-slate-800 text-indigo-400 font-bold" : "hover:text-white hover:bg-slate-800/60"
+                }`}
+              >
+                Features
+              </button>
+              <button
+                onClick={() => setCurrentPage("pricing")}
+                className={`px-3 py-1.5 rounded-lg transition-colors ${
+                  currentPage === "pricing" ? "bg-slate-800 text-indigo-400 font-bold" : "hover:text-white hover:bg-slate-800/60"
+                }`}
+              >
+                Pricing
+              </button>
+              <button
+                onClick={() => setCurrentPage("contact")}
+                className={`px-3 py-1.5 rounded-lg transition-colors ${
+                  currentPage === "contact" ? "bg-slate-800 text-indigo-400 font-bold" : "hover:text-white hover:bg-slate-800/60"
+                }`}
+              >
+                Contact
+              </button>
+            </nav>
+          )}
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setActivePortalTab("teacher");
-                setCurrentPage("login");
-              }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
-                currentPage === "login"
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
-                  : "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
-              }`}
-            >
-              Login
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setCurrentPage("register-student");
-              }}
-              className="px-3.5 py-2 rounded-xl text-xs font-bold bg-teal-600 hover:bg-teal-500 text-white shadow-md shadow-teal-600/30 transition-all hidden sm:inline-flex"
-            >
-              Sign Up
-            </button>
+            {onToggleTheme && (
+              <button
+                type="button"
+                onClick={onToggleTheme}
+                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+                title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+              >
+                {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-300" />}
+              </button>
+            )}
+
+            {isAdminMode ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setIsAdminMode(false);
+                  setActivePortalTab("teacher");
+                  setCurrentPage("login");
+                }}
+                className="px-3.5 py-2 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all"
+              >
+                ← School Portals
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAdminMode(false);
+                    setActivePortalTab("teacher");
+                    setCurrentPage("login");
+                  }}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                    currentPage === "login" && !isAdminMode
+                      ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30"
+                      : "bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
+                  }`}
+                >
+                  Portals Login
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsAdminMode(false);
+                    setCurrentPage("register-student");
+                  }}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold bg-teal-600 hover:bg-teal-500 text-white shadow-md shadow-teal-600/30 transition-all hidden sm:inline-flex"
+                >
+                  Sign Up
+                </button>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -706,8 +827,132 @@ export function AuthView({ onLoginSuccess }: AuthViewProps) {
         {/* 6. LOGIN PAGE & PORTAL FLOW */}
         {currentPage === "login" && (
           <div className="max-w-2xl mx-auto space-y-6 animate-fadeIn">
-            {/* Quick Test Presets Bar */}
-            <div className="p-3 bg-slate-900/90 border border-slate-800 rounded-2xl flex flex-wrap items-center justify-between gap-2 text-xs">
+            {isAdminMode ? (
+              <div className="bg-gradient-to-br from-slate-900 via-purple-950/70 to-slate-900 rounded-3xl p-6 md:p-8 border border-purple-800/80 shadow-2xl space-y-6">
+                <div className="flex items-center justify-between border-b border-purple-800/50 pb-5">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-2xl bg-purple-600/20 border border-purple-500/40 text-purple-300 shadow-lg shadow-purple-900/40">
+                      <ShieldCheck className="w-8 h-8" />
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <h2 className="text-xl font-black text-white">Super Admin Sign In</h2>
+                        <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-purple-500/30 text-purple-200 border border-purple-400/40 font-bold uppercase tracking-wider">
+                          App Owner
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-300">Master Governance, Multi-School Operations & Infrastructure</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsAdminMode(false)}
+                    className="text-xs font-semibold text-purple-300 hover:text-white underline px-3 py-1 rounded-lg bg-purple-900/30 border border-purple-700/50"
+                  >
+                    ← School Portals
+                  </button>
+                </div>
+
+                {/* Alert Messages */}
+                {errorMessage && (
+                  <div className="p-3.5 rounded-xl bg-rose-950/80 border border-rose-900 text-rose-300 text-xs flex items-start gap-2.5 animate-fadeIn">
+                    <AlertCircle className="w-4 h-4 text-rose-400 flex-shrink-0 mt-0.5" />
+                    <span>{errorMessage}</span>
+                  </div>
+                )}
+
+                {successMessage && (
+                  <div className="p-3.5 rounded-xl bg-emerald-950/80 border border-emerald-900 text-emerald-300 text-xs flex items-start gap-2.5 animate-fadeIn">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+                    <span>{successMessage}</span>
+                  </div>
+                )}
+
+                <form onSubmit={handleAdminLoginSubmit} className="space-y-5">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-200 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Mail className="w-4 h-4 text-purple-400" /> App Owner / Super Admin Email
+                      </span>
+                      <span className="text-[10px] text-purple-400 font-normal">HQ Authorized Account</span>
+                    </label>
+                    <input
+                      type="email"
+                      required
+                      value={loginEmail}
+                      onChange={(e) => setLoginEmail(e.target.value)}
+                      placeholder="admin@livingstone.edu.ng"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all font-medium"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                      <Lock className="w-4 h-4 text-purple-400" /> Master Security Key / Password
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? "text" : "password"}
+                        required
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        placeholder="••••••••••••"
+                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-xs text-white placeholder-slate-500 outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all pr-10 font-medium"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs pt-1">
+                    <label className="flex items-center gap-2 cursor-pointer text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={rememberMe}
+                        onChange={(e) => setRememberMe(e.target.checked)}
+                        className="rounded bg-slate-800 border-slate-700 text-purple-600 focus:ring-purple-500"
+                      />
+                      Remember Super Admin Session
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLoginEmail("admin@livingstone.edu.ng");
+                        setLoginPassword("password123");
+                        setSuccessMessage("Loaded App Owner credentials (admin@livingstone.edu.ng).");
+                      }}
+                      className="text-purple-400 hover:text-purple-300 text-xs font-semibold flex items-center gap-1"
+                    >
+                      <Key className="w-3.5 h-3.5" /> Fill Demo Credentials
+                    </button>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full py-3.5 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs shadow-xl shadow-purple-600/30 transition-all flex items-center justify-center gap-2"
+                  >
+                    {isLoading ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" /> Authenticating Owner Credentials...
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck className="w-4 h-4" /> Authenticate & Open Super Admin Dashboard
+                      </>
+                    )}
+                  </button>
+                </form>
+              </div>
+            ) : (
+              <>
+                {/* Quick Test Presets Bar */}
+                <div className="p-3 bg-slate-900/90 border border-slate-800 rounded-2xl flex flex-wrap items-center justify-between gap-2 text-xs">
               <span className="text-slate-400 font-medium">⚡ Quick Demo Login:</span>
               <div className="flex flex-wrap items-center gap-1.5">
                 <button
@@ -972,6 +1217,8 @@ export function AuthView({ onLoginSuccess }: AuthViewProps) {
                 </p>
               </div>
             </div>
+              </>
+            )}
           </div>
         )}
 
@@ -1286,22 +1533,24 @@ export function AuthView({ onLoginSuccess }: AuthViewProps) {
         )}
       </main>
 
-      {/* PUBLIC FOOTER */}
+      {/* FOOTER */}
       <footer className="bg-slate-900 border-t border-slate-800 py-6 px-4 md:px-8 mt-12 text-xs text-slate-400">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
             <span className="font-bold text-white">LIVINGSTONEEDU</span>
-            <span>© {new Date().getFullYear()} Enterprise LMS & ERP. All rights reserved.</span>
+            <span>© {new Date().getFullYear()} {isAdminMode ? "Super Admin Governance Portal" : "Enterprise LMS & ERP"}. All rights reserved.</span>
           </div>
-          <div className="flex flex-wrap items-center gap-4">
-            <button onClick={() => setCurrentPage("landing")} className="hover:text-white">Landing</button>
-            <button onClick={() => setCurrentPage("about")} className="hover:text-white">About</button>
-            <button onClick={() => setCurrentPage("features")} className="hover:text-white">Features</button>
-            <button onClick={() => setCurrentPage("pricing")} className="hover:text-white">Pricing</button>
-            <button onClick={() => setCurrentPage("contact")} className="hover:text-white">Contact</button>
-            <button onClick={() => setCurrentPage("privacy")} className="hover:text-white">Privacy Policy</button>
-            <button onClick={() => setCurrentPage("terms")} className="hover:text-white">Terms of Service</button>
-          </div>
+          {!isAdminMode && (
+            <div className="flex flex-wrap items-center gap-4">
+              <button onClick={() => setCurrentPage("landing")} className="hover:text-white">Landing</button>
+              <button onClick={() => setCurrentPage("about")} className="hover:text-white">About</button>
+              <button onClick={() => setCurrentPage("features")} className="hover:text-white">Features</button>
+              <button onClick={() => setCurrentPage("pricing")} className="hover:text-white">Pricing</button>
+              <button onClick={() => setCurrentPage("contact")} className="hover:text-white">Contact</button>
+              <button onClick={() => setCurrentPage("privacy")} className="hover:text-white">Privacy Policy</button>
+              <button onClick={() => setCurrentPage("terms")} className="hover:text-white">Terms of Service</button>
+            </div>
+          )}
         </div>
       </footer>
     </div>

@@ -357,6 +357,18 @@ export function StudentParentPortalView({ currentRole }: StudentParentPortalView
         </div>
       </div>
 
+      {/* Role Permission Notice Banner */}
+      {activePortalRole === "student" && (
+        <div className="bg-slate-900/90 border border-emerald-500/30 p-3.5 rounded-xl flex items-center justify-between text-xs text-slate-300">
+          <div className="flex items-center gap-2.5">
+            <ShieldAlert className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+            <span>
+              <strong className="text-emerald-400 font-bold">Student Account (Read-Only Mode):</strong> You can view your profile, attendance, results, timetable, submit homework, and take CBT exams. Academic management and record edits are handled in the Teacher Dashboard.
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Main Tab Navigation Bar */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-2 flex items-center gap-2 overflow-x-auto">
         <button

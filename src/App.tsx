@@ -26,16 +26,28 @@ export default function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [currentRole, setCurrentRole] = useState<UserRole>("Teacher");
   const [userSession, setUserSession] = useState<any>(null);
-  const [isDark, setIsDark] = useState(false);
+  const [isDark, setIsDark] = useState(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("theme");
+      if (saved) return saved === "dark";
+      return (
+        document.documentElement.classList.contains("dark") ||
+        window.matchMedia("(prefers-color-scheme: dark)").matches
+      );
+    }
+    return true;
+  });
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
-  // Sync dark class on root document element
+  // Sync dark class on root document element and localStorage
   useEffect(() => {
     if (isDark) {
       document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
     } else {
       document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
     }
   }, [isDark]);
 
@@ -61,7 +73,9 @@ export default function App() {
     setIsAuthenticated(true);
     setCurrentRole(detectedRole);
     setUserSession(userData || null);
-    if (window.location.pathname === "/admin" || window.location.hash === "#admin") {
+    if (detectedRole === "Super Admin" || targetTab === "superadmin") {
+      setActiveTab("superadmin");
+    } else if (window.location.pathname === "/admin" || window.location.hash === "#admin") {
       setActiveTab("settings");
     } else {
       setActiveTab(targetTab || "dashboard");
@@ -75,13 +89,9 @@ export default function App() {
   };
 
   const renderCurrentView = () => {
-    if (!isAuthenticated) {
-      return (
-        <AuthView
-          currentRole={currentRole}
-          onLoginSuccess={handleLoginSuccess}
-        />
-      );
+    // Student or Parent role should view the Parent & Student Academic Portal alone
+    if (currentRole === "Student" || currentRole === "Parent") {
+      return <StudentParentPortalView currentRole={currentRole} />;
     }
 
     switch (true) {
@@ -93,8 +103,6 @@ export default function App() {
             onOpenAIAssistant={() => setIsAiModalOpen(true)}
           />
         );
-      case activeTab === "superadmin":
-        return <SuperAdminView />;
       case activeTab === "teacher-portal":
         return <TeacherPortalView currentRole={currentRole} />;
       case activeTab === "student-parent-portal" || activeTab === "parents":
@@ -149,18 +157,39 @@ export default function App() {
     }
   };
 
+  // 1. PUBLIC LAYOUT: Render AuthView when user is not authenticated
   if (!isAuthenticated) {
     return (
       <AuthView
         currentRole={currentRole}
         onLoginSuccess={handleLoginSuccess}
+        isDark={isDark}
+        onToggleTheme={() => setIsDark((prev) => !prev)}
       />
     );
   }
 
+  // 2. PLATFORM SUPER ADMIN LAYOUT: Completely separate layout without School Sidebar or Header
+  if (currentRole === "Super Admin" || activeTab === "superadmin") {
+    return (
+      <SuperAdminView
+        onLogout={handleLogout}
+        isDark={isDark}
+        onToggleTheme={() => setIsDark((prev) => !prev)}
+        onSwitchRole={(role) => {
+          setCurrentRole(role);
+          if (role !== "Super Admin") {
+            setActiveTab("dashboard");
+          }
+        }}
+      />
+    );
+  }
+
+  // 3. SCHOOL DASHBOARD LAYOUT: Standard layout for School Owners, Teachers, Students, Parents, Admins
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex font-sans antialiased selection:bg-indigo-500 selection:text-white transition-colors">
-      {/* Sidebar Navigation - Rendered ONLY after authentication */}
+      {/* School Sidebar Navigation */}
       <Sidebar
         activeTab={activeTab}
         onSelectTab={(tab) => setActiveTab(tab)}
@@ -175,7 +204,12 @@ export default function App() {
         {/* Top Header */}
         <Header
           currentRole={currentRole}
-          onRoleChange={(role) => setCurrentRole(role)}
+          onRoleChange={(role) => {
+            setCurrentRole(role);
+            if (role === "Super Admin") {
+              setActiveTab("superadmin");
+            }
+          }}
           isDark={isDark}
           onToggleTheme={() => setIsDark(!isDark)}
           onOpenAIAssistant={() => setIsAiModalOpen(true)}
