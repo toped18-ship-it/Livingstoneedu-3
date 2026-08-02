@@ -138,14 +138,16 @@ export const Header: React.FC<HeaderProps> = ({
           )}
         </button>
 
-        {/* Public Settings Quick Access */}
-        <button
-          onClick={() => onSelectTab("settings")}
-          className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-          title="Open Settings & System Preferences"
-        >
-          <Settings className="w-4 h-4" />
-        </button>
+        {/* Settings Quick Access (Admin Only) */}
+        {(currentRole === "Super Admin" || currentRole === "School Administrator" || currentRole === "Principal" || currentRole === "Admin") && (
+          <button
+            onClick={() => onSelectTab("settings")}
+            className="p-2 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
+            title="Open Settings & System Preferences"
+          >
+            <Settings className="w-4 h-4" />
+          </button>
+        )}
 
         {/* Auth / Sign Out Button */}
         {isAuthenticated ? (

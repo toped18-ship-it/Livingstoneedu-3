@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { lookupCurriculumTopic } from "../../data/curriculumData";
+import { WebsiteBuilderView } from "./WebsiteBuilderView";
+import { TeachersView } from "./TeachersView";
 import {
   BookOpen,
   GraduationCap,
@@ -47,14 +49,16 @@ import {
   Filter,
   ArrowUpRight,
   Sliders,
-  ShieldAlert
+  ShieldAlert,
+  Globe
 } from "lucide-react";
 
 interface TeacherPortalProps {
   currentRole?: string;
+  userSession?: any;
 }
 
-export function TeacherPortalView({ currentRole = "Teacher" }: TeacherPortalProps) {
+export function TeacherPortalView({ currentRole = "Teacher", userSession }: TeacherPortalProps) {
   const isPrincipalOrAdmin =
     currentRole === "Principal" ||
     currentRole === "Vice Principal" ||
@@ -63,7 +67,7 @@ export function TeacherPortalView({ currentRole = "Teacher" }: TeacherPortalProp
     currentRole === "Super Administrator";
 
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "student-management" | "academic-management" | "classroom-management" | "reports" | "ai-tools"
+    "dashboard" | "student-management" | "teachers-staff" | "academic-management" | "classroom-management" | "reports" | "ai-tools" | "website-builder"
   >("dashboard");
 
   // Sub-tab states
@@ -526,10 +530,12 @@ export function TeacherPortalView({ currentRole = "Teacher" }: TeacherPortalProp
         {[
           { id: "dashboard", label: "Overview", icon: BarChart2 },
           { id: "student-management", label: "Student Management", icon: Users },
+          { id: "teachers-staff", label: "Teachers & Staff", icon: UserCheck },
           { id: "academic-management", label: "Academic Operations", icon: BookOpen },
           { id: "classroom-management", label: "Classroom & Schedule", icon: Calendar },
           { id: "reports", label: "Reports & Analytics", icon: TrendingUp },
-          { id: "ai-tools", label: "AI Teaching Tools", icon: Brain }
+          { id: "ai-tools", label: "AI Teaching Tools", icon: Brain },
+          { id: "website-builder", label: "Website Builder", icon: Globe }
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -1657,6 +1663,24 @@ export function TeacherPortalView({ currentRole = "Teacher" }: TeacherPortalProp
               Send
             </button>
           </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* CATEGORY 7: WEBSITE BUILDER */}
+      {/* ========================================================= */}
+      {activeTab === "website-builder" && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-2 shadow-sm">
+          <WebsiteBuilderView currentRole={currentRole as any} />
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* CATEGORY 8: TEACHERS & STAFF DIRECTORY */}
+      {/* ========================================================= */}
+      {activeTab === "teachers-staff" && (
+        <div className="bg-white rounded-2xl border border-slate-200 p-2 shadow-sm">
+          <TeachersView />
         </div>
       )}
     </div>

@@ -10,6 +10,11 @@ export const StudentsView: React.FC = () => {
   const [selectedStudentDetail, setSelectedStudentDetail] = useState<StudentRecord | null>(null);
   const [enrollModalOpen, setEnrollModalOpen] = useState(false);
 
+  // Class Change / Promotion State (Teacher / Admin Only)
+  const [editingClass, setEditingClass] = useState("");
+  const [promotionReason, setPromotionReason] = useState("Academic Promotion");
+  const [promotionSuccessMsg, setPromotionSuccessMsg] = useState("");
+
   // New Student Form State
   const [newName, setNewName] = useState("");
   const [newClass, setNewClass] = useState("Primary 1 Gold");
@@ -17,6 +22,28 @@ export const StudentsView: React.FC = () => {
   const [newParentName, setNewParentName] = useState("");
   const [newParentPhone, setNewParentPhone] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+
+  const handlePromoteClass = async () => {
+    if (!selectedStudentDetail || !editingClass) return;
+    try {
+      await fetch(`/api/students/${selectedStudentDetail.id}/class`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          newClassLevel: editingClass,
+          changedBy: "Teacher / School Administrator",
+          reason: promotionReason
+        })
+      });
+    } catch (e) {}
+
+    setStudents(prev =>
+      prev.map(s => (s.id === selectedStudentDetail.id ? { ...s, class: editingClass } : s))
+    );
+    setSelectedStudentDetail(prev => prev ? { ...prev, class: editingClass } : null);
+    setPromotionSuccessMsg(`✓ Class updated to ${editingClass}. Change logged in audit trail.`);
+    setTimeout(() => setPromotionSuccessMsg(""), 4000);
+  };
 
   const filtered = students.filter((s) => {
     const matchesSearch =
@@ -163,10 +190,13 @@ export const StudentsView: React.FC = () => {
                 </td>
                 <td className="p-3.5 text-right">
                   <button
-                    onClick={() => setSelectedStudentDetail(st)}
+                    onClick={() => {
+                      setSelectedStudentDetail(st);
+                      setEditingClass(st.class);
+                    }}
                     className="px-2.5 py-1 text-[11px] font-semibold rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-700 dark:text-slate-300"
                   >
-                    View Profile
+                    View Profile & Class
                   </button>
                 </td>
               </tr>
@@ -223,6 +253,66 @@ export const StudentsView: React.FC = () => {
               <div className="flex justify-between">
                 <span className="text-slate-500">Academic Standing:</span>
                 <strong className="text-emerald-600 dark:text-emerald-400">Good (Active)</strong>
+              </div>
+            </div>
+
+            {/* Teacher / Admin Class Promotion Section */}
+            <div className="p-3.5 rounded-xl bg-indigo-50/50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800/50 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-indigo-900 dark:text-indigo-300">
+                  Promote / Update Student Class
+                </span>
+                <span className="text-[10px] text-slate-500 dark:text-slate-400">Teacher / Admin Only</span>
+              </div>
+
+              {promotionSuccessMsg && (
+                <div className="p-2.5 rounded-lg bg-emerald-100 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-[11px] font-semibold">
+                  {promotionSuccessMsg}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 gap-2">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Select New Class Stream:
+                  </label>
+                  <select
+                    value={editingClass || selectedStudentDetail.class}
+                    onChange={(e) => setEditingClass(e.target.value)}
+                    className="w-full px-3 py-1.5 text-xs rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white"
+                  >
+                    <optgroup label="Nursery">
+                      <option value="Nursery 1">Nursery 1</option>
+                      <option value="Nursery 2">Nursery 2</option>
+                    </optgroup>
+                    <optgroup label="Primary">
+                      <option value="Primary 1">Primary 1</option>
+                      <option value="Primary 2">Primary 2</option>
+                      <option value="Primary 3">Primary 3</option>
+                      <option value="Primary 4">Primary 4</option>
+                      <option value="Primary 5">Primary 5</option>
+                      <option value="Primary 6">Primary 6</option>
+                    </optgroup>
+                    <optgroup label="Junior Secondary">
+                      <option value="JSS 1">JSS 1</option>
+                      <option value="JSS 2">JSS 2</option>
+                      <option value="JSS 3">JSS 3</option>
+                    </optgroup>
+                    <optgroup label="Senior Secondary">
+                      <option value="SS1">SS1</option>
+                      <option value="SS2">SS2</option>
+                      <option value="SS3">SS3</option>
+                    </optgroup>
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handlePromoteClass}
+                  className="w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-sm transition-all flex items-center justify-center gap-1.5"
+                >
+                  <Check className="w-4 h-4" /> Save Class Change & Log Audit
+                </button>
               </div>
             </div>
 

@@ -43,9 +43,13 @@ import {
 import { LessonNote, ALL_CLASSES, getSubjectsForClass } from "../../types";
 import { lookupCurriculumTopic, CURRICULUM_DATABASE, CurriculumTopic } from "../../data/curriculumData";
 
-export const AILessonNotesView: React.FC = () => {
+interface AILessonNotesViewProps {
+  userSession?: any;
+}
+
+export const AILessonNotesView: React.FC<AILessonNotesViewProps> = ({ userSession }) => {
   // 1. Selector State
-  const [schoolName, setSchoolName] = useState("Livingstone International Academy");
+  const [schoolName, setSchoolName] = useState(userSession?.schoolName || "Destiny Way International Group of Schools");
   const [teacherName, setTeacherName] = useState("Mrs. Okonkwo Beatrice");
   const [academicSession, setAcademicSession] = useState("2026/2027");
   const [country, setCountry] = useState("Nigeria");

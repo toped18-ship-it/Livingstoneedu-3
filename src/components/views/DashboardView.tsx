@@ -21,15 +21,19 @@ import {
 
 interface DashboardViewProps {
   currentRole: UserRole;
+  userSession?: any;
   onSelectTab: (tab: ActiveTab) => void;
   onOpenAIAssistant: () => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
   currentRole,
+  userSession,
   onSelectTab,
   onOpenAIAssistant,
 }) => {
+  const currentSchoolName = userSession?.schoolName || "Destiny Way International Group of Schools";
+
   return (
     <div className="space-y-6">
       {/* Welcome Banner with Role Context & AI Insight */}
@@ -37,9 +41,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="absolute top-0 right-0 translate-x-12 -translate-y-12 w-64 h-64 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
               <span className="px-2.5 py-0.5 rounded-full bg-indigo-400/20 text-indigo-200 text-xs font-semibold border border-indigo-300/30">
                 LIVINGSTONEEDU v3.6
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-xs font-bold border border-amber-300/30">
+                School: {currentSchoolName}
               </span>
               <span className="text-xs text-indigo-300">
                 1st Term 2026/2027 Academic Session

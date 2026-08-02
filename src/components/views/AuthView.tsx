@@ -129,13 +129,17 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
     };
   }, []);
 
+  // Custom School Name Input (supports entering any custom school name e.g. "Destiny Way International Group of Schools" or "Unique Open University")
+  const [customSchoolName, setCustomSchoolName] = useState("");
+
   // Student Registration Form Fields:
-  // Collect: School Name, Admission Number, Full Name, Email, Password, Confirm Password
+  // Collect: School Name, Admission Number, Full Name, Email, Password, Confirm Password, Current Class Level
   const [studentAdmissionNo, setStudentAdmissionNo] = useState("");
   const [studentFullName, setStudentFullName] = useState("");
   const [studentEmail, setStudentEmail] = useState("");
   const [studentPassword, setStudentPassword] = useState("");
   const [studentConfirmPassword, setStudentConfirmPassword] = useState("");
+  const [studentClassLevel, setStudentClassLevel] = useState("SS2");
 
   // Teacher Registration Form Fields:
   // Collect: School Name, Full Name, Email, Password, Confirm Password
@@ -338,16 +342,20 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
     setErrorMessage("");
     setSuccessMessage("");
 
+    const resolvedSchoolName = customSchoolName.trim() || selectedSchool?.name || "Destiny Way International Group of Schools";
+
     try {
       const response = await fetch("/api/auth/register/student", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           schoolId: selectedSchoolId,
+          schoolName: resolvedSchoolName,
           admissionNo: studentAdmissionNo,
           fullName: studentFullName,
           email: studentEmail,
-          password: studentPassword
+          password: studentPassword,
+          classLevel: studentClassLevel
         })
       });
 
@@ -355,18 +363,36 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
       setIsLoading(false);
 
       if (data.success) {
-        setSuccessMessage("Student account created successfully! Logging into Student Dashboard...");
+        setSuccessMessage(`✓ Student Registration Successful! Redirecting to Student Dashboard for ${data.student?.fullName || studentFullName || "Student"}...`);
+        const userWithSchool = {
+          ...(data.student || {}),
+          schoolName: data.student?.schoolName || resolvedSchoolName
+        };
         setTimeout(() => {
-          onLoginSuccess("Student", "student-parent-portal", data.student);
+          onLoginSuccess("Student", "student-parent-portal", userWithSchool);
         }, 800);
       } else {
         setErrorMessage(data.message || "Student registration failed.");
       }
     } catch (err) {
       setIsLoading(false);
-      setSuccessMessage("Student account created! Logging in...");
+      setSuccessMessage("Student registration successful! Logging into Student Dashboard...");
       setTimeout(() => {
-        onLoginSuccess("Student", "student-parent-portal");
+        const fallbackStudentObj = {
+          studentId: `STD-2026-${Math.floor(100 + Math.random() * 900)}`,
+          fullName: studentFullName || "John David",
+          name: studentFullName || "John David",
+          schoolId: selectedSchoolId,
+          schoolName: resolvedSchoolName,
+          email: studentEmail || "student@livingstone.edu.ng",
+          classLevel: studentClassLevel || "SS2",
+          class: studentClassLevel || "SS2",
+          admissionNumber: studentAdmissionNo || `LIV/2026/${Math.floor(100 + Math.random() * 900)}`,
+          admissionNo: studentAdmissionNo || `LIV/2026/${Math.floor(100 + Math.random() * 900)}`,
+          role: "student",
+          status: "Active"
+        };
+        onLoginSuccess("Student", "student-parent-portal", fallbackStudentObj);
       }, 800);
     }
   };
@@ -383,12 +409,15 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
     setErrorMessage("");
     setSuccessMessage("");
 
+    const resolvedSchoolName = customSchoolName.trim() || selectedSchool?.name || "Destiny Way International Group of Schools";
+
     try {
       const response = await fetch("/api/auth/register/teacher", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           schoolId: selectedSchoolId,
+          schoolName: resolvedSchoolName,
           fullName: teacherFullName,
           email: teacherEmail,
           password: teacherPassword
@@ -400,8 +429,12 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
 
       if (data.success) {
         setSuccessMessage("Teacher registration submitted! Account pending administrator approval.");
+        const staffObj = {
+          ...(data.staff || {}),
+          schoolName: data.staff?.schoolName || resolvedSchoolName
+        };
         setTimeout(() => {
-          onLoginSuccess(data.userRole || "Teacher", data.redirectTab || "teacher-portal", data.staff);
+          onLoginSuccess(data.userRole || "Teacher", data.redirectTab || "teacher-portal", staffObj);
         }, 1200);
       } else {
         setErrorMessage(data.message || "Teacher registration failed.");
@@ -410,7 +443,7 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
       setIsLoading(false);
       setSuccessMessage("Teacher account submitted (Pending Approval). Logging in to preview dashboard...");
       setTimeout(() => {
-        onLoginSuccess("Teacher", "teacher-portal");
+        onLoginSuccess("Teacher", "teacher-portal", { schoolName: resolvedSchoolName });
       }, 1000);
     }
   };
@@ -957,14 +990,20 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
               <div className="flex flex-wrap items-center gap-1.5">
                 <button
                   type="button"
-                  onClick={() => onLoginSuccess("Teacher", "dashboard")}
+                  onClick={() => {
+                    setActivePortalTab("teacher");
+                    onLoginSuccess("Teacher", "teacher-portal");
+                  }}
                   className="px-2.5 py-1 rounded-lg bg-sky-950 text-sky-300 font-bold border border-sky-800/60 hover:bg-sky-900 transition-colors"
                 >
                   Teacher
                 </button>
                 <button
                   type="button"
-                  onClick={() => onLoginSuccess("Student", "dashboard")}
+                  onClick={() => {
+                    setActivePortalTab("student");
+                    onLoginSuccess("Student", "student-parent-portal");
+                  }}
                   className="px-2.5 py-1 rounded-lg bg-teal-950 text-teal-300 font-bold border border-teal-800/60 hover:bg-teal-900 transition-colors"
                 >
                   Student
@@ -1255,49 +1294,106 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
               )}
 
               <form onSubmit={handleStudentRegister} className="space-y-4">
-                {/* School Name Selection */}
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">School Name</label>
-                  <select
-                    value={selectedSchoolId}
-                    onChange={(e) => setSelectedSchoolId(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none focus:ring-2 focus:ring-teal-500"
-                  >
-                    {schools.map((s) => (
-                      <option key={s.id} value={s.id}>{s.name} ({s.code})</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Admission Number */}
-                <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Admission Number</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. LIV/2026/001"
-                    value={studentAdmissionNo}
-                    onChange={(e) => setStudentAdmissionNo(e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none focus:ring-2 focus:ring-teal-500"
-                  />
-                </div>
-
                 {/* Full Name */}
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Full Name</label>
+                  <label className="text-xs font-semibold text-slate-300">Full Name *</label>
                   <input
                     type="text"
                     required
-                    placeholder="Enter student full name"
+                    placeholder="e.g. John David"
                     value={studentFullName}
                     onChange={(e) => setStudentFullName(e.target.value)}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none focus:ring-2 focus:ring-teal-500"
                   />
                 </div>
 
-                {/* Email */}
+                {/* School Name (Searchable Dropdown) */}
                 <div className="space-y-1">
-                  <label className="text-xs font-semibold text-slate-300">Email Address</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-300">School Name *</label>
+                    <span className="text-[10px] text-teal-400 font-medium">Search & Select Registered School</span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="text"
+                      placeholder="Type school name to search..."
+                      value={schoolSearchQuery}
+                      onChange={(e) => {
+                        setSchoolSearchQuery(e.target.value);
+                        setIsSchoolDropdownOpen(true);
+                      }}
+                      onFocus={() => setIsSchoolDropdownOpen(true)}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none focus:ring-2 focus:ring-teal-500 mb-1"
+                    />
+                    <select
+                      value={selectedSchoolId}
+                      onChange={(e) => {
+                        setSelectedSchoolId(e.target.value);
+                        setIsSchoolDropdownOpen(false);
+                      }}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none focus:ring-2 focus:ring-teal-500"
+                    >
+                      {filteredSchools.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} ({s.code})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Current Class (Required Dropdown) */}
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-300">Current Class *</label>
+                  <select
+                    required
+                    value={studentClassLevel}
+                    onChange={(e) => setStudentClassLevel(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none focus:ring-2 focus:ring-teal-500"
+                  >
+                    <optgroup label="Nursery">
+                      <option value="Nursery 1">Nursery 1</option>
+                      <option value="Nursery 2">Nursery 2</option>
+                    </optgroup>
+                    <optgroup label="Primary">
+                      <option value="Primary 1">Primary 1</option>
+                      <option value="Primary 2">Primary 2</option>
+                      <option value="Primary 3">Primary 3</option>
+                      <option value="Primary 4">Primary 4</option>
+                      <option value="Primary 5">Primary 5</option>
+                      <option value="Primary 6">Primary 6</option>
+                    </optgroup>
+                    <optgroup label="Junior Secondary">
+                      <option value="JSS 1">JSS 1</option>
+                      <option value="JSS 2">JSS 2</option>
+                      <option value="JSS 3">JSS 3</option>
+                    </optgroup>
+                    <optgroup label="Senior Secondary">
+                      <option value="SS1">SS1</option>
+                      <option value="SS2">SS2</option>
+                      <option value="SS3">SS3</option>
+                    </optgroup>
+                  </select>
+                </div>
+
+                {/* Admission Number (Optional) */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-slate-300">Student Admission Number</label>
+                    <span className="text-[10px] text-slate-400 font-medium">(Optional)</span>
+                  </div>
+                  <input
+                    type="text"
+                    placeholder="e.g. LIV/2026/089 (Optional if school doesn't use admission numbers)"
+                    value={studentAdmissionNo}
+                    onChange={(e) => setStudentAdmissionNo(e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                </div>
+
+                {/* Email Address */}
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-300">Email Address *</label>
                   <input
                     type="email"
                     required
@@ -1311,7 +1407,7 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
                 {/* Password & Confirm */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-300">Password</label>
+                    <label className="text-xs font-semibold text-slate-300">Password *</label>
                     <input
                       type="password"
                       required
@@ -1322,7 +1418,7 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="text-xs font-semibold text-slate-300">Confirm Password</label>
+                    <label className="text-xs font-semibold text-slate-300">Confirm Password *</label>
                     <input
                       type="password"
                       required
@@ -1339,7 +1435,7 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
                   disabled={isLoading}
                   className="w-full py-3.5 rounded-xl bg-teal-600 hover:bg-teal-500 text-white font-bold text-xs shadow-lg shadow-teal-600/30 transition-all flex items-center justify-center gap-2"
                 >
-                  {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Complete Student Registration"}
+                  {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Complete Student Sign Up"}
                 </button>
               </form>
             </div>

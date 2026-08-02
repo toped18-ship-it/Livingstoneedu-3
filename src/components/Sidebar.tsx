@@ -152,8 +152,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     currentRole === "School Administrator" ||
     currentRole === "Principal" ||
     currentRole === "Admin";
-  const isSuperAdmin = currentRole === "Super Administrator";
+  const isSuperAdmin = currentRole === "Super Administrator" || currentRole === "Super Admin";
   const isStudentOrParent = currentRole === "Student" || currentRole === "Parent";
+  const isTeacher = currentRole === "Teacher" || currentRole === "Class Teacher" || currentRole === "Subject Teacher";
 
   // Filter helper for search
   const matchesSearch = (text: string) => {
@@ -603,6 +604,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </button>
                 )}
 
+                {matchesSearch("Website Builder") && (
+                  <button
+                    onClick={() => onSelectTab("website-builder")}
+                    className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                      activeTab === "website-builder"
+                        ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                        : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <Globe className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>School Website Builder</span>
+                  </button>
+                )}
+
                 {matchesSearch("Staff Management") && (
                   <button
                     onClick={() => onSelectTab("teachers")}
@@ -664,7 +679,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         )}
 
         {/* 5. FINANCE & TUITION FEES ACCORDION */}
-        {!isStudentOrParent && (
+        {!isStudentOrParent && !isTeacher && (
           <div>
             <button
             onClick={() => {

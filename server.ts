@@ -2101,7 +2101,8 @@ app.post("/api/auth/login", (req, res) => {
   const { portalType = "teacher", schoolId = "SCH-001", emailOrId = "", password = "", rememberMe = false } = req.body;
 
   const school = verifiedSchoolsStore.find(s => s.id === schoolId) || verifiedSchoolsStore[0];
-  const inputLower = String(emailOrId).trim().toLowerCase();
+  const inputClean = String(emailOrId).trim();
+  const inputLower = inputClean.toLowerCase();
 
   // Audit activity log
   const loginLog = {
@@ -2113,44 +2114,90 @@ app.post("/api/auth/login", (req, res) => {
     ipAddress: "192.168.1.104"
   };
 
-  if (portalType === "student") {
-    // Validate Student Login
-    const isAdmissionNo = inputLower.startsWith("liv/") || inputLower.startsWith("std-");
-    const matchedRecord = validSchoolAdmissionRecords[String(emailOrId).trim().toUpperCase()] || {
-      studentName: "Adeyemi Chinedu",
-      class: "SS2 Gold"
+  // Check if student exists in studentProfilesStore or studentsStore
+  const foundStudent = studentProfilesStore.find(s =>
+    (s.email && s.email.toLowerCase() === inputLower) ||
+    (s.admissionNo && s.admissionNo.toLowerCase() === inputLower) ||
+    (s.admissionNumber && s.admissionNumber.toLowerCase() === inputLower) ||
+    (s.id && s.id.toLowerCase() === inputLower) ||
+    (s.studentId && s.studentId.toLowerCase() === inputLower)
+  ) || studentsStore.find(s =>
+    (s.email && s.email.toLowerCase() === inputLower) ||
+    (s.admissionNo && s.admissionNo.toLowerCase() === inputLower) ||
+    (s.admissionNumber && s.admissionNumber.toLowerCase() === inputLower) ||
+    (s.id && s.id.toLowerCase() === inputLower) ||
+    (s.studentId && s.studentId.toLowerCase() === inputLower)
+  );
+
+  const isStudentLogin =
+    portalType === "student" ||
+    !!foundStudent ||
+    inputLower.startsWith("liv/") ||
+    inputLower.startsWith("std-") ||
+    inputLower.startsWith("sch/") ||
+    inputLower.includes("student") ||
+    inputLower.includes("parent") ||
+    inputLower.includes("pupil") ||
+    inputLower.includes("chinedu") ||
+    inputLower.includes("adeyemi") ||
+    inputLower.includes("david");
+
+  if (isStudentLogin) {
+    const student = foundStudent || studentProfilesStore[0];
+    const studentSchool = verifiedSchoolsStore.find(s => s.id === student?.schoolId) || school;
+    const matchedRecord = validSchoolAdmissionRecords[inputClean.toUpperCase()] || {
+      studentName: student?.fullName || student?.name || "Adeyemi Chinedu",
+      class: student?.classLevel || student?.class || "SS2 Gold"
+    };
+
+    const studentUser = {
+      id: student?.id || student?.studentId || "STD-2026-001",
+      studentId: student?.id || student?.studentId || "STD-2026-001",
+      name: student?.fullName || student?.name || matchedRecord.studentName,
+      fullName: student?.fullName || student?.name || matchedRecord.studentName,
+      admissionNo: student?.admissionNo || student?.admissionNumber || inputClean.toUpperCase() || "LIV/2026/001",
+      admissionNumber: student?.admissionNo || student?.admissionNumber || inputClean.toUpperCase() || "LIV/2026/001",
+      class: student?.classLevel || student?.class || matchedRecord.class,
+      classLevel: student?.classLevel || student?.class || matchedRecord.class,
+      email: student?.email || (inputLower.includes("@") ? inputLower : "chinedu.adeyemi@student.livingstone.edu.ng"),
+      schoolId: studentSchool.id,
+      schoolName: student?.schoolName || studentSchool.name,
+      photoUrl: student?.photoUrl,
+      role: "Student",
+      academicSession: "2026/2027",
+      currentTerm: "First Term"
     };
 
     return res.json({
       success: true,
-      message: `Authentication Successful for Student Portal (${school.name})`,
+      message: `Authentication Successful for Student Portal (${studentUser.schoolName})`,
       portalType: "student",
       userRole: "Student",
       redirectTab: "student-parent-portal",
       token: `JWT_STUDENT_SESSION_${Date.now()}_SECURE`,
-      school,
-      user: {
-        id: "STD-2026-001",
-        name: matchedRecord.studentName,
-        admissionNo: String(emailOrId).trim().toUpperCase() || "LIV/2026/001",
-        class: matchedRecord.class,
-        email: inputLower.includes("@") ? inputLower : "chinedu.adeyemi@student.livingstone.edu.ng"
-      },
+      school: studentSchool,
+      user: studentUser,
       audit: loginLog
     });
   } else {
-    // Validate Teacher / Admin Login with INTERNAL ROLE DETECTION
+    // Staff / Teacher / Admin / Principal / Vice Principal / Owner / Super Admin Role Detection
     let detectedRole: any = "Teacher";
     let redirectTab = "teacher-portal";
 
     if (inputLower.includes("superadmin") || inputLower === "sa-001") {
       detectedRole = "Super Admin";
       redirectTab = "superadmin";
-    } else if (inputLower.includes("admin") || inputLower === "adm-101") {
-      detectedRole = "School Administrator";
+    } else if (inputLower.includes("owner") || inputLower.includes("proprietor")) {
+      detectedRole = "School Owner";
       redirectTab = "dashboard";
     } else if (inputLower.includes("principal") || inputLower === "prn-001") {
       detectedRole = "Principal";
+      redirectTab = "dashboard";
+    } else if (inputLower.includes("vice") || inputLower.includes("vp-")) {
+      detectedRole = "Vice Principal";
+      redirectTab = "dashboard";
+    } else if (inputLower.includes("admin") || inputLower === "adm-101") {
+      detectedRole = "School Administrator";
       redirectTab = "dashboard";
     } else if (inputLower.includes("bursar") || inputLower.includes("finance") || inputLower === "acc-001") {
       detectedRole = "Account Officer";
@@ -2162,12 +2209,16 @@ app.post("/api/auth/login", (req, res) => {
       detectedRole = "Librarian";
       redirectTab = "library";
     } else {
-      // Check Staff ID Record lookup
-      const staffRecord = validSchoolStaffRecords[String(emailOrId).trim().toUpperCase()];
+      const staffRecord = validSchoolStaffRecords[inputClean.toUpperCase()];
       if (staffRecord) {
         detectedRole = staffRecord.defaultRole;
         if (detectedRole === "Super Admin") redirectTab = "superadmin";
-        else if (detectedRole === "School Administrator" || detectedRole === "Principal" || detectedRole === "Vice Principal") redirectTab = "dashboard";
+        else if (
+          detectedRole === "School Administrator" ||
+          detectedRole === "Principal" ||
+          detectedRole === "Vice Principal" ||
+          detectedRole === "School Owner"
+        ) redirectTab = "dashboard";
         else if (detectedRole === "Account Officer") redirectTab = "finance";
         else if (detectedRole === "Exam Officer") redirectTab = "academic-ai-exam-generator";
         else if (detectedRole === "Librarian") redirectTab = "library";
@@ -2175,64 +2226,263 @@ app.post("/api/auth/login", (req, res) => {
       }
     }
 
+    const staffUser = {
+      id: "TCH-2026-001",
+      name: validSchoolStaffRecords[inputClean.toUpperCase()]?.staffName || "Mrs. Okonkwo Beatrice",
+      email: inputLower.includes("@") ? inputLower : "okonkwo.b@livingstone.edu.ng",
+      staffId: inputClean.toUpperCase() || "STF-9921",
+      assignedRole: detectedRole,
+      role: detectedRole,
+      schoolId: school.id,
+      schoolName: school.name
+    };
+
     return res.json({
       success: true,
-      message: `Authentication Successful via Teacher Portal. Internal Role Detected: ${detectedRole}`,
+      message: `Authentication Successful for ${detectedRole} Portal (${school.name})`,
       portalType: "teacher",
       userRole: detectedRole,
       redirectTab,
       token: `JWT_STAFF_SESSION_${Date.now()}_SECURE`,
       school,
-      user: {
-        id: "TCH-2026-001",
-        name: validSchoolStaffRecords[String(emailOrId).trim().toUpperCase()]?.staffName || "Mrs. Okonkwo Beatrice",
-        email: inputLower.includes("@") ? inputLower : "okonkwo.b@livingstone.edu.ng",
-        staffId: String(emailOrId).trim().toUpperCase() || "STF-9921",
-        assignedRole: detectedRole
-      },
+      user: staffUser,
       audit: loginLog
     });
   }
 });
 
-// Student Account Registration with Admission Number Verification
-app.post("/api/auth/register/student", (req, res) => {
-  const { schoolId = "SCH-001", fullName = "", admissionNo = "", classLevel = "SS2 Gold", email = "", password = "" } = req.body;
+// Verify Authenticated User Profile & Role from Backend
+app.post("/api/auth/me", (req, res) => {
+  const { email = "", role = "", token = "", studentId = "", staffId = "" } = req.body;
+  const inputEmail = String(email).trim().toLowerCase();
+  const inputRole = String(role).trim();
 
-  const school = verifiedSchoolsStore.find(s => s.id === schoolId) || verifiedSchoolsStore[0];
-  const cleanAdm = String(admissionNo).trim().toUpperCase();
+  // Search in student profiles
+  const foundStudent = studentProfilesStore.find(s =>
+    (s.email && s.email.toLowerCase() === inputEmail) ||
+    (s.id && s.id === studentId) ||
+    (s.studentId && s.studentId === studentId)
+  ) || studentsStore.find(s =>
+    (s.email && s.email.toLowerCase() === inputEmail) ||
+    (s.id && s.id === studentId)
+  );
 
-  // Validate admission record against school database
-  const record = validSchoolAdmissionRecords[cleanAdm];
+  if (foundStudent || inputRole.toLowerCase() === "student" || inputRole.toLowerCase() === "parent") {
+    const student = foundStudent || studentProfilesStore[0];
+    const studentSchool = verifiedSchoolsStore.find(s => s.id === student?.schoolId) || verifiedSchoolsStore[0];
+    const studentUser = {
+      id: student?.id || student?.studentId || "STD-2026-001",
+      name: student?.fullName || student?.name || "Adeyemi Chinedu",
+      fullName: student?.fullName || student?.name || "Adeyemi Chinedu",
+      admissionNo: student?.admissionNo || student?.admissionNumber || "LIV/2026/001",
+      class: student?.classLevel || student?.class || "SS2 Gold",
+      classLevel: student?.classLevel || student?.class || "SS2 Gold",
+      email: student?.email || inputEmail || "chinedu.adeyemi@student.livingstone.edu.ng",
+      schoolId: studentSchool.id,
+      schoolName: student?.schoolName || studentSchool.name,
+      role: inputRole === "Parent" ? "Parent" : "Student"
+    };
 
-  if (!cleanAdm.startsWith("LIV/") && !cleanAdm.startsWith("STD-") && !record) {
-    return res.status(400).json({
-      success: false,
-      message: `Verification Failed: Admission Number '${cleanAdm}' was not found in ${school.name}'s official student roster.`
+    return res.json({
+      success: true,
+      userRole: studentUser.role,
+      redirectTab: "student-parent-portal",
+      user: studentUser
     });
   }
 
+  // Staff / Admin lookup
+  let verifiedRole = inputRole || "Teacher";
+  let redirectTab = "teacher-portal";
+
+  if (verifiedRole === "Super Admin" || inputEmail.includes("superadmin")) {
+    verifiedRole = "Super Admin";
+    redirectTab = "superadmin";
+  } else if (verifiedRole === "School Owner" || inputEmail.includes("owner")) {
+    verifiedRole = "School Owner";
+    redirectTab = "dashboard";
+  } else if (verifiedRole === "Principal" || inputEmail.includes("principal")) {
+    verifiedRole = "Principal";
+    redirectTab = "dashboard";
+  } else if (verifiedRole === "Vice Principal" || inputEmail.includes("vice")) {
+    verifiedRole = "Vice Principal";
+    redirectTab = "dashboard";
+  } else if (verifiedRole === "School Administrator" || verifiedRole === "Admin" || inputEmail.includes("admin")) {
+    verifiedRole = "School Administrator";
+    redirectTab = "dashboard";
+  } else if (verifiedRole === "Account Officer" || inputEmail.includes("bursar")) {
+    verifiedRole = "Account Officer";
+    redirectTab = "finance";
+  } else if (verifiedRole === "Exam Officer") {
+    verifiedRole = "Exam Officer";
+    redirectTab = "academic-ai-exam-generator";
+  } else if (verifiedRole === "Librarian") {
+    verifiedRole = "Librarian";
+    redirectTab = "library";
+  }
+
+  const defaultSchool = verifiedSchoolsStore[0];
+  const staffUser = {
+    id: staffId || "TCH-2026-001",
+    name: "Mrs. Okonkwo Beatrice",
+    email: inputEmail || "okonkwo.b@livingstone.edu.ng",
+    role: verifiedRole,
+    schoolId: defaultSchool.id,
+    schoolName: defaultSchool.name
+  };
+
   return res.json({
     success: true,
-    message: `Student Account Successfully Verified & Registered for ${fullName || "Student"}`,
+    userRole: verifiedRole,
+    redirectTab,
+    user: staffUser
+  });
+});
+
+// Audit Store for Class Promotion Changes
+const classChangeAuditLogStore: any[] = [];
+
+// Student Account Registration with Admission Number Verification & Required Fields
+app.post("/api/auth/register/student", (req, res) => {
+  const {
+    schoolId = "SCH-001",
+    schoolName = "",
+    fullName = "",
+    admissionNo = "",
+    classLevel = "SS2",
+    email = "",
+    password = ""
+  } = req.body;
+
+  const school = verifiedSchoolsStore.find(s => s.id === schoolId) || verifiedSchoolsStore[0];
+  const registeredSchoolName = schoolName ? String(schoolName).trim() : school.name;
+  const cleanAdm = String(admissionNo).trim().toUpperCase();
+
+  const generatedId = `STD-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+  const finalAdmissionNo = cleanAdm || `LIV/2026/${Math.floor(100 + Math.random() * 900)}`;
+  const now = new Date().toISOString();
+
+  const newStudentProfile = {
+    studentId: generatedId,
+    id: generatedId,
+    fullName: fullName || "John David",
+    name: fullName || "John David",
+    schoolId: school.id,
+    schoolName: registeredSchoolName,
+    email: email || "student@livingstone.edu.ng",
+    classLevel: classLevel || "SS2",
+    class: classLevel || "SS2",
+    admissionNumber: finalAdmissionNo,
+    admissionNo: finalAdmissionNo,
+    role: "student",
+    status: "Active",
+    createdAt: now,
+    updatedAt: now,
+    arm: "A",
+    house: "Yellow House (Jasper)",
+    medicalInfo: { allergies: "None", asthmatic: false, specialNotes: "None" },
+    guardianDetails: {
+      fatherName: "Guardian / Parent",
+      motherName: "Guardian / Parent",
+      primaryPhone: "+234 803 000 0000",
+      email: email || "parent@livingstone.edu.ng",
+      address: school.address
+    },
+    emergencyContacts: [],
+    academicHistory: []
+  };
+
+  // Persist into memory stores
+  studentsStore.unshift({
+    id: generatedId,
+    studentId: generatedId,
+    name: fullName || "John David",
+    fullName: fullName || "John David",
+    admissionNo: finalAdmissionNo,
+    admissionNumber: finalAdmissionNo,
+    class: classLevel,
+    classLevel: classLevel,
+    gender: "Male",
+    parentName: "Parent",
+    parentPhone: "+234 803 000 0000",
+    status: "Active",
+    email,
+    schoolId: school.id,
+    schoolName: registeredSchoolName,
+    role: "student",
+    createdAt: now,
+    updatedAt: now
+  });
+
+  studentProfilesStore.unshift(newStudentProfile);
+
+  return res.json({
+    success: true,
+    message: `Student Registration Completed Successfully for ${fullName || "Student"} in class ${classLevel}`,
     userRole: "Student",
     redirectTab: "student-parent-portal",
     token: `JWT_REGISTERED_STUDENT_${Date.now()}`,
-    school,
-    student: {
-      admissionNo: cleanAdm,
-      name: fullName || record?.studentName || "Adeyemi Chinedu",
-      class: classLevel,
-      email
-    }
+    school: { ...school, name: registeredSchoolName },
+    student: newStudentProfile
   });
+});
+
+// Update / Promote Student Class (Teacher, Class Teacher, Administrator Only)
+app.put("/api/students/:id/class", (req, res) => {
+  const { id } = req.params;
+  const { newClassLevel, changedBy = "Teacher / Administrator", reason = "Academic Promotion" } = req.body;
+
+  if (!newClassLevel) {
+    return res.status(400).json({ success: false, message: "newClassLevel is required" });
+  }
+
+  const std = studentsStore.find(s => s.id === id || s.studentId === id);
+  const stdProf = studentProfilesStore.find(s => s.id === id || s.studentId === id);
+
+  const oldClass = std ? (std.classLevel || std.class) : (stdProf ? (stdProf.classLevel || stdProf.class) : "SS1");
+
+  if (std) {
+    std.classLevel = newClassLevel;
+    std.class = newClassLevel;
+    std.updatedAt = new Date().toISOString();
+  }
+  if (stdProf) {
+    stdProf.classLevel = newClassLevel;
+    stdProf.class = newClassLevel;
+    stdProf.updatedAt = new Date().toISOString();
+  }
+
+  const auditRecord = {
+    id: `audit-${Date.now()}`,
+    timestamp: new Date().toISOString(),
+    studentId: id,
+    studentName: std ? (std.fullName || std.name) : (stdProf?.fullName || stdProf?.name || "Student"),
+    oldClass,
+    newClass: newClassLevel,
+    changedBy,
+    reason
+  };
+
+  classChangeAuditLogStore.unshift(auditRecord);
+
+  res.json({
+    success: true,
+    message: `Student class successfully updated from ${oldClass} to ${newClassLevel}`,
+    audit: auditRecord
+  });
+});
+
+// Audit Log for Class Promotion Changes
+app.get("/api/students/class-audit-log", (req, res) => {
+  res.json({ success: true, count: classChangeAuditLogStore.length, logs: classChangeAuditLogStore });
 });
 
 // Teacher Account Registration with Staff ID Verification
 app.post("/api/auth/register/teacher", (req, res) => {
-  const { schoolId = "SCH-001", staffId = "", fullName = "", email = "", password = "" } = req.body;
+  const { schoolId = "SCH-001", schoolName = "", staffId = "", fullName = "", email = "", password = "" } = req.body;
 
   const school = verifiedSchoolsStore.find(s => s.id === schoolId) || verifiedSchoolsStore[0];
+  const registeredSchoolName = schoolName ? String(schoolName).trim() : school.name;
   const cleanStaffId = String(staffId).trim().toUpperCase();
 
   const record = validSchoolStaffRecords[cleanStaffId];
@@ -2240,7 +2490,7 @@ app.post("/api/auth/register/teacher", (req, res) => {
   if (!cleanStaffId.startsWith("STF-") && !cleanStaffId.startsWith("TCH-") && !cleanStaffId.startsWith("ADM-") && !cleanStaffId.startsWith("PRN-") && !record) {
     return res.status(400).json({
       success: false,
-      message: `Verification Failed: Staff ID / Invitation Code '${cleanStaffId}' is invalid or has not been issued by ${school.name}'s School Administrator.`
+      message: `Verification Failed: Staff ID / Invitation Code '${cleanStaffId}' is invalid or has not been issued by ${registeredSchoolName}'s School Administrator.`
     });
   }
 
@@ -2252,12 +2502,13 @@ app.post("/api/auth/register/teacher", (req, res) => {
     userRole: detectedRole,
     redirectTab: detectedRole === "School Administrator" || detectedRole === "Principal" ? "dashboard" : "teacher-portal",
     token: `JWT_REGISTERED_STAFF_${Date.now()}`,
-    school,
+    school: { ...school, name: registeredSchoolName },
     staff: {
       staffId: cleanStaffId,
       name: fullName || record?.staffName || "Mrs. Okonkwo Beatrice",
       assignedRole: detectedRole,
-      email
+      email,
+      schoolName: registeredSchoolName
     }
   });
 });
@@ -2423,8 +2674,68 @@ app.get("/api/parent/dashboard", (req, res) => {
 // Full Student Profile
 app.get("/api/student/profile", (req, res) => {
   const studentId = String(req.query.studentId || "STD-2026-001");
-  const profile = studentProfilesStore.find(s => s.id === studentId) || studentProfilesStore[0];
+  let profile = studentProfilesStore.find(s => s.id === studentId || s.studentId === studentId) || studentProfilesStore[0];
   res.json({ success: true, profile });
+});
+
+// Update Student Bio Profile & Passport Photo
+app.put("/api/student/profile", (req, res) => {
+  const {
+    studentId,
+    fullName,
+    name,
+    dob,
+    gender,
+    phone,
+    address,
+    parentName,
+    parentPhone,
+    photoUrl,
+    schoolName
+  } = req.body;
+
+  const targetId = studentId || "STD-2026-001";
+  let profile = studentProfilesStore.find(s => s.id === targetId || s.studentId === targetId);
+
+  if (!profile) {
+    profile = studentProfilesStore[0];
+  }
+
+  const updatedName = fullName || name || profile.fullName || profile.name;
+
+  if (updatedName) {
+    profile.fullName = updatedName;
+    profile.name = updatedName;
+  }
+  if (dob !== undefined) profile.dob = dob;
+  if (gender !== undefined) profile.gender = gender;
+  if (phone !== undefined) profile.phone = phone;
+  if (address !== undefined) profile.address = address;
+  if (photoUrl !== undefined) profile.photoUrl = photoUrl;
+  if (schoolName !== undefined) profile.schoolName = schoolName;
+
+  if (parentName || parentPhone || address) {
+    if (!profile.guardianDetails) profile.guardianDetails = {};
+    if (parentName) profile.guardianDetails.fatherName = parentName;
+    if (parentPhone) profile.guardianDetails.primaryPhone = parentPhone;
+    if (address) profile.guardianDetails.address = address;
+  }
+
+  // Sync back to studentsStore
+  const std = studentsStore.find(s => s.id === targetId || s.studentId === targetId);
+  if (std) {
+    std.name = updatedName;
+    std.fullName = updatedName;
+    if (gender) std.gender = gender;
+    if (parentName) std.parentName = parentName;
+    if (parentPhone) std.parentPhone = parentPhone;
+  }
+
+  res.json({
+    success: true,
+    message: "Student profile updated successfully in database!",
+    profile
+  });
 });
 
 // Student Attendance Report
@@ -3108,6 +3419,123 @@ app.post("/api/announcements", (req, res) => {
 // Library Books Endpoint
 app.get("/api/library/books", (req, res) => {
   res.json({ success: true, data: libraryBooksStore });
+});
+
+// Super Admin API Endpoints
+app.get("/api/superadmin/dashboard", (req, res) => {
+  res.json({
+    success: true,
+    metrics: {
+      totalSchools: superAdminSchoolsStore.length || 142,
+      totalTeachers: 3840,
+      totalStudents: 42600,
+      totalParents: 36210,
+      activeUsers: 1420,
+      totalRevenue: 142500000,
+      aiRequestsToday: 18450,
+      databaseUsage: "4.2 GB",
+      storageUsage: "184.2 GB",
+      serverHealth: "Healthy",
+    },
+  });
+});
+
+app.get("/api/superadmin/schools", (req, res) => {
+  res.json({ success: true, data: superAdminSchoolsStore });
+});
+
+app.post("/api/superadmin/schools", (req, res) => {
+  const newSch = {
+    id: `SCH-${String(superAdminSchoolsStore.length + 1).padStart(3, "0")}`,
+    name: req.body.name || "New Partner School",
+    code: req.body.code || `SCH-${Date.now().toString().slice(-4)}`,
+    adminEmail: req.body.adminEmail || "admin@school.edu.ng",
+    plan: req.body.plan || "Enterprise Pro",
+    storageUsedGB: 0.1,
+    storageLimitGB: 100,
+    aiCredits: 50000,
+    aiCreditsUsed: 0,
+    status: "Active",
+    createdAt: new Date().toISOString().split("T")[0],
+  };
+  superAdminSchoolsStore.unshift(newSch);
+  res.json({ success: true, message: "School provisioned successfully", data: newSch });
+});
+
+app.put("/api/superadmin/schools/:id/activate", (req, res) => {
+  const sch = superAdminSchoolsStore.find((s) => s.id === req.params.id);
+  if (sch) sch.status = "Active";
+  res.json({ success: true, message: "School activated", data: sch });
+});
+
+app.put("/api/superadmin/schools/:id/suspend", (req, res) => {
+  const sch = superAdminSchoolsStore.find((s) => s.id === req.params.id);
+  if (sch) sch.status = "Suspended";
+  res.json({ success: true, message: "School suspended", data: sch });
+});
+
+app.get("/api/superadmin/users", (req, res) => {
+  res.json({ success: true, data: usersStore });
+});
+
+app.get("/api/superadmin/ai/stats", (req, res) => {
+  res.json({
+    success: true,
+    activeModel: "gemini-1.5-pro",
+    monthlyTokensUsed: 14200000,
+    monthlyQuota: 50000000,
+  });
+});
+
+app.get("/api/superadmin/ai/prompt-logs", (req, res) => {
+  res.json({ success: true, data: [] });
+});
+
+app.get("/api/superadmin/curriculum", (req, res) => {
+  res.json({ success: true, data: [] });
+});
+
+app.get("/api/superadmin/payments", (req, res) => {
+  res.json({ success: true, data: financeInvoicesStore });
+});
+
+app.get("/api/superadmin/monitoring/health", (req, res) => {
+  res.json({
+    success: true,
+    system: { cpu: "14%", ram: "2.8 GB", status: "Healthy", uptime: "99.98%" },
+  });
+});
+
+app.get("/api/superadmin/security/audit-logs", (req, res) => {
+  res.json({ success: true, data: auditLogsStore });
+});
+
+app.get("/api/superadmin/backups", (req, res) => {
+  res.json({
+    success: true,
+    data: [
+      { id: "BKP-001", name: "Automated Master Snapshot", size: "4.2 GB", date: "Today, 04:00 AM", status: "Completed" },
+    ],
+  });
+});
+
+app.post("/api/superadmin/backups/trigger", (req, res) => {
+  const bk = {
+    id: `BKP-${Date.now().toString().slice(-3)}`,
+    name: req.body.name || "Manual Snapshot",
+    size: "4.2 GB",
+    date: "Just now",
+    status: "Completed",
+  };
+  res.json({ success: true, message: "Backup snapshot created", data: bk });
+});
+
+app.get("/api/superadmin/settings", (req, res) => {
+  res.json({ success: true, data: { maintenanceMode: false, aiGradingEnabled: true } });
+});
+
+app.post("/api/superadmin/communication/emergency-alert", (req, res) => {
+  res.json({ success: true, message: "Emergency broadcast dispatched to all administrators" });
 });
 
 // Finance Invoices Endpoint

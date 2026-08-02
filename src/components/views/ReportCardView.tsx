@@ -2,7 +2,12 @@ import React, { useState } from "react";
 import { Award, Printer, Download, Sparkles, Check, QrCode, ShieldCheck, UserCheck, BarChart3, TrendingUp } from "lucide-react";
 import { ReportCard, getSubjectsForClass } from "../../types";
 
-export const ReportCardView: React.FC = () => {
+interface ReportCardViewProps {
+  userSession?: any;
+}
+
+export const ReportCardView: React.FC<ReportCardViewProps> = ({ userSession }) => {
+  const currentSchoolName = userSession?.schoolName || "Destiny Way International Group of Schools";
   const [selectedStudent, setSelectedStudent] = useState("Adeyemi Chinedu");
   const [selectedClass, setSelectedClass] = useState("SS 2 Gold");
   const [term, setTerm] = useState("First Term 2026/2027");
@@ -218,7 +223,7 @@ export const ReportCardView: React.FC = () => {
               {/* School Header & Crest */}
               <div className="text-center relative z-10 border-b-2 border-slate-900 dark:border-slate-100 pb-4">
                 <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight uppercase">
-                  LIVINGSTONE INTERNATIONAL ACADEMY
+                  {currentSchoolName}
                 </h2>
                 <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest mt-0.5">
                   OFFICIAL TERMINAL STUDENT REPORT CARD

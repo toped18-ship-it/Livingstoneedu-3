@@ -2,7 +2,12 @@ import React, { useState } from "react";
 import { Sparkles, Printer, Download, Save, Check, Copy, FileCheck, Layers, HelpCircle, FileText } from "lucide-react";
 import { ExamPaper, ALL_CLASSES, getSubjectsForClass } from "../../types";
 
-export const AIExamGeneratorView: React.FC = () => {
+interface AIExamGeneratorViewProps {
+  userSession?: any;
+}
+
+export const AIExamGeneratorView: React.FC<AIExamGeneratorViewProps> = ({ userSession }) => {
+  const currentSchoolName = userSession?.schoolName || "Destiny Way International Group of Schools";
   const [className, setClassName] = useState("SS 2");
   const [subject, setSubject] = useState("Mathematics");
   const availableSubjects = getSubjectsForClass(className);
@@ -297,7 +302,7 @@ export const AIExamGeneratorView: React.FC = () => {
               {/* Exam Official Header */}
               <div className="text-center border-b-2 border-slate-900 dark:border-slate-100 pb-4">
                 <h2 className="text-lg font-black text-slate-900 dark:text-white tracking-tight uppercase">
-                  LIVINGSTONE INTERNATIONAL ACADEMY
+                  {currentSchoolName}
                 </h2>
                 <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
                   {generatedExam.title}

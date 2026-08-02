@@ -22,10 +22,36 @@ import { AuthView } from "./components/views/AuthView";
 import { UserRole } from "./types";
 
 export default function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [userSession, setUserSession] = useState<any>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("livingstone_user_session");
+        if (saved) return JSON.parse(saved);
+      } catch (e) {}
+    }
+    return null;
+  });
+  const [currentRole, setCurrentRole] = useState<UserRole>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const saved = localStorage.getItem("livingstone_user_session");
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed?.role) return parsed.role as UserRole;
+        }
+      } catch (e) {}
+    }
+    return "Teacher";
+  });
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return !!localStorage.getItem("livingstone_user_session");
+    }
+    return false;
+  });
+
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [currentRole, setCurrentRole] = useState<UserRole>("Teacher");
-  const [userSession, setUserSession] = useState<any>(null);
+  const [accessDeniedMessage, setAccessDeniedMessage] = useState("");
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("theme");
@@ -51,11 +77,48 @@ export default function App() {
     }
   }, [isDark]);
 
-  // Check URL pathname for /admin route on mount
+  // Verify authenticated user profile & role from backend on session restore
   useEffect(() => {
-    if (window.location.pathname === "/admin" || window.location.pathname.startsWith("/admin") || window.location.hash === "#admin") {
-      setActiveTab("settings");
+    if (isAuthenticated && userSession) {
+      fetch("/api/auth/me", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: userSession.email,
+          role: userSession.role,
+          studentId: userSession.id || userSession.studentId,
+          staffId: userSession.staffId
+        })
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.userRole) {
+            setCurrentRole(data.userRole as UserRole);
+            if (data.userRole === "Student" || data.userRole === "Parent") {
+              setActiveTab("student-parent-portal");
+            }
+            if (data.user) {
+              setUserSession((prev: any) => ({ ...prev, ...data.user, role: data.userRole }));
+            }
+          }
+        })
+        .catch(() => {});
     }
+  }, [isAuthenticated]);
+
+  // Check URL pathname for /admin route on mount and URL changes
+  useEffect(() => {
+    const handleUrlRouting = () => {
+      const path = window.location.pathname;
+      const hash = window.location.hash;
+      if (path === "/admin" || path.startsWith("/admin") || hash === "#admin") {
+        handleSelectTab("settings");
+      }
+    };
+
+    handleUrlRouting();
+    window.addEventListener("popstate", handleUrlRouting);
+    return () => window.removeEventListener("popstate", handleUrlRouting);
   }, []);
 
   // Sync browser address bar with /admin when settings tab is active
@@ -69,29 +132,81 @@ export default function App() {
     }
   }, [activeTab]);
 
+  const handleSelectTab = (tab: string, overrideRole?: UserRole) => {
+    const effectiveRole = overrideRole || currentRole;
+
+    // 1. Student or Parent Route Protection
+    if (effectiveRole === "Student" || effectiveRole === "Parent") {
+      setAccessDeniedMessage("");
+      setActiveTab("student-parent-portal");
+      return;
+    }
+
+    // 2. Teacher Route Protection
+    const isTeacher = effectiveRole === "Teacher" || effectiveRole === "Class Teacher" || effectiveRole === "Subject Teacher";
+    const forbiddenForTeacher = [
+      "superadmin",
+      "finance",
+      "subscription",
+      "settings:permissions",
+      "settings:users",
+      "settings:security",
+      "settings:database"
+    ];
+
+    if (isTeacher && forbiddenForTeacher.some((f) => tab === f || tab.startsWith(f))) {
+      setAccessDeniedMessage("Access denied. You do not have permission to access this page.");
+      setTimeout(() => setAccessDeniedMessage(""), 4000);
+      setActiveTab("teacher-portal");
+      return;
+    }
+
+    setAccessDeniedMessage("");
+    setActiveTab(tab as any);
+  };
+
   const handleLoginSuccess = (detectedRole: UserRole, targetTab: string, userData?: any) => {
     setIsAuthenticated(true);
     setCurrentRole(detectedRole);
     setUserSession(userData || null);
-    if (detectedRole === "Super Admin" || targetTab === "superadmin") {
-      setActiveTab("superadmin");
+
+    const sessionData = {
+      ...(userData || {}),
+      role: detectedRole,
+      loginTime: Date.now()
+    };
+    try {
+      localStorage.setItem("livingstone_user_session", JSON.stringify(sessionData));
+    } catch (e) {}
+
+    if (detectedRole === "Student" || detectedRole === "Parent") {
+      setActiveTab("student-parent-portal");
+      handleSelectTab("student-parent-portal", detectedRole);
+    } else if (detectedRole === "Teacher" || detectedRole === "Class Teacher" || detectedRole === "Subject Teacher") {
+      setActiveTab("teacher-portal");
+      handleSelectTab("teacher-portal", detectedRole);
+    } else if (detectedRole === "Super Admin" || targetTab === "superadmin") {
+      handleSelectTab("superadmin", detectedRole);
     } else if (window.location.pathname === "/admin" || window.location.hash === "#admin") {
-      setActiveTab("settings");
+      handleSelectTab("settings", detectedRole);
     } else {
-      setActiveTab(targetTab || "dashboard");
+      handleSelectTab(targetTab || "dashboard", detectedRole);
     }
   };
 
   const handleLogout = () => {
     setIsAuthenticated(false);
     setUserSession(null);
+    try {
+      localStorage.removeItem("livingstone_user_session");
+    } catch (e) {}
     setActiveTab("auth");
   };
 
   const renderCurrentView = () => {
-    // Student or Parent role should view the Parent & Student Academic Portal alone
-    if (currentRole === "Student" || currentRole === "Parent") {
-      return <StudentParentPortalView currentRole={currentRole} />;
+    // Student or Parent role or student-parent-portal tab should view the Parent & Student Academic Portal
+    if (currentRole === "Student" || currentRole === "Parent" || activeTab === "student-parent-portal") {
+      return <StudentParentPortalView currentRole={currentRole === "Student" || currentRole === "Parent" ? currentRole : "Student"} userSession={userSession} />;
     }
 
     switch (true) {
@@ -99,35 +214,36 @@ export default function App() {
         return (
           <DashboardView
             currentRole={currentRole}
+            userSession={userSession}
             onSelectTab={(tab) => setActiveTab(tab)}
             onOpenAIAssistant={() => setIsAiModalOpen(true)}
           />
         );
       case activeTab === "teacher-portal":
-        return <TeacherPortalView currentRole={currentRole} />;
+        return <TeacherPortalView currentRole={currentRole} userSession={userSession} />;
       case activeTab === "student-parent-portal" || activeTab === "parents":
-        return <StudentParentPortalView currentRole={currentRole} />;
+        return <StudentParentPortalView currentRole={currentRole} userSession={userSession} />;
       case activeTab === "website-builder":
         return <WebsiteBuilderView currentRole={currentRole} />;
       case activeTab === "subscription":
         return <SubscriptionView currentRole={currentRole} />;
       case activeTab === "ai-lesson-notes" || activeTab.startsWith("academic-"):
         if (activeTab === "academic-ai-exam-generator" || activeTab === "ai-exam-generator") {
-          return <AIExamGeneratorView />;
+          return <AIExamGeneratorView userSession={userSession} />;
         }
         if (activeTab === "academic-question-bank" || activeTab === "question-bank") {
           return <QuestionBankView />;
         }
         if (activeTab === "academic-report-cards" || activeTab === "report-cards" || activeTab === "academic-attendance") {
-          return <ReportCardView />;
+          return <ReportCardView userSession={userSession} />;
         }
-        return <AILessonNotesView />;
+        return <AILessonNotesView userSession={userSession} />;
       case activeTab === "ai-exam-generator":
-        return <AIExamGeneratorView />;
+        return <AIExamGeneratorView userSession={userSession} />;
       case activeTab === "question-bank":
         return <QuestionBankView />;
       case activeTab === "report-cards":
-        return <ReportCardView />;
+        return <ReportCardView userSession={userSession} />;
       case activeTab === "students":
         return <StudentsView />;
       case activeTab === "teachers":
@@ -186,13 +302,24 @@ export default function App() {
     );
   }
 
-  // 3. SCHOOL DASHBOARD LAYOUT: Standard layout for School Owners, Teachers, Students, Parents, Admins
+  // 3. STUDENT & PARENT STANDALONE LAYOUT: Single Student Sidebar layout without duplicate outer sidebar/header
+  if (currentRole === "Student" || currentRole === "Parent") {
+    return (
+      <StudentParentPortalView
+        currentRole={currentRole}
+        userSession={userSession}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  // 4. SCHOOL DASHBOARD LAYOUT: Standard layout for School Owners, Teachers, Admins
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex font-sans antialiased selection:bg-indigo-500 selection:text-white transition-colors">
       {/* School Sidebar Navigation */}
       <Sidebar
         activeTab={activeTab}
-        onSelectTab={(tab) => setActiveTab(tab)}
+        onSelectTab={handleSelectTab}
         currentRole={currentRole}
         collapsed={sidebarCollapsed}
         onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
@@ -201,19 +328,32 @@ export default function App() {
 
       {/* Main Content Workspace */}
       <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-x-hidden">
+        {/* Access Denied Warning Toast/Banner */}
+        {accessDeniedMessage && (
+          <div className="bg-rose-600 text-white text-xs font-bold px-4 py-2 text-center shadow-lg animate-fade-in flex items-center justify-center gap-2">
+            <span>⚠️ {accessDeniedMessage}</span>
+          </div>
+        )}
+
         {/* Top Header */}
         <Header
           currentRole={currentRole}
           onRoleChange={(role) => {
             setCurrentRole(role);
             if (role === "Super Admin") {
-              setActiveTab("superadmin");
+              handleSelectTab("superadmin");
+            } else if (role === "Student" || role === "Parent") {
+              handleSelectTab("student-parent-portal");
+            } else if (role === "Teacher") {
+              handleSelectTab("teacher-portal");
+            } else {
+              handleSelectTab("dashboard");
             }
           }}
           isDark={isDark}
           onToggleTheme={() => setIsDark(!isDark)}
           onOpenAIAssistant={() => setIsAiModalOpen(true)}
-          onSelectTab={(tab) => setActiveTab(tab)}
+          onSelectTab={handleSelectTab}
           notificationsCount={3}
           isAuthenticated={isAuthenticated}
           onLogout={handleLogout}
