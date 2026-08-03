@@ -454,6 +454,7 @@ export function StudentParentPortalView({ currentRole, userSession, onLogout }: 
       <header className="lg:hidden bg-slate-900 border-b border-slate-800 p-4 flex items-center justify-between sticky top-0 z-40 shadow-lg">
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
             className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-teal-400 border border-slate-700 transition-colors focus:outline-none"
             aria-label="Toggle Navigation Menu"
@@ -492,7 +493,7 @@ export function StudentParentPortalView({ currentRole, userSession, onLogout }: 
       </header>
 
       {/* ========================================================= */}
-      {/* RESTRUCTURED LEFT SIDEBAR NAVIGATION                      */}
+      {/* RESTORED STUDENT PORTAL LEFT SIDEBAR NAVIGATION            */}
       {/* ========================================================= */}
       {/* Mobile Drawer Overlay */}
       {isSidebarOpen && (
@@ -524,6 +525,7 @@ export function StudentParentPortalView({ currentRole, userSession, onLogout }: 
               </div>
             </div>
             <button
+              type="button"
               onClick={() => setIsSidebarOpen(false)}
               className="lg:hidden text-slate-400 hover:text-white"
             >
@@ -555,6 +557,7 @@ export function StudentParentPortalView({ currentRole, userSession, onLogout }: 
           <div className="px-4 mb-3">
             <div className="bg-slate-950 p-1 rounded-xl border border-slate-800 flex items-center gap-1">
               <button
+                type="button"
                 onClick={() => {
                   setActivePortalRole("student");
                   setIsSidebarOpen(false);
@@ -569,6 +572,7 @@ export function StudentParentPortalView({ currentRole, userSession, onLogout }: 
                 Student
               </button>
               <button
+                type="button"
                 onClick={() => {
                   setActivePortalRole("parent");
                   setIsSidebarOpen(false);
@@ -616,6 +620,7 @@ export function StudentParentPortalView({ currentRole, userSession, onLogout }: 
               return (
                 <button
                   key={item.id}
+                  type="button"
                   onClick={() => {
                     if (item.id === "parent-portal") {
                       setActivePortalRole("parent");
@@ -649,6 +654,7 @@ export function StudentParentPortalView({ currentRole, userSession, onLogout }: 
               Quick Portals
             </span>
             <button
+              type="button"
               onClick={() => {
                 setActiveTab("fees");
                 setIsSidebarOpen(false);
@@ -659,10 +665,11 @@ export function StudentParentPortalView({ currentRole, userSession, onLogout }: 
                   : "text-slate-400 hover:bg-slate-800/80 hover:text-slate-200"
               }`}
             >
-              <CreditCard className="w-4 h-4" />
+              <CreditCard className="w-4 h-4 text-emerald-400" />
               <span>Fees & Payments</span>
             </button>
             <button
+              type="button"
               onClick={() => {
                 setActiveTab("ai-tutor");
                 setIsSidebarOpen(false);
@@ -682,6 +689,7 @@ export function StudentParentPortalView({ currentRole, userSession, onLogout }: 
           {onLogout && (
             <div className="p-3 border-t border-slate-800/80">
               <button
+                type="button"
                 onClick={() => {
                   setIsSidebarOpen(false);
                   onLogout();

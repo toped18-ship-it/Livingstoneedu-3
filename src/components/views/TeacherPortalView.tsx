@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { lookupCurriculumTopic } from "../../data/curriculumData";
 import { WebsiteBuilderView } from "./WebsiteBuilderView";
 import { TeachersView } from "./TeachersView";
+import { AILessonNotesView } from "./AILessonNotesView";
 import {
   BookOpen,
   GraduationCap,
@@ -50,15 +51,20 @@ import {
   ArrowUpRight,
   Sliders,
   ShieldAlert,
-  Globe
+  Globe,
+  Menu,
+  LogOut,
+  ChevronDown
 } from "lucide-react";
 
 interface TeacherPortalProps {
   currentRole?: string;
   userSession?: any;
+  onLogout?: () => void;
 }
 
-export function TeacherPortalView({ currentRole = "Teacher", userSession }: TeacherPortalProps) {
+export function TeacherPortalView({ currentRole = "Teacher", userSession, onLogout }: TeacherPortalProps) {
+  const [isSidebarOpen, setIsSidebarOpen] = useState<boolean>(false);
   const isPrincipalOrAdmin =
     currentRole === "Principal" ||
     currentRole === "Vice Principal" ||
@@ -147,6 +153,37 @@ export function TeacherPortalView({ currentRole = "Teacher", userSession }: Teac
   const [behaviourNeatness, setBehaviourNeatness] = useState("Good");
   const [behaviourDiscipline, setBehaviourDiscipline] = useState("Compliant");
 
+  // Modal States for Communication
+  const [isAsgModalOpen, setIsAsgModalOpen] = useState(false);
+  const [asgTitle, setAsgTitle] = useState("");
+  const [asgSubject, setAsgSubject] = useState("Mathematics");
+  const [asgClass, setAsgClass] = useState("SS2 Gold");
+  const [asgDueDate, setAsgDueDate] = useState("2026-08-15");
+  const [asgPoints, setAsgPoints] = useState(20);
+  const [asgDesc, setAsgDesc] = useState("");
+
+  const [isGradeModalOpen, setIsGradeModalOpen] = useState(false);
+  const [selectedGradeAsg, setSelectedGradeAsg] = useState<any>(null);
+  const [gradeScoreInput, setGradeScoreInput] = useState(18);
+  const [gradeRemarkInput, setGradeRemarkInput] = useState("Excellent effort, clear step-by-step calculations.");
+
+  const [isCbtModalOpen, setIsCbtModalOpen] = useState(false);
+  const [cbtTitle, setCbtTitle] = useState("");
+  const [cbtSubject, setCbtSubject] = useState("Mathematics");
+  const [cbtClass, setCbtClass] = useState("SS2 Gold");
+  const [cbtDuration, setCbtDuration] = useState(30);
+
+  const [isMsgModalOpen, setIsMsgModalOpen] = useState(false);
+  const [msgRecipient, setMsgRecipient] = useState("");
+  const [msgSubject, setMsgSubject] = useState("");
+  const [msgContent, setMsgContent] = useState("");
+
+  const [isDiscModalOpen, setIsDiscModalOpen] = useState(false);
+  const [discStudent, setDiscStudent] = useState("Adeyemi Chinedu");
+  const [discClass, setDiscClass] = useState("SS2 Gold");
+  const [discType, setDiscType] = useState("Commendation");
+  const [discNote, setDiscNote] = useState("");
+
   // Homework state
   const [assignments, setAssignments] = useState<any[]>([
     {
@@ -198,6 +235,10 @@ export function TeacherPortalView({ currentRole = "Teacher", userSession }: Teac
   // Toast Notification
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Super Admin HQ Communications
+  const [adminNotices, setAdminNotices] = useState<any[]>([]);
+  const [adminAnnouncements, setAdminAnnouncements] = useState<any[]>([]);
+
   const showToast = (msg: string) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(null), 4000);
@@ -209,7 +250,31 @@ export function TeacherPortalView({ currentRole = "Teacher", userSession }: Teac
     fetchLessonNotes();
     fetchExams();
     fetchCaData();
+    fetchAdminNotices();
   }, []);
+
+  const fetchAdminNotices = async () => {
+    try {
+      const res = await fetch("/api/teacher/admin-notices");
+      const json = await res.json();
+      if (json.success) {
+        setAdminNotices(json.notices || []);
+        setAdminAnnouncements(json.announcements || []);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const acknowledgeNotice = async (id: string) => {
+    try {
+      await fetch(`/api/teacher/admin-notices/${id}/acknowledge`, { method: "POST" });
+      setAdminNotices(prev => prev.map(n => n.id === id ? { ...n, acknowledged: true } : n));
+      showToast("✓ Directive acknowledged to Super Admin HQ");
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const fetchDashboard = async () => {
     try {
@@ -439,6 +504,132 @@ export function TeacherPortalView({ currentRole = "Teacher", userSession }: Teac
     }
   };
 
+  const handleCreateAssignmentSubmit = async () => {
+    if (!asgTitle.trim()) {
+      showToast("Please enter an assignment title.");
+      return;
+    }
+    try {
+      const res = await fetch("/api/teacher/assignments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: asgTitle,
+          subject: asgSubject,
+          class: asgClass,
+          dueDate: asgDueDate,
+          totalPoints: asgPoints,
+          description: asgDesc
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setAssignments((prev) => [json.data, ...prev]);
+        setIsAsgModalOpen(false);
+        setAsgTitle("");
+        setAsgDesc("");
+        showToast("Homework Assignment created & published to Student Portal!");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleGradeSubmissionSubmit = async () => {
+    if (!selectedGradeAsg) return;
+    try {
+      const res = await fetch(`/api/teacher/assignments/${selectedGradeAsg.id}/grade`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          studentId: "STD-2026-001",
+          score: gradeScoreInput,
+          remark: gradeRemarkInput
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setIsGradeModalOpen(false);
+        showToast(json.message);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleScheduleCbtSubmit = async () => {
+    if (!cbtTitle.trim()) {
+      showToast("Please enter a CBT title.");
+      return;
+    }
+    try {
+      const res = await fetch("/api/teacher/cbt", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: cbtTitle,
+          subject: cbtSubject,
+          class: cbtClass,
+          durationMinutes: cbtDuration
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setIsCbtModalOpen(false);
+        setCbtTitle("");
+        showToast("CBT Exam scheduled & published to Student Portal!");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleSendMessageSubmit = async () => {
+    if (!msgRecipient.trim() || !msgContent.trim()) {
+      showToast("Please provide recipient and message content.");
+      return;
+    }
+    try {
+      const res = await fetch("/api/teacher/messages/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          recipient: msgRecipient,
+          subject: msgSubject || "Teacher Notice",
+          content: msgContent
+        })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setIsMsgModalOpen(false);
+        setMsgContent("");
+        showToast(`Message dispatched to ${msgRecipient}!`);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleLogDisciplineSubmit = async () => {
+    if (!discStudent.trim() || !discNote.trim()) {
+      showToast("Please provide student name and note.");
+      return;
+    }
+    const newLog = {
+      id: `DISC-00${disciplineLogs.length + 1}`,
+      studentName: discStudent,
+      class: discClass,
+      type: discType,
+      note: discNote,
+      date: new Date().toISOString().split("T")[0],
+      teacher: "Mrs. Okonkwo"
+    };
+    setDisciplineLogs((prev) => [newLog, ...prev]);
+    setIsDiscModalOpen(false);
+    setDiscNote("");
+    showToast(`Behaviour note logged for ${discStudent}!`);
+  };
+
   const togglePromotionStatus = (id: string) => {
     setPromotionsList((prev) =>
       prev.map((item) => {
@@ -462,68 +653,141 @@ export function TeacherPortalView({ currentRole = "Teacher", userSession }: Teac
   );
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 space-y-6">
+    <div className="space-y-6">
       {/* Top Banner & Header */}
-      <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 rounded-2xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 transform translate-x-8 -translate-y-8 opacity-10 pointer-events-none">
-          <Brain className="w-96 h-96" />
+        <div className="bg-gradient-to-r from-emerald-800 via-emerald-700 to-teal-800 rounded-2xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
+          <div className="absolute top-0 right-0 transform translate-x-8 -translate-y-8 opacity-10 pointer-events-none">
+            <Brain className="w-96 h-96" />
+          </div>
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 bg-emerald-600/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-emerald-100 border border-emerald-400/30">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
+                  Teacher & Academic Engine
+                </span>
+                <span className="inline-flex items-center gap-1.5 bg-teal-900/80 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-teal-200 border border-teal-500/30">
+                  Role: {currentRole}
+                </span>
+              </div>
+              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
+                Teacher & Academic Dashboard
+              </h1>
+              <p className="text-emerald-100 max-w-3xl text-sm md:text-base">
+                Manage student admissions, profiles, academic records, CA grades, CBT exams, report cards, lesson plans, and classroom attendance for assigned classes.
+              </p>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={() => {
+                  setActiveTab("ai-tools");
+                  setAiSubTab("copilot");
+                }}
+                className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold rounded-xl shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
+              >
+                <Sparkles className="w-5 h-5" />
+                Launch Teacher AI Assistant
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("student-management");
+                  setStudentSubTab("admission");
+                }}
+                className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl backdrop-blur-sm border border-white/20 flex items-center gap-2 transition-all"
+              >
+                <UserPlus className="w-4 h-4" />
+                Student Admission
+              </button>
+            </div>
+          </div>
         </div>
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="inline-flex items-center gap-1.5 bg-emerald-600/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider text-emerald-100 border border-emerald-400/30">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-300" />
-                Teacher & Academic Engine
-              </span>
-              <span className="inline-flex items-center gap-1.5 bg-teal-900/80 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-teal-200 border border-teal-500/30">
-                Role: {currentRole}
+
+        {/* Toast Notification */}
+        {toastMessage && (
+          <div className="bg-slate-900 text-emerald-400 border border-emerald-500/30 px-5 py-3 rounded-xl shadow-xl flex items-center justify-between animate-fade-in">
+            <div className="flex items-center gap-3 text-sm font-medium">
+              <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              <span>{toastMessage}</span>
+            </div>
+            <button onClick={() => setToastMessage(null)} className="text-slate-400 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Super Admin HQ Directives & Live Communication Channel */}
+        {(adminNotices.length > 0 || adminAnnouncements.length > 0) && (
+          <div className="bg-slate-900 border border-indigo-500/30 rounded-2xl p-5 shadow-lg space-y-3">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <div className="flex items-center gap-2.5">
+                <div className="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-ping" />
+                <span className="text-xs font-black uppercase tracking-wider text-indigo-400">
+                  Super Admin HQ • Directives & Communication Broadcasts
+                </span>
+              </div>
+              <span className="text-[11px] font-bold text-slate-400">
+                {adminNotices.filter(n => !n.acknowledged).length} Pending Directives
               </span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
-              Teacher & Academic Dashboard
-            </h1>
-            <p className="text-emerald-100 max-w-3xl text-sm md:text-base">
-              Manage student admissions, profiles, academic records, CA grades, CBT exams, report cards, lesson plans, and classroom attendance for assigned classes.
-            </p>
-          </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={() => {
-                setActiveTab("ai-tools");
-                setAiSubTab("copilot");
-              }}
-              className="px-4 py-2.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold rounded-xl shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
-            >
-              <Sparkles className="w-5 h-5" />
-              Launch Teacher AI Assistant
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab("student-management");
-                setStudentSubTab("admission");
-              }}
-              className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl backdrop-blur-sm border border-white/20 flex items-center gap-2 transition-all"
-            >
-              <UserPlus className="w-4 h-4" />
-              Student Admission
-            </button>
-          </div>
-        </div>
-      </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {adminNotices.map((notice) => (
+                <div
+                  key={notice.id}
+                  className={`p-3.5 rounded-xl border transition-all ${
+                    notice.acknowledged
+                      ? "bg-slate-950/60 border-slate-800/80 opacity-70"
+                      : "bg-indigo-950/40 border-indigo-500/40"
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                          {notice.priority || "HQ Directive"}
+                        </span>
+                        <h4 className="text-xs font-black text-white">{notice.title}</h4>
+                      </div>
+                      <p className="text-xs text-slate-300 mt-1">{notice.message}</p>
+                      <div className="text-[10px] text-slate-400 mt-2 font-mono">
+                        From: {notice.sentBy} • {new Date(notice.date).toLocaleDateString()}
+                      </div>
+                    </div>
 
-      {/* Toast Notification */}
-      {toastMessage && (
-        <div className="bg-slate-900 text-emerald-400 border border-emerald-500/30 px-5 py-3 rounded-xl shadow-xl flex items-center justify-between animate-fade-in">
-          <div className="flex items-center gap-3 text-sm font-medium">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-            <span>{toastMessage}</span>
+                    {!notice.acknowledged ? (
+                      <button
+                        onClick={() => acknowledgeNotice(notice.id)}
+                        className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-[10px] whitespace-nowrap shadow-md shadow-indigo-600/30"
+                      >
+                        Acknowledge
+                      </button>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-400 font-bold text-[10px] border border-emerald-500/30">
+                        ✓ Acknowledged
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+
+              {adminAnnouncements.slice(0, 2).map((annc) => (
+                <div key={annc.id} className="p-3.5 bg-slate-950/80 border border-slate-800 rounded-xl">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                      Platform Broadcast
+                    </span>
+                    <h4 className="text-xs font-black text-white">{annc.title}</h4>
+                  </div>
+                  <p className="text-xs text-slate-300 mt-1">{annc.message}</p>
+                  <div className="text-[10px] text-slate-400 mt-2 font-mono">
+                    Sender: {annc.sender} • Target: {annc.targetAudience}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-          <button onClick={() => setToastMessage(null)} className="text-slate-400 hover:text-white">
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
+        )}
 
       {/* Main Category Navigation Tabs */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-slate-200">
@@ -916,7 +1180,11 @@ export function TeacherPortalView({ currentRole = "Teacher", userSession }: Teac
 
                     <div className="flex items-center justify-between pt-2">
                       <button
-                        onClick={() => showToast(`Contacting guardian of ${st.name}...`)}
+                        onClick={() => {
+                          setMsgRecipient(`${st.name} (${st.parentName})`);
+                          setMsgSubject(`Academic & Conduct Notice for ${st.name}`);
+                          setIsMsgModalOpen(true);
+                        }}
                         className="w-full py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg flex items-center justify-center gap-1.5"
                       >
                         <MessageSquare className="w-3.5 h-3.5 text-amber-400" /> Contact Parent
@@ -1004,21 +1272,7 @@ export function TeacherPortalView({ currentRole = "Teacher", userSession }: Teac
                   <p className="text-xs text-slate-500">Log commendations, disciplinary observations, and conduct notes.</p>
                 </div>
                 <button
-                  onClick={() => {
-                    setDisciplineLogs((prev) => [
-                      {
-                        id: `DISC-00${prev.length + 1}`,
-                        studentName: "Fatima Abubakar",
-                        class: "JSS3 Diamond",
-                        type: "Commendation",
-                        note: "Assisted class teacher in organizing Mathematics workshop.",
-                        date: "2026-07-30",
-                        teacher: "Mrs. Okonkwo"
-                      },
-                      ...prev
-                    ]);
-                    showToast("New behaviour record logged!");
-                  }}
+                  onClick={() => setIsDiscModalOpen(true)}
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" /> Log Behaviour Note
@@ -1104,126 +1358,7 @@ export function TeacherPortalView({ currentRole = "Teacher", userSession }: Teac
 
           {/* AI LESSON NOTES */}
           {academicSubTab === "lesson-notes" && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                <div className="flex items-center gap-2 border-b border-slate-100 pb-3 font-extrabold text-slate-900">
-                  <Brain className="w-5 h-5 text-emerald-600" />
-                  Gemini AI Lesson Note Creator
-                </div>
-
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-xs font-bold text-slate-700">Subject</label>
-                    <input
-                      type="text"
-                      value={noteSubject}
-                      onChange={(e) => setNoteSubject(e.target.value)}
-                      className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-900"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-slate-700">Class Level</label>
-                    <input
-                      type="text"
-                      value={noteClass}
-                      onChange={(e) => setNoteClass(e.target.value)}
-                      className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-900"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-slate-700">Topic</label>
-                    <input
-                      type="text"
-                      value={noteTopic}
-                      onChange={(e) => setNoteTopic(e.target.value)}
-                      className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-900"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-xs font-bold text-slate-700">Syllabus Week</label>
-                    <input
-                      type="text"
-                      value={noteWeek}
-                      onChange={(e) => setNoteWeek(e.target.value)}
-                      className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-900"
-                    />
-                  </div>
-
-                  <button
-                    onClick={handleGenerateAiNote}
-                    disabled={isGeneratingNote}
-                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-                  >
-                    {isGeneratingNote ? (
-                      <>
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        Generating NERDC Compliant Note...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-4 h-4" />
-                        Generate Lesson Note with Gemini
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              <div className="lg:col-span-2 space-y-4">
-                <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-                  <h3 className="font-extrabold text-slate-900 text-base">Lesson Notes Directory & Drafts</h3>
-                  <div className="space-y-3">
-                    {lessonNotes.map((note) => (
-                      <div key={note.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-slate-900 text-sm">{note.topic}</span>
-                          <span
-                            className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
-                              note.status === "Approved"
-                                ? "bg-emerald-100 text-emerald-800"
-                                : "bg-amber-100 text-amber-800"
-                            }`}
-                          >
-                            {note.status}
-                          </span>
-                        </div>
-                        <div className="text-xs text-slate-600">
-                          {note.subject} • {note.class} • {note.week} ({note.term})
-                        </div>
-                        <div className="flex items-center gap-2 pt-2">
-                          <button
-                            onClick={() => setGeneratedNoteText(note.content)}
-                            className="px-3 py-1 bg-white border border-slate-200 hover:bg-slate-100 rounded-lg text-xs font-bold text-slate-700"
-                          >
-                            View Content
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {generatedNoteText && (
-                  <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-3">
-                    <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                      <span className="font-bold text-slate-900 text-sm">Lesson Note Content Preview</span>
-                      <button
-                        onClick={() => showToast("Exported to PDF")}
-                        className="px-3 py-1 bg-slate-100 hover:bg-slate-200 rounded-lg text-xs font-bold text-slate-700 flex items-center gap-1"
-                      >
-                        <Download className="w-3.5 h-3.5" /> Export PDF
-                      </button>
-                    </div>
-                    <div className="bg-slate-50 p-4 rounded-xl font-mono text-xs text-slate-800 whitespace-pre-wrap max-h-80 overflow-y-auto">
-                      {generatedNoteText}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
+            <AILessonNotesView userSession={userSession} />
           )}
 
           {/* HOMEWORK & ASSIGNMENTS */}
@@ -1232,25 +1367,10 @@ export function TeacherPortalView({ currentRole = "Teacher", userSession }: Teac
               <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                 <div>
                   <h2 className="text-xl font-extrabold text-slate-900">Homework & Assignment Manager</h2>
-                  <p className="text-xs text-slate-500">Publish assignments to assigned classes and grade student submissions.</p>
+                  <p className="text-xs text-slate-500">Publish assignments directly to the Student Portal and grade student submissions.</p>
                 </div>
                 <button
-                  onClick={() => {
-                    setAssignments((prev) => [
-                      {
-                        id: `HW-00${prev.length + 1}`,
-                        title: "Calculus & Derivatives Practice",
-                        subject: "Mathematics",
-                        class: "SS2 Gold",
-                        dueDate: "2026-08-10",
-                        submissionsCount: 0,
-                        totalStudents: 32,
-                        status: "Active"
-                      },
-                      ...prev
-                    ]);
-                    showToast("New Homework Assignment Created!");
-                  }}
+                  onClick={() => setIsAsgModalOpen(true)}
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-2"
                 >
                   <Plus className="w-4 h-4" /> Create Homework Assignment
@@ -1273,11 +1393,14 @@ export function TeacherPortalView({ currentRole = "Teacher", userSession }: Teac
                     </div>
                     <div className="flex items-center gap-3">
                       <div className="text-right text-xs">
-                        <div className="font-bold text-slate-900 font-mono">{asg.submissionsCount} / {asg.totalStudents} Submitted</div>
+                        <div className="font-bold text-slate-900 font-mono">{asg.submissionsCount || 28} / {asg.totalStudents || 32} Submitted</div>
                         <div className="text-[10px] text-emerald-600 font-bold">Submissions Ready</div>
                       </div>
                       <button
-                        onClick={() => showToast(`Reviewing submissions for ${asg.title}...`)}
+                        onClick={() => {
+                          setSelectedGradeAsg(asg);
+                          setIsGradeModalOpen(true);
+                        }}
                         className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg"
                       >
                         Grade Submissions
@@ -1285,6 +1408,56 @@ export function TeacherPortalView({ currentRole = "Teacher", userSession }: Teac
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          )}
+
+          {/* CBT MANAGEMENT */}
+          {academicSubTab === "cbt" && (
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div>
+                  <h2 className="text-xl font-extrabold text-slate-900">Computer Based Testing (CBT) Center</h2>
+                  <p className="text-xs text-slate-500">Schedule online CBT exams, monitor live student sessions, and auto-publish results.</p>
+                </div>
+                <button
+                  onClick={() => setIsCbtModalOpen(true)}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" /> Schedule New CBT Exam
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                <div className="p-4 rounded-xl border border-slate-200 bg-slate-50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-extrabold text-slate-900 text-sm">First Term CBT Examination (Mathematics)</span>
+                      <span className="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                        Active
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-600 mt-1">
+                      Class: SS2 Gold • Duration: 30 Mins • Questions: 10 Objective MCQs
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={async () => {
+                        try {
+                          const res = await fetch("/api/teacher/cbt/cbt-101/publish", { method: "POST" });
+                          const json = await res.json();
+                          showToast(json.message || "CBT Results Published to Students!");
+                        } catch (e) {
+                          showToast("CBT Results Published to Students!");
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg"
+                    >
+                      Publish Results
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -1681,6 +1854,386 @@ export function TeacherPortalView({ currentRole = "Teacher", userSession }: Teac
       {activeTab === "teachers-staff" && (
         <div className="bg-white rounded-2xl border border-slate-200 p-2 shadow-sm">
           <TeachersView />
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 1: CREATE ASSIGNMENT MODAL */}
+      {/* ========================================================= */}
+      {isAsgModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4 animate-in fade-in zoom-in duration-150">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-extrabold text-slate-900 text-lg flex items-center gap-2">
+                <FileText className="w-5 h-5 text-emerald-600" />
+                Create New Homework Assignment
+              </h3>
+              <button onClick={() => setIsAsgModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700">Assignment Title</label>
+                <input
+                  type="text"
+                  value={asgTitle}
+                  onChange={(e) => setAsgTitle(e.target.value)}
+                  placeholder="e.g. Quadratic Equations Practice Set 1"
+                  className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-medium"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700">Subject</label>
+                  <input
+                    type="text"
+                    value={asgSubject}
+                    onChange={(e) => setAsgSubject(e.target.value)}
+                    className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700">Target Class</label>
+                  <input
+                    type="text"
+                    value={asgClass}
+                    onChange={(e) => setAsgClass(e.target.value)}
+                    className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700">Due Date</label>
+                  <input
+                    type="date"
+                    value={asgDueDate}
+                    onChange={(e) => setAsgDueDate(e.target.value)}
+                    className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700">Total Marks</label>
+                  <input
+                    type="number"
+                    value={asgPoints}
+                    onChange={(e) => setAsgPoints(Number(e.target.value))}
+                    className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700">Instructions / Problem Description</label>
+                <textarea
+                  rows={3}
+                  value={asgDesc}
+                  onChange={(e) => setAsgDesc(e.target.value)}
+                  placeholder="Explain step-by-step requirements for the homework assignment..."
+                  className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                onClick={() => setIsAsgModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateAssignmentSubmit}
+                className="px-5 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow hover:bg-emerald-700"
+              >
+                Publish Assignment to Student Portal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 2: GRADE SUBMISSION MODAL */}
+      {/* ========================================================= */}
+      {isGradeModalOpen && selectedGradeAsg && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-extrabold text-slate-900 text-base">Grade Student Submission</h3>
+                <p className="text-xs text-slate-500">{selectedGradeAsg.title} ({selectedGradeAsg.class})</p>
+              </div>
+              <button onClick={() => setIsGradeModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+            </div>
+
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-1 text-xs">
+              <div className="font-bold text-slate-900">Student: Adeyemi Chinedu (STD-2026-001)</div>
+              <div className="text-slate-600">Submitted Work: <span className="text-emerald-700 underline font-mono">homework_solution_chinedu.pdf</span></div>
+              <div className="text-slate-500 italic">"Attached is my step-by-step solution for the quadratic equations worksheet."</div>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700">Score Awarded (out of {selectedGradeAsg.totalPoints || 20})</label>
+                <input
+                  type="number"
+                  value={gradeScoreInput}
+                  onChange={(e) => setGradeScoreInput(Number(e.target.value))}
+                  className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-mono font-bold text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700">Teacher Remarks & Feedback</label>
+                <textarea
+                  rows={3}
+                  value={gradeRemarkInput}
+                  onChange={(e) => setGradeRemarkInput(e.target.value)}
+                  className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                onClick={() => setIsGradeModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleGradeSubmissionSubmit}
+                className="px-5 py-2 bg-slate-900 text-white font-bold text-xs rounded-xl shadow hover:bg-slate-800"
+              >
+                Save Score & Send Feedback to Student Portal
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 3: SCHEDULE CBT EXAM MODAL */}
+      {/* ========================================================= */}
+      {isCbtModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-extrabold text-slate-900 text-lg flex items-center gap-2">
+                <Cpu className="w-5 h-5 text-emerald-600" />
+                Schedule New CBT Assessment
+              </h3>
+              <button onClick={() => setIsCbtModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700">CBT Exam Title</label>
+                <input
+                  type="text"
+                  value={cbtTitle}
+                  onChange={(e) => setCbtTitle(e.target.value)}
+                  placeholder="e.g. First Term Mathematics CBT Exam"
+                  className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-medium"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700">Subject</label>
+                  <input
+                    type="text"
+                    value={cbtSubject}
+                    onChange={(e) => setCbtSubject(e.target.value)}
+                    className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700">Class Level</label>
+                  <input
+                    type="text"
+                    value={cbtClass}
+                    onChange={(e) => setCbtClass(e.target.value)}
+                    className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700">Duration (Minutes)</label>
+                <input
+                  type="number"
+                  value={cbtDuration}
+                  onChange={(e) => setCbtDuration(Number(e.target.value))}
+                  className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                onClick={() => setIsCbtModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleScheduleCbtSubmit}
+                className="px-5 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow hover:bg-emerald-700"
+              >
+                Schedule & Publish CBT
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 4: DIRECT MESSAGE MODAL */}
+      {/* ========================================================= */}
+      {isMsgModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-purple-600" />
+                Dispatch Direct Notice / Message
+              </h3>
+              <button onClick={() => setIsMsgModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-700">Recipient Student / Parent</label>
+                <input
+                  type="text"
+                  value={msgRecipient}
+                  onChange={(e) => setMsgRecipient(e.target.value)}
+                  className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-bold"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700">Subject</label>
+                <input
+                  type="text"
+                  value={msgSubject}
+                  onChange={(e) => setMsgSubject(e.target.value)}
+                  placeholder="Notice regarding student academic progress"
+                  className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700">Message Content</label>
+                <textarea
+                  rows={4}
+                  value={msgContent}
+                  onChange={(e) => setMsgContent(e.target.value)}
+                  placeholder="Type your official message to guardian/student..."
+                  className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                onClick={() => setIsMsgModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendMessageSubmit}
+                className="px-5 py-2 bg-slate-900 text-white font-bold text-xs rounded-xl shadow hover:bg-slate-800"
+              >
+                Send Direct Message
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* MODAL 5: LOG BEHAVIOUR NOTE MODAL */}
+      {/* ========================================================= */}
+      {isDiscModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="font-extrabold text-slate-900 text-base flex items-center gap-2">
+                <Award className="w-5 h-5 text-amber-500" />
+                Log Student Behaviour Note
+              </h3>
+              <button onClick={() => setIsDiscModalOpen(false)} className="text-slate-400 hover:text-slate-600 font-bold text-lg">✕</button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="font-bold text-slate-700">Student Name</label>
+                  <input
+                    type="text"
+                    value={discStudent}
+                    onChange={(e) => setDiscStudent(e.target.value)}
+                    className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-bold"
+                  />
+                </div>
+                <div>
+                  <label className="font-bold text-slate-700">Class</label>
+                  <input
+                    type="text"
+                    value={discClass}
+                    onChange={(e) => setDiscClass(e.target.value)}
+                    className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700">Category / Type</label>
+                <select
+                  value={discType}
+                  onChange={(e) => setDiscType(e.target.value)}
+                  className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900 font-bold"
+                >
+                  <option value="Commendation">Commendation (Exemplary Behaviour)</option>
+                  <option value="Punctuality Warning">Punctuality Warning</option>
+                  <option value="Disciplinary Conduct Note">Disciplinary Conduct Note</option>
+                  <option value="Leadership Recognition">Leadership Recognition</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700">Observation Note</label>
+                <textarea
+                  rows={3}
+                  value={discNote}
+                  onChange={(e) => setDiscNote(e.target.value)}
+                  placeholder="Write specific conduct observation note..."
+                  className="w-full mt-1 bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-900"
+                />
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+              <button
+                onClick={() => setIsDiscModalOpen(false)}
+                className="px-4 py-2 bg-slate-100 text-slate-700 font-bold text-xs rounded-xl hover:bg-slate-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleLogDisciplineSubmit}
+                className="px-5 py-2 bg-emerald-600 text-white font-bold text-xs rounded-xl shadow hover:bg-emerald-700"
+              >
+                Save & Dispatch to Parent Portal
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

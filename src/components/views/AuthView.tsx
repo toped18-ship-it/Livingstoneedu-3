@@ -65,11 +65,14 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
   // Check if initial route is /admin or #admin or initialAdminView
   const [isAdminMode, setIsAdminMode] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
+      const path = window.location.pathname;
+      const hash = window.location.hash;
+      if (path === "/" || path === "") return false;
       return (
         !!initialAdminView ||
-        window.location.pathname === "/admin" ||
-        window.location.pathname.startsWith("/admin") ||
-        window.location.hash === "#admin"
+        path === "/admin" ||
+        path.startsWith("/admin") ||
+        hash === "#admin"
       );
     }
     return !!initialAdminView;
@@ -952,17 +955,6 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
                       />
                       Remember Super Admin Session
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setLoginEmail("admin@livingstone.edu.ng");
-                        setLoginPassword("password123");
-                        setSuccessMessage("Loaded App Owner credentials (admin@livingstone.edu.ng).");
-                      }}
-                      className="text-purple-400 hover:text-purple-300 text-xs font-semibold flex items-center gap-1"
-                    >
-                      <Key className="w-3.5 h-3.5" /> Fill Demo Credentials
-                    </button>
                   </div>
 
                   <button
@@ -984,34 +976,7 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
               </div>
             ) : (
               <>
-                {/* Quick Test Presets Bar */}
-                <div className="p-3 bg-slate-900/90 border border-slate-800 rounded-2xl flex flex-wrap items-center justify-between gap-2 text-xs">
-              <span className="text-slate-400 font-medium">⚡ Quick Demo Login:</span>
-              <div className="flex flex-wrap items-center gap-1.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActivePortalTab("teacher");
-                    onLoginSuccess("Teacher", "teacher-portal");
-                  }}
-                  className="px-2.5 py-1 rounded-lg bg-sky-950 text-sky-300 font-bold border border-sky-800/60 hover:bg-sky-900 transition-colors"
-                >
-                  Teacher
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActivePortalTab("student");
-                    onLoginSuccess("Student", "student-parent-portal");
-                  }}
-                  className="px-2.5 py-1 rounded-lg bg-teal-950 text-teal-300 font-bold border border-teal-800/60 hover:bg-teal-900 transition-colors"
-                >
-                  Student
-                </button>
-              </div>
-            </div>
-
-            {/* Portal Cards Selector (Student Portal & Teacher Portal) */}
+                {/* Portal Cards Selector (Student Portal & Teacher Portal) */}
             <div className="grid grid-cols-2 gap-4">
               <button
                 type="button"

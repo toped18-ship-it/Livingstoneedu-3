@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { GraduationCap, Sparkles, ShieldCheck, Loader2 } from "lucide-react";
 import { Sidebar } from "./components/Sidebar";
 import { Header } from "./components/Header";
 import { AIAssistantModal } from "./components/AIAssistantModal";
@@ -50,7 +51,16 @@ export default function App() {
     return false;
   });
 
+  const [isLoadingApp, setIsLoadingApp] = useState(true);
   const [activeTab, setActiveTab] = useState("dashboard");
+
+  // Initial app startup loading overlay
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoadingApp(false);
+    }, 2500);
+    return () => clearTimeout(timer);
+  }, []);
   const [accessDeniedMessage, setAccessDeniedMessage] = useState("");
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== "undefined") {
@@ -166,6 +176,7 @@ export default function App() {
   };
 
   const handleLoginSuccess = (detectedRole: UserRole, targetTab: string, userData?: any) => {
+    setIsLoadingApp(true);
     setIsAuthenticated(true);
     setCurrentRole(detectedRole);
     setUserSession(userData || null);
@@ -192,15 +203,35 @@ export default function App() {
     } else {
       handleSelectTab(targetTab || "dashboard", detectedRole);
     }
+
+    setTimeout(() => {
+      setIsLoadingApp(false);
+    }, 1500);
   };
 
   const handleLogout = () => {
+    setIsLoadingApp(true);
     setIsAuthenticated(false);
     setUserSession(null);
+    setCurrentRole("Student");
     try {
       localStorage.removeItem("livingstone_user_session");
     } catch (e) {}
+    if (typeof window !== "undefined") {
+      try {
+        if (window.location.pathname === "/admin" || window.location.pathname.startsWith("/admin")) {
+          window.history.pushState(null, "", "/");
+        }
+        if (window.location.hash) {
+          window.location.hash = "";
+        }
+      } catch (e) {}
+    }
     setActiveTab("auth");
+
+    setTimeout(() => {
+      setIsLoadingApp(false);
+    }, 1500);
   };
 
   const renderCurrentView = () => {
@@ -273,6 +304,60 @@ export default function App() {
     }
   };
 
+  // 0. INITIAL APP LOADING OVERLAY
+  if (isLoadingApp) {
+    return (
+      <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center text-white select-none overflow-hidden font-sans">
+        {/* Ambient Glowing Background Orbs */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none animate-pulse" />
+        <div className="absolute top-1/3 left-1/3 w-64 h-64 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+
+        {/* Main Loading Card */}
+        <div className="relative z-10 flex flex-col items-center max-w-sm px-6 text-center space-y-6">
+          {/* Animated Icon Badge */}
+          <div className="relative">
+            <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-emerald-500 p-0.5 shadow-2xl shadow-purple-500/30 animate-bounce">
+              <div className="w-full h-full bg-slate-950 rounded-[22px] flex items-center justify-center">
+                <GraduationCap className="w-10 h-10 text-purple-400" />
+              </div>
+            </div>
+            <Sparkles className="w-6 h-6 text-emerald-400 absolute -top-2 -right-2 animate-spin" />
+          </div>
+
+          {/* Title & Subtitle */}
+          <div className="space-y-1.5">
+            <h1 className="text-2xl font-black tracking-tight text-white flex items-center justify-center gap-2">
+              LIVINGSTONE<span className="text-purple-400">EDU</span>
+            </h1>
+            <p className="text-xs font-semibold text-slate-400">
+              Smart AI School Management & Teacher Portal
+            </p>
+          </div>
+
+          {/* Progress Loading Bar */}
+          <div className="w-full space-y-2">
+            <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800 p-0.5">
+              <div className="h-full bg-gradient-to-r from-purple-500 via-indigo-500 to-emerald-400 rounded-full animate-pulse w-full transition-all duration-1000" />
+            </div>
+            <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+              <span className="flex items-center gap-1.5 text-purple-300">
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-400" />
+                Initializing AI Engine & Curriculum...
+              </span>
+              <span className="text-emerald-400 font-bold">100%</span>
+            </div>
+          </div>
+
+          {/* Badge Footer */}
+          <div className="pt-2 flex items-center justify-center gap-2 text-[10px] text-slate-500 font-mono">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
+            <span>NERDC 2026 Official Curriculum Aligned</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // 1. PUBLIC LAYOUT: Render AuthView when user is not authenticated
   if (!isAuthenticated) {
     return (
@@ -302,11 +387,11 @@ export default function App() {
     );
   }
 
-  // 3. STUDENT & PARENT STANDALONE LAYOUT: Single Student Sidebar layout without duplicate outer sidebar/header
-  if (currentRole === "Student" || currentRole === "Parent") {
+  // 3. STUDENT & PARENT STANDALONE LAYOUT: Standalone Student Portal view without duplicate outer admin sidebar/header
+  if (currentRole === "Student" || currentRole === "Parent" || activeTab === "student-parent-portal") {
     return (
       <StudentParentPortalView
-        currentRole={currentRole}
+        currentRole={currentRole === "Student" || currentRole === "Parent" ? currentRole : "Student"}
         userSession={userSession}
         onLogout={handleLogout}
       />

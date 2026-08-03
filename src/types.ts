@@ -192,11 +192,34 @@ export interface WebsiteSectionItem {
   imageUrl?: string;
   icon?: string;
   statValue?: string;
+  price?: string;
+  role?: string;
+  department?: string;
+  date?: string;
 }
 
 export interface WebsiteSection {
   id: string;
-  type: "hero" | "welcome" | "features" | "news" | "gallery" | "stats" | "testimonials" | "contact" | "custom_text";
+  type:
+    | "hero"
+    | "welcome"
+    | "features"
+    | "news"
+    | "gallery"
+    | "stats"
+    | "testimonials"
+    | "contact"
+    | "custom_text"
+    | "teachers"
+    | "courses"
+    | "pricing"
+    | "faq"
+    | "timeline"
+    | "partners"
+    | "map"
+    | "form"
+    | "newsletter"
+    | "whatsapp";
   title: string;
   subtitle?: string;
   content?: string;
@@ -214,6 +237,7 @@ export interface WebsitePage {
   isPublished: boolean;
   isSystemDefault?: boolean;
   metaDescription: string;
+  keywords?: string[];
   sections: WebsiteSection[];
 }
 
@@ -223,13 +247,18 @@ export interface WebsiteThemeConfig {
   logoUrl: string;
   primaryColor: string;
   accentColor: string;
+  backgroundColor?: string;
   fontFamily: string;
   headerStyle: "standard" | "centered" | "topbar";
   showAnnouncementBanner: boolean;
   announcementText: string;
   customDomain: string;
+  subdomain?: string;
   isLive: boolean;
+  maintenanceMode?: boolean;
   lastPublishedAt: string;
+  themePreset?: string;
+  whatsappNumber?: string;
 }
 
 export interface StudentRecord {

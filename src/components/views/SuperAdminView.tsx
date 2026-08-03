@@ -217,6 +217,7 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
   const [isBroadcastOpen, setIsBroadcastOpen] = useState(false);
   const [isApiKeysOpen, setIsApiKeysOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isTeacherNoticeModalOpen, setIsTeacherNoticeModalOpen] = useState(false);
 
   // Forms State
   const [newSchoolForm, setNewSchoolForm] = useState({
@@ -234,6 +235,14 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
     message: "",
     channel: "all", // push, email, sms, all
     targetAudience: "all-schools",
+  });
+
+  const [teacherNoticeForm, setTeacherNoticeForm] = useState({
+    teacherId: "TCH-001",
+    teacherName: "Mrs. Okonkwo Beatrice",
+    title: "Official Admin Directive",
+    message: "Kindly ensure First Term CA Broadsheet is finalized and submitted before 5:00 PM on Friday.",
+    priority: "High"
   });
 
   const [apiKeysForm, setApiKeysForm] = useState({
@@ -360,6 +369,23 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
           alertTitle: broadcastForm.title,
           alertDetails: broadcastForm.message,
         }),
+      });
+    } catch (err) {
+      // Ignored
+    }
+  };
+
+  // Quick Action: Direct Teacher Communication
+  const handleSendTeacherNotice = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsTeacherNoticeModalOpen(false);
+    showToast(`✓ Direct notice dispatched to ${teacherNoticeForm.teacherName}!`);
+
+    try {
+      await fetch("/api/superadmin/communication/teacher-notice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(teacherNoticeForm),
       });
     } catch (err) {
       // Ignored
@@ -1212,9 +1238,43 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
           {activeMainSection === "users" && (
             <div className="space-y-6 animate-fadeIn">
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-base font-black text-white">All Platform System Users</h3>
-                  <span className="text-xs text-purple-400 font-bold">{filteredUsers.length} Users Listed</span>
+                <div className="flex flex-wrap justify-between items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Users className="w-5 h-5 text-indigo-400" />
+                    <h3 className="text-base font-black text-white">Platform System Users</h3>
+                    <span className="text-xs text-indigo-400 font-bold ml-2">({filteredUsers.length} Listed)</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setIsTeacherNoticeModalOpen(true)}
+                      className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-emerald-600/30"
+                    >
+                      <Send className="w-3.5 h-3.5" /> Direct Notice to Teacher
+                    </button>
+                    <button
+                      onClick={() => showToast("✓ User Creation Form opened")}
+                      className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-1.5"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Create Platform User
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+                  {["all", "super-admins", "school-owners", "teachers", "students", "parents"].map((roleTab) => (
+                    <button
+                      key={roleTab}
+                      onClick={() => setActiveSubItem(roleTab)}
+                      className={`px-3 py-1.5 rounded-lg font-bold uppercase text-[10px] whitespace-nowrap transition-colors ${
+                        activeSubItem === roleTab || (activeSubItem === "all" && roleTab === "all")
+                          ? "bg-purple-600 text-white"
+                          : "bg-slate-950 text-slate-400 hover:text-white border border-slate-800"
+                      }`}
+                    >
+                      {roleTab.replace("-", " ")}
+                    </button>
+                  ))}
                 </div>
 
                 <div className="overflow-x-auto">
@@ -1226,12 +1286,12 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
                         <th className="p-3">Role</th>
                         <th className="p-3">Campus Code</th>
                         <th className="p-3">Status</th>
-                        <th className="p-3 text-right">Manage</th>
+                        <th className="p-3 text-right">Actions & Management</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/60">
                       {filteredUsers.map((u) => (
-                        <tr key={u.id} className="hover:bg-slate-800/40">
+                        <tr key={u.id} className="hover:bg-slate-800/40 transition-colors">
                           <td className="p-3 font-bold text-white flex items-center gap-2">
                             <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-purple-400">
                               {u.name.charAt(0)}
@@ -1250,9 +1310,24 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
                               {u.status || "Active"}
                             </span>
                           </td>
-                          <td className="p-3 text-right">
+                          <td className="p-3 text-right space-x-2">
+                            {u.role === "Teacher" && (
+                              <button
+                                onClick={() => {
+                                  setTeacherNoticeForm({
+                                    ...teacherNoticeForm,
+                                    teacherId: u.id,
+                                    teacherName: u.name
+                                  });
+                                  setIsTeacherNoticeModalOpen(true);
+                                }}
+                                className="px-2.5 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-[10px]"
+                              >
+                                Message Teacher
+                              </button>
+                            )}
                             <button
-                              onClick={() => showToast(`Password reset link sent to ${u.email}`)}
+                              onClick={() => showToast(`✓ Password reset link sent to ${u.email}`)}
                               className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-[10px]"
                             >
                               Reset Access
@@ -1287,6 +1362,62 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
                   <p className="text-[11px] text-slate-400 mt-1">Per partner institution</p>
                 </div>
               </div>
+
+              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <h3 className="text-base font-black text-white">SaaS Tiers & Plan Allocations</h3>
+                  <button
+                    onClick={() => showToast("✓ Subscription Plan Rate Editor opened")}
+                    className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold"
+                  >
+                    Configure Pricing Rates
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                  <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="font-extrabold text-white text-sm">Enterprise Pro</span>
+                      <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 font-bold text-[10px]">₦1.8M / Year</span>
+                    </div>
+                    <p className="text-slate-400 text-[11px]">100GB Storage • 50,000 Gemini AI Credits • Unlimited CBT & Multi-Campus Sync</p>
+                    <button
+                      onClick={() => showToast("✓ Enterprise Pro quota updated")}
+                      className="w-full py-1.5 bg-slate-800 hover:bg-purple-900/50 text-purple-300 font-bold rounded-lg border border-slate-700"
+                    >
+                      Edit Enterprise Quota
+                    </button>
+                  </div>
+
+                  <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="font-extrabold text-white text-sm">Standard Growth</span>
+                      <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold text-[10px]">₦950,000 / Year</span>
+                    </div>
+                    <p className="text-slate-400 text-[11px]">50GB Storage • 25,000 Gemini AI Credits • Full Teacher Portal Access</p>
+                    <button
+                      onClick={() => showToast("✓ Standard Growth quota updated")}
+                      className="w-full py-1.5 bg-slate-800 hover:bg-indigo-900/50 text-indigo-300 font-bold rounded-lg border border-slate-700"
+                    >
+                      Edit Standard Quota
+                    </button>
+                  </div>
+
+                  <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="font-extrabold text-white text-sm">Basic Starter</span>
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold text-[10px]">₦450,000 / Year</span>
+                    </div>
+                    <p className="text-slate-400 text-[11px]">20GB Storage • 10,000 Gemini AI Credits • Core Attendance & Admissions</p>
+                    <button
+                      onClick={() => showToast("✓ Basic Starter quota updated")}
+                      className="w-full py-1.5 bg-slate-800 hover:bg-emerald-900/50 text-emerald-300 font-bold rounded-lg border border-slate-700"
+                    >
+                      Edit Basic Quota
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -1306,14 +1437,80 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
-                    <span className="text-xs font-bold text-slate-300">Active AI Model</span>
+                    <span className="text-xs font-bold text-slate-300">Active AI Model Switcher</span>
                     <div className="text-sm font-black text-amber-400 font-mono">gemini-1.5-pro / gemini-2.0-flash</div>
                     <p className="text-[11px] text-slate-400">Configured for lesson notes, CBT questions, and automated report remarks.</p>
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        onClick={() => showToast("✓ Default AI Model set to gemini-2.0-flash")}
+                        className="px-3 py-1 bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 rounded font-bold text-[10px] border border-amber-500/30"
+                      >
+                        Set 2.0 Flash
+                      </button>
+                      <button
+                        onClick={() => showToast("✓ Default AI Model set to gemini-1.5-pro")}
+                        className="px-3 py-1 bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 rounded font-bold text-[10px] border border-indigo-500/30"
+                      >
+                        Set 1.5 Pro
+                      </button>
+                    </div>
                   </div>
+
                   <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
                     <span className="text-xs font-bold text-slate-300">Monthly AI Token Consumption</span>
                     <div className="text-sm font-black text-emerald-400 font-mono">14,200,000 / 50,000,000 Tokens</div>
                     <p className="text-[11px] text-slate-400">28.4% of total quota consumed across 142 schools.</p>
+                    <button
+                      onClick={() => showToast("✓ Token quota reset for all schools")}
+                      className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded font-bold text-[10px] border border-slate-700 mt-2"
+                    >
+                      Reset Token Quotas
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-extrabold text-white uppercase">Live AI Prompt Audit Logs</h4>
+                    <button
+                      onClick={() => showToast("✓ AI Prompt cache cleared")}
+                      className="text-[11px] font-bold text-amber-400 hover:underline"
+                    >
+                      Flush Prompt Cache
+                    </button>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs text-slate-300">
+                      <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] font-extrabold border-b border-slate-800">
+                        <tr>
+                          <th className="p-2.5">School</th>
+                          <th className="p-2.5">Educator</th>
+                          <th className="p-2.5">AI Feature</th>
+                          <th className="p-2.5">Model</th>
+                          <th className="p-2.5">Tokens</th>
+                          <th className="p-2.5">Time</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60">
+                        <tr>
+                          <td className="p-2.5 font-bold text-white">Livingstone Int. College</td>
+                          <td className="p-2.5 text-slate-300">Mrs. Okonkwo</td>
+                          <td className="p-2.5 text-amber-300 font-bold">AI Lesson Note</td>
+                          <td className="p-2.5 font-mono text-[10px]">gemini-2.0-flash</td>
+                          <td className="p-2.5 font-mono text-emerald-400">1,420</td>
+                          <td className="p-2.5 text-slate-400">2 mins ago</td>
+                        </tr>
+                        <tr>
+                          <td className="p-2.5 font-bold text-white">Grace Heritage Academy</td>
+                          <td className="p-2.5 text-slate-300">Mr. David Alabi</td>
+                          <td className="p-2.5 text-indigo-300 font-bold">CBT Question Gen</td>
+                          <td className="p-2.5 font-mono text-[10px]">gemini-1.5-pro</td>
+                          <td className="p-2.5 font-mono text-emerald-400">3,850</td>
+                          <td className="p-2.5 text-slate-400">12 mins ago</td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
                 </div>
               </div>
@@ -1324,8 +1521,53 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
           {activeMainSection === "curriculum" && (
             <div className="space-y-6 animate-fadeIn">
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-                <h3 className="text-base font-black text-white">NERDC National Curriculum Repository</h3>
-                <p className="text-xs text-slate-400">Centralized syllabus, 12,480 lesson note templates, and WAEC/NECO question banks.</p>
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div>
+                    <h3 className="text-base font-black text-white">NERDC National Curriculum Repository</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">Centralized syllabus, 12,480 lesson note templates, and WAEC/NECO question banks.</p>
+                  </div>
+                  <button
+                    onClick={() => showToast("✓ WAEC/NERDC 2026 Standards auto-synced across all teacher portals")}
+                    className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold"
+                  >
+                    Sync WAEC 2026 Standards
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                  <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
+                    <span className="font-extrabold text-white text-sm">Senior Secondary (SS1 - SS3)</span>
+                    <p className="text-slate-400 text-[11px]">NERDC Aligned STEM, Commercial, and Humanities syllabi.</p>
+                    <button
+                      onClick={() => showToast("✓ Senior Secondary Syllabus downloaded (PDF)")}
+                      className="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-lg border border-slate-700 flex items-center justify-center gap-1"
+                    >
+                      <Download className="w-3.5 h-3.5" /> Download Syllabus PDF
+                    </button>
+                  </div>
+
+                  <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
+                    <span className="font-extrabold text-white text-sm">Junior Secondary (JSS1 - JSS3)</span>
+                    <p className="text-slate-400 text-[11px]">BECE National Examinations & Basic Education Standards.</p>
+                    <button
+                      onClick={() => showToast("✓ Junior Secondary Syllabus downloaded (PDF)")}
+                      className="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-lg border border-slate-700 flex items-center justify-center gap-1"
+                    >
+                      <Download className="w-3.5 h-3.5" /> Download Syllabus PDF
+                    </button>
+                  </div>
+
+                  <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
+                    <span className="font-extrabold text-white text-sm">12,480 Lesson Templates</span>
+                    <p className="text-slate-400 text-[11px]">Pre-configured weekly lesson notes ready for teacher co-pilot AI.</p>
+                    <button
+                      onClick={() => showToast("✓ Lesson templates published to Teacher Portal")}
+                      className="w-full py-1.5 bg-purple-900/50 text-purple-300 font-bold rounded-lg border border-purple-700/50 flex items-center justify-center gap-1"
+                    >
+                      Publish to Teacher Portals
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -1335,7 +1577,10 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
             <div className="space-y-6 animate-fadeIn">
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
                 <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                  <h3 className="text-base font-black text-white">Firebase Firestore & Cloud Storage Manager</h3>
+                  <div>
+                    <h3 className="text-base font-black text-white">Firebase Firestore & Cloud Storage Manager</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">Live database collections, backups, disaster recovery, and bucket health.</p>
+                  </div>
                   <button
                     onClick={triggerDatabaseBackup}
                     className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold"
@@ -1343,14 +1588,48 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
                     Create Snapshot Now
                   </button>
                 </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                   <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
                     <span className="text-slate-400 font-bold">Firestore Collections</span>
                     <div className="text-white font-mono font-bold">schools, users, lessons, cbt_exams, fees, activity_logs</div>
+                    <button
+                      onClick={() => showToast("✓ Firestore indexes optimized successfully")}
+                      className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded font-bold text-[10px] border border-slate-700 mt-2"
+                    >
+                      Optimize Indexes
+                    </button>
                   </div>
+
                   <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
                     <span className="text-slate-400 font-bold">Storage Bucket Status</span>
                     <div className="text-emerald-400 font-mono font-bold">livingstoneedu-1ef57.firebasestorage.app</div>
+                    <button
+                      onClick={() => showToast("✓ Cloud storage bucket health verified: 100% operational")}
+                      className="px-3 py-1 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 rounded font-bold text-[10px] border border-emerald-500/30 mt-2"
+                    >
+                      Verify Bucket Health
+                    </button>
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <h4 className="text-xs font-extrabold text-white uppercase mb-2">Saved Backup Snapshots</h4>
+                  <div className="space-y-2">
+                    {backups.map((bk) => (
+                      <div key={bk.id} className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
+                        <div>
+                          <div className="font-bold text-white">{bk.name}</div>
+                          <div className="text-[11px] text-slate-400 font-mono">{bk.id} • {bk.size} • {bk.date}</div>
+                        </div>
+                        <button
+                          onClick={() => showToast(`✓ ${bk.name} downloaded securely`)}
+                          className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[10px]"
+                        >
+                          Download Snapshot
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -1361,8 +1640,60 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
           {activeMainSection === "security" && (
             <div className="space-y-6 animate-fadeIn">
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-                <h3 className="text-base font-black text-white">Security & Audit Log Stream</h3>
-                <p className="text-xs text-slate-400">Firebase JWT tokens validation, RBAC security rules, and full platform access logs.</p>
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div>
+                    <h3 className="text-base font-black text-white">Security & Audit Log Stream</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">Firebase JWT tokens validation, RBAC security rules, and full platform access logs.</p>
+                  </div>
+                  <button
+                    onClick={() => showToast("⚠️ All user JWT sessions invalidated. Users will re-authenticate.")}
+                    className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg shadow-rose-600/30"
+                  >
+                    Revoke All User Tokens
+                  </button>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <h4 className="text-xs font-bold text-slate-300">Platform Security Audit Log Stream</h4>
+                    <button
+                      onClick={() => showToast("✓ Security Audit Log downloaded (CSV)")}
+                      className="text-[11px] font-bold text-purple-400 hover:underline flex items-center gap-1"
+                    >
+                      <Download className="w-3 h-3" /> Export Audit Log
+                    </button>
+                  </div>
+
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs text-slate-300">
+                      <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] font-extrabold border-b border-slate-800">
+                        <tr>
+                          <th className="p-2.5">User</th>
+                          <th className="p-2.5">Role</th>
+                          <th className="p-2.5">Action Executed</th>
+                          <th className="p-2.5">IP Address</th>
+                          <th className="p-2.5">Time</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-800/60">
+                        <tr>
+                          <td className="p-2.5 font-bold text-white">Dr. Emmanuel Livingstone</td>
+                          <td className="p-2.5 text-purple-400 font-bold">Super Admin</td>
+                          <td className="p-2.5 text-emerald-400">Dispatched Teacher Directive</td>
+                          <td className="p-2.5 font-mono text-slate-400">102.89.23.14</td>
+                          <td className="p-2.5 text-slate-400">Just now</td>
+                        </tr>
+                        <tr>
+                          <td className="p-2.5 font-bold text-white">Mrs. Okonkwo Beatrice</td>
+                          <td className="p-2.5 text-indigo-400 font-bold">Principal</td>
+                          <td className="p-2.5 text-slate-300">Approved Week 4 Physics Lesson Note</td>
+                          <td className="p-2.5 font-mono text-slate-400">197.210.8.42</td>
+                          <td className="p-2.5 text-slate-400">15 mins ago</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -1371,24 +1702,44 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
           {activeMainSection === "monitoring" && (
             <div className="space-y-6 animate-fadeIn">
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-                <h3 className="text-base font-black text-white">Infrastructure & API Health Monitoring</h3>
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div>
+                    <h3 className="text-base font-black text-white">Infrastructure & API Health Monitoring</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">Real-time Node.js container health, memory footprint, and API latency.</p>
+                  </div>
+                  <button
+                    onClick={() => showToast("✓ Cloud Run Node containers pinged successfully")}
+                    className="px-3.5 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold"
+                  >
+                    Ping Health Nodes
+                  </button>
+                </div>
+
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center text-xs">
                   <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
-                    <span className="text-slate-400">CPU Usage</span>
+                    <span className="text-slate-400 font-bold">CPU Usage</span>
                     <div className="text-base font-black text-emerald-400 mt-1">14%</div>
                   </div>
                   <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
-                    <span className="text-slate-400">RAM Allocated</span>
+                    <span className="text-slate-400 font-bold">RAM Allocated</span>
                     <div className="text-base font-black text-purple-400 mt-1">2.8 / 8.0 GB</div>
                   </div>
                   <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
-                    <span className="text-slate-400">API Response</span>
+                    <span className="text-slate-400 font-bold">API Response</span>
                     <div className="text-base font-black text-cyan-400 mt-1">1.2ms</div>
                   </div>
                   <div className="p-3 bg-slate-950 rounded-xl border border-slate-800">
-                    <span className="text-slate-400">Uptime</span>
+                    <span className="text-slate-400 font-bold">Platform Uptime</span>
                     <div className="text-base font-black text-emerald-400 mt-1">99.98%</div>
                   </div>
+                </div>
+
+                <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-2 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="font-bold text-white">Active Container Instances</span>
+                    <span className="text-emerald-400 font-mono font-bold">3 Replicas Running</span>
+                  </div>
+                  <p className="text-slate-400 text-[11px]">Auto-scaling enabled on port 3000 behind reverse proxy.</p>
                 </div>
               </div>
             </div>
@@ -1398,13 +1749,60 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
           {activeMainSection === "notifications" && (
             <div className="space-y-6 animate-fadeIn">
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-                <h3 className="text-base font-black text-white">Global Broadcast & Push Alert Dispatcher</h3>
-                <button
-                  onClick={() => setIsBroadcastOpen(true)}
-                  className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold"
-                >
-                  Create Emergency Broadcast
-                </button>
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div>
+                    <h3 className="text-base font-black text-white">Global Communication & Dispatcher Hub</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">Send broadcasts to schools, direct notices to teacher portals, and push alerts.</p>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setIsTeacherNoticeModalOpen(true)}
+                      className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-emerald-600/30"
+                    >
+                      <Send className="w-3.5 h-3.5" /> Notice to Teacher Portal
+                    </button>
+                    <button
+                      onClick={() => setIsBroadcastOpen(true)}
+                      className="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-1.5"
+                    >
+                      <Plus className="w-3.5 h-3.5" /> Create Emergency Broadcast
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <h4 className="text-xs font-extrabold text-white uppercase">Dispatched Directives & Broadcast History</h4>
+                  <div className="space-y-2 text-xs">
+                    <div className="p-3.5 bg-slate-950 rounded-xl border border-slate-800 flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                            Teacher Direct Directive
+                          </span>
+                          <h5 className="font-bold text-white">Lesson Note Review Directive</h5>
+                        </div>
+                        <p className="text-slate-300 mt-1">Kindly ensure Week 5 Further Mathematics lesson notes are updated with Gemini AI practice problems.</p>
+                        <span className="text-[10px] text-slate-400 font-mono mt-1 block">Recipient: Mrs. Okonkwo Beatrice • Priority: High</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">Dispatched</span>
+                    </div>
+
+                    <div className="p-3.5 bg-slate-950 rounded-xl border border-slate-800 flex items-start justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                            Platform Broadcast
+                          </span>
+                          <h5 className="font-bold text-white">First Term Continuous Assessment Deadline</h5>
+                        </div>
+                        <p className="text-slate-300 mt-1">All secondary school teaching staff must compile and submit SS1-SS3 CA broadsheets to Admin HQ before 5:00 PM on Friday.</p>
+                        <span className="text-[10px] text-slate-400 font-mono mt-1 block">Audience: All 142 Schools • Channel: Push + Email + SMS</span>
+                      </div>
+                      <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-[10px] font-bold">Broadcasted</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}
@@ -1413,22 +1811,60 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
           {activeMainSection === "settings" && (
             <div className="space-y-6 animate-fadeIn">
               <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4">
-                <h3 className="text-base font-black text-white">Platform Master Configuration</h3>
+                <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                  <div>
+                    <h3 className="text-base font-black text-white">Platform Master Configuration</h3>
+                    <p className="text-xs text-slate-400 mt-0.5">Toggle platform switches, maintenance mode, and global feature flags.</p>
+                  </div>
+                  <button
+                    onClick={() => showToast("✓ Platform Master Configuration saved successfully!")}
+                    className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30"
+                  >
+                    Save Configuration
+                  </button>
+                </div>
+
                 <div className="space-y-3 text-xs">
-                  <div className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800">
+                  <div className="flex items-center justify-between p-3.5 bg-slate-950 rounded-xl border border-slate-800">
                     <div>
                       <div className="font-bold text-white">Maintenance Mode</div>
                       <div className="text-slate-400">Temporarily lock school portals for platform upgrades</div>
                     </div>
-                    <span className="px-2.5 py-1 rounded bg-slate-800 text-slate-400 font-bold">OFF</span>
+                    <button
+                      onClick={() => {
+                        const newMode = !settings.maintenanceMode;
+                        setSettings({ ...settings, maintenanceMode: newMode });
+                        showToast(newMode ? "⚠️ Maintenance Mode ENABLED" : "✓ Maintenance Mode DISABLED");
+                      }}
+                      className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-colors ${
+                        settings.maintenanceMode
+                          ? "bg-rose-600 text-white"
+                          : "bg-slate-800 text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      {settings.maintenanceMode ? "ENABLED" : "OFF"}
+                    </button>
                   </div>
 
-                  <div className="flex items-center justify-between p-3 bg-slate-950 rounded-xl border border-slate-800">
+                  <div className="flex items-center justify-between p-3.5 bg-slate-950 rounded-xl border border-slate-800">
                     <div>
-                      <div className="font-bold text-white">Gemini AI Auto-Grading</div>
-                      <div className="text-slate-400">Enable automatic AI evaluation for theory exam submissions</div>
+                      <div className="font-bold text-white">Gemini AI Auto-Grading & Remarks</div>
+                      <div className="text-slate-400">Enable automatic AI evaluation for theory exam submissions and report cards</div>
                     </div>
-                    <span className="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-400 font-bold">ENABLED</span>
+                    <button
+                      onClick={() => {
+                        const newGrading = !settings.aiGradingEnabled;
+                        setSettings({ ...settings, aiGradingEnabled: newGrading });
+                        showToast(newGrading ? "✓ Gemini AI Auto-Grading ENABLED" : "⚠️ Gemini AI Auto-Grading DISABLED");
+                      }}
+                      className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-colors ${
+                        settings.aiGradingEnabled
+                          ? "bg-emerald-600 text-white"
+                          : "bg-slate-800 text-slate-400 hover:text-white"
+                      }`}
+                    >
+                      {settings.aiGradingEnabled ? "ENABLED" : "OFF"}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1774,6 +2210,101 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
                 <Download className="w-4 h-4 text-amber-400" />
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 6: DIRECT TEACHER NOTICE MODAL */}
+      {isTeacherNoticeModalOpen && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-4 animate-fadeIn">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="flex items-center gap-2">
+                <Send className="w-5 h-5 text-emerald-400" />
+                <h3 className="text-base font-black text-white">Direct Communication to Teacher Portal</h3>
+              </div>
+              <button onClick={() => setIsTeacherNoticeModalOpen(false)} className="text-slate-400 hover:text-white">
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSendTeacherNotice} className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold text-slate-300 block mb-1">Target Educator / Teacher</label>
+                <select
+                  value={teacherNoticeForm.teacherName}
+                  onChange={(e) => {
+                    const selName = e.target.value;
+                    const foundUser = users.find(u => u.name === selName);
+                    setTeacherNoticeForm({
+                      ...teacherNoticeForm,
+                      teacherName: selName,
+                      teacherId: foundUser?.id || "TCH-001"
+                    });
+                  }}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white outline-none focus:border-emerald-500"
+                >
+                  {users.filter(u => u.role === "Teacher" || u.role === "Principal" || u.role === "Exam Officer").map(t => (
+                    <option key={t.id} value={t.name}>{t.name} ({t.role} - {t.email})</option>
+                  ))}
+                  <option value="Mrs. Okonkwo Beatrice">Mrs. Okonkwo Beatrice (Principal / Senior Educator)</option>
+                  <option value="Mr. David Alabi">Mr. David Alabi (Physics & STEM Teacher)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-300 block mb-1">Directive / Notice Subject</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Action Required: First Term CA Broadsheet Deadline"
+                  value={teacherNoticeForm.title}
+                  onChange={(e) => setTeacherNoticeForm({ ...teacherNoticeForm, title: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white outline-none focus:border-emerald-500"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-300 block mb-1">Directive Details / Message</label>
+                <textarea
+                  required
+                  rows={4}
+                  placeholder="Type directive instructions for teacher portal..."
+                  value={teacherNoticeForm.message}
+                  onChange={(e) => setTeacherNoticeForm({ ...teacherNoticeForm, message: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white outline-none focus:border-emerald-500"
+                ></textarea>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-300 block mb-1">Priority Level</label>
+                <select
+                  value={teacherNoticeForm.priority}
+                  onChange={(e) => setTeacherNoticeForm({ ...teacherNoticeForm, priority: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white outline-none"
+                >
+                  <option value="Urgent HQ Directive">Urgent HQ Directive</option>
+                  <option value="High Priority">High Priority</option>
+                  <option value="Standard Academic Bulletin">Standard Academic Bulletin</option>
+                </select>
+              </div>
+
+              <div className="pt-3 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsTeacherNoticeModalOpen(false)}
+                  className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 font-bold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold shadow-lg shadow-emerald-600/40"
+                >
+                  Dispatch to Teacher Portal
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

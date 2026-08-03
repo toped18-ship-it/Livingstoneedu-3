@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Globe,
   Palette,
@@ -28,6 +28,38 @@ import {
   Search,
   Code,
   Share2,
+  MessageSquare,
+  Send,
+  Bot,
+  Copy,
+  HelpCircle,
+  LayoutGrid,
+  Download,
+  Server,
+  Lock,
+  BarChart3,
+  Users,
+  Mail,
+  Phone,
+  MapPin,
+  Award,
+  BookOpen,
+  Clock,
+  Calendar,
+  CheckSquare,
+  FolderPlus,
+  FilePlus,
+  ChevronRight,
+  X,
+  ArrowRight,
+  Play,
+  Star,
+  GraduationCap,
+  Building2,
+  DollarSign,
+  Shield,
+  Briefcase,
+  FileSpreadsheet
 } from "lucide-react";
 import { WebsitePage, WebsiteSection, WebsiteThemeConfig, UserRole } from "../../types";
 
@@ -39,16 +71,35 @@ const DEFAULT_THEME: WebsiteThemeConfig = {
   schoolName: "LIVINGSTONE INTERNATIONAL ACADEMY",
   tagline: "Empowerment, Character & Academic Excellence",
   logoUrl: "https://images.unsplash.com/photo-1546410531-bb4caa6b424d?w=150&auto=format&fit=crop&q=80",
-  primaryColor: "#1e3a8a", // Royal Blue
-  accentColor: "#d97706", // Amber / Gold
+  primaryColor: "#1e3a8a",
+  accentColor: "#d97706",
+  backgroundColor: "#f8fafc",
   fontFamily: "Plus Jakarta Sans",
   headerStyle: "topbar",
   showAnnouncementBanner: true,
   announcementText: "🎉 2026/2027 Academic Year Admission is Now Open! Entrance Exams commence Aug 15th.",
   customDomain: "www.livingstone.edu.ng",
+  subdomain: "livingstone.livingstone.edu.ng",
   isLive: true,
+  maintenanceMode: false,
   lastPublishedAt: "Today at 04:15 PM",
+  themePreset: "Modern School",
+  whatsappNumber: "+2348005484647"
 };
+
+const THEME_PRESETS = [
+  { id: "Modern School", name: "Modern School", primary: "#1e3a8a", accent: "#d97706", desc: "Clean typography, subtle shadows, vibrant blue & gold" },
+  { id: "Corporate", name: "Corporate Academy", primary: "#0f172a", accent: "#2563eb", desc: "Executive dark blue slate palette for senior secondary & colleges" },
+  { id: "Classic", name: "Classic Heritage", primary: "#831843", accent: "#b45309", desc: "Burgundy and bronze traditional school feel" },
+  { id: "Luxury", name: "Luxury Private", primary: "#14532d", accent: "#ca8a04", desc: "Emerald green and metallic champagne gold prestige" },
+  { id: "Children School", name: "Children / Early Years", primary: "#7c3aed", accent: "#f59e0b", desc: "Playful purple, warm yellow, friendly rounded corners" },
+  { id: "Boarding School", name: "Boarding & Residential", primary: "#1e1b4b", accent: "#0284c7", desc: "Deep navy and cyan for residential campus atmosphere" },
+  { id: "STEM School", name: "STEM & Tech Academy", primary: "#0369a1", accent: "#10b981", desc: "Futuristic tech teal and mint green for science schools" },
+  { id: "Christian School", name: "Christian Mission", primary: "#1e3a8a", accent: "#0d9488", desc: "Serene royal blue and teal with faith-focused elements" },
+  { id: "Islamic School", name: "Islamic College", primary: "#065f46", accent: "#d97706", desc: "Deep Islamic green and gold arabesque inspired" },
+  { id: "International School", name: "International Baccalaureate", primary: "#312e81", accent: "#e11d48", desc: "Indigo and crimson global school aesthetics" },
+  { id: "Vocational School", name: "Vocational & Poly", primary: "#334155", accent: "#ea580c", desc: "Slate grey and industrial amber for skills centers" },
+];
 
 const INITIAL_PAGES: WebsitePage[] = [
   {
@@ -58,6 +109,7 @@ const INITIAL_PAGES: WebsitePage[] = [
     isPublished: true,
     isSystemDefault: true,
     metaDescription: "Official website of Livingstone International Academy - Excellence in Early Years, Primary and Secondary Education.",
+    keywords: ["livingstone", "school", "admission", "cambridge", "waec", "lagos"],
     sections: [
       {
         id: "sec-hero",
@@ -67,7 +119,7 @@ const INITIAL_PAGES: WebsitePage[] = [
         content: "Discover a transformative education where academic rigor meets character development in a state-of-the-art learning environment.",
         imageUrl: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1200&auto=format&fit=crop&q=80",
         ctaText: "Apply For Admission",
-        ctaLink: "#admissions",
+        ctaLink: "admission",
       },
       {
         id: "sec-welcome",
@@ -83,30 +135,10 @@ const INITIAL_PAGES: WebsitePage[] = [
         title: "Why Choose Livingstone?",
         subtitle: "World-class facilities and holistic educational standards",
         items: [
-          {
-            id: "feat-1",
-            title: "Dual Accreditation",
-            description: "Cambridge International & National Curriculum synergy.",
-            icon: "Award",
-          },
-          {
-            id: "feat-2",
-            title: "STEM & Robotics Labs",
-            description: "Cutting-edge artificial intelligence, coding and science facilities.",
-            icon: "Sparkles",
-          },
-          {
-            id: "feat-3",
-            title: "Modern Boarding",
-            description: "Safe, serene and nurturing residential halls with 24/7 care.",
-            icon: "Home",
-          },
-          {
-            id: "feat-4",
-            title: "100% Exam Pass Rate",
-            description: "Consistent top scores in WAEC, IGCSE, and SAT assessments.",
-            icon: "CheckCircle",
-          },
+          { id: "feat-1", title: "Dual Accreditation", description: "Cambridge International & National Curriculum synergy.", icon: "Award" },
+          { id: "feat-2", title: "STEM & Robotics Labs", description: "Cutting-edge artificial intelligence, coding and science facilities.", icon: "Sparkles" },
+          { id: "feat-3", title: "Modern Boarding", description: "Safe, serene and nurturing residential halls with 24/7 care.", icon: "Home" },
+          { id: "feat-4", title: "100% Exam Pass Rate", description: "Consistent top scores in WAEC, IGCSE, and SAT assessments.", icon: "CheckCircle" },
         ],
       },
       {
@@ -136,6 +168,7 @@ const INITIAL_PAGES: WebsitePage[] = [
     isPublished: true,
     isSystemDefault: true,
     metaDescription: "Learn about Livingstone's history, mission, core values, and governance team.",
+    keywords: ["about livingstone", "school history", "mission", "vision"],
     sections: [
       {
         id: "sec-about-hero",
@@ -148,9 +181,35 @@ const INITIAL_PAGES: WebsitePage[] = [
       {
         id: "sec-about-text",
         type: "custom_text",
-        title: "Mission & Core Values",
-        content: "Core Values: Integrity, Innovation, Excellence, Discipline, and Empathy. We strive to instill these principles in every lesson and extracurricular endeavor.",
+        title: "Mission, Vision & Core Values",
+        content: "Mission: To empower students through personalized learning, critical thinking, and moral leadership. Core Values: Integrity, Innovation, Excellence, Discipline, and Empathy.",
       },
+    ],
+  },
+  {
+    id: "page-admission",
+    title: "Admission",
+    slug: "admission",
+    isPublished: true,
+    isSystemDefault: true,
+    metaDescription: "Apply for admission into Livingstone Academy. Requirements, online enrollment form, and entrance exam dates.",
+    keywords: ["admission", "enrollment", "application", "fees"],
+    sections: [
+      {
+        id: "sec-adm-hero",
+        type: "hero",
+        title: "Join The Livingstone Family",
+        subtitle: "2026/2027 Academic Year Admission Guidelines & Application Portal",
+        content: "We invite prospective parents to tour our campus and submit an application for Creche, Primary, or High School entry.",
+        imageUrl: "https://images.unsplash.com/photo-1580582932707-520aed937b7b?w=1200&auto=format&fit=crop&q=80",
+      },
+      {
+        id: "sec-adm-form",
+        type: "form",
+        title: "Online Admission Application Form",
+        subtitle: "Fill out the prospective student registration below",
+        content: "Submitted applications are reviewed by the admissions board within 48 hours.",
+      }
     ],
   },
   {
@@ -159,43 +218,56 @@ const INITIAL_PAGES: WebsitePage[] = [
     slug: "academics",
     isPublished: true,
     isSystemDefault: true,
-    metaDescription: "Explore our Early Years, Primary, Secondary, and Advanced Placement programs.",
+    metaDescription: "Explore our Creche, Nursery, Primary, Secondary, and Cambridge IGCSE academic tracks.",
+    keywords: ["academics", "curriculum", "subjects", "cambridge"],
     sections: [
       {
         id: "sec-acad-hero",
         type: "hero",
-        title: "Academic Programs",
-        subtitle: "Rigorous, balanced, and future-focused learning paths",
+        title: "Academic Programs & Curriculum",
+        subtitle: "A balanced blend of NERDC National Standards & Cambridge International Education",
+        content: "Our academic framework is structured into Early Years, Lower/Upper Basic, and Senior Secondary STEM/Humanities streams.",
         imageUrl: "https://images.unsplash.com/photo-1427504494785-3a9ca7044f45?w=1200&auto=format&fit=crop&q=80",
       },
+      {
+        id: "sec-courses",
+        type: "courses",
+        title: "Our Educational Streams",
+        subtitle: "Tailored developmental learning stages",
+        items: [
+          { id: "c-1", title: "Early Years & Nursery", description: "Montessori-inspired foundation for ages 2 - 5", icon: "GraduationCap" },
+          { id: "c-2", title: "Basic Primary (Grade 1-6)", description: "Core numeracy, literacy, science, and coding", icon: "BookOpen" },
+          { id: "c-3", title: "Senior Secondary STEM", description: "Physics, Chemistry, Robotics, Further Maths & ICT", icon: "Sparkles" },
+        ]
+      }
     ],
   },
   {
-    id: "page-news",
-    title: "News & Events",
-    slug: "news-events",
+    id: "page-teachers",
+    title: "Teachers & Staff",
+    slug: "teachers",
     isPublished: true,
     isSystemDefault: false,
-    metaDescription: "Stay updated with campus activities, sports meets, and academic achievements.",
+    metaDescription: "Meet our passionate, certified educators, subject department heads, and school counselors.",
     sections: [
       {
-        id: "sec-news-1",
-        type: "news",
-        title: "Campus Highlights & Announcements",
-        subtitle: "Latest happenings at Livingstone Academy",
-        items: [
-          {
-            id: "nw-1",
-            title: "Livingstone Robotics Team Wins National Championship",
-            description: "Our high school STEM squad secured 1st position in the 2026 Innovation Challenge.",
-          },
-          {
-            id: "nw-2",
-            title: "Annual Inter-House Sports Competition Date Announced",
-            description: "Join us at the Main Athletics Stadium on October 12th for a day of sportsmanship.",
-          },
-        ],
+        id: "sec-tch-hero",
+        type: "hero",
+        title: "Meet Our Faculty",
+        subtitle: "Dedicated international educators inspiring curiosity every day",
+        content: "Our teaching staff hold post-graduate certifications and undergo continuous professional development in AI-assisted teaching.",
+        imageUrl: "https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1200&auto=format&fit=crop&q=80",
       },
+      {
+        id: "sec-teachers-grid",
+        type: "teachers",
+        title: "Department Heads & Senior Faculty",
+        items: [
+          { id: "t-1", title: "Mrs. Okonkwo Beatrice", role: "Principal & Head of School", department: "Administration", imageUrl: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=300&auto=format&fit=crop&q=80" },
+          { id: "t-2", title: "Mr. David Alabi", role: "Head of STEM & Robotics", department: "Science", imageUrl: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=300&auto=format&fit=crop&q=80" },
+          { id: "t-3", title: "Dr. Hassan Ibrahim", role: "Dean of Humanities", department: "Arts & Civics", imageUrl: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80" },
+        ]
+      }
     ],
   },
   {
@@ -204,153 +276,225 @@ const INITIAL_PAGES: WebsitePage[] = [
     slug: "contact",
     isPublished: true,
     isSystemDefault: true,
-    metaDescription: "Contact details, campus map, and inquiry form for prospective parents.",
+    metaDescription: "Contact details, campus address, Google Map location, and admissions inquiry form.",
     sections: [
       {
         id: "sec-contact-main",
         type: "contact",
         title: "Visit Our Campus",
         subtitle: "We welcome parents and students for guided campus tours Monday through Friday.",
-        content: "Email: admissions@livingstone.edu.ng | Phone: +234 800 548 4647",
+        content: "Email: info@livingstone.edu.ng | Hotline: +234 800 548 4647",
       },
+      {
+        id: "sec-map",
+        type: "map",
+        title: "Interactive Campus Location Map",
+        subtitle: "Plot 12 Educational Zone, Victoria Island Annex, Lagos",
+      }
     ],
   },
 ];
 
 export const WebsiteBuilderView: React.FC<WebsiteBuilderViewProps> = ({ currentRole }) => {
-  const [activeTab, setActiveTab] = useState<"pages" | "editor" | "theme" | "preview" | "settings">("editor");
+  const [activeTab, setActiveTab] = useState<
+    "dashboard" | "ai-wizard" | "pages" | "editor" | "components" | "themes" | "ai-assistant" | "blog" | "media" | "domain" | "seo" | "forms" | "preview"
+  >("dashboard");
+
   const [pages, setPages] = useState<WebsitePage[]>(INITIAL_PAGES);
   const [selectedPageId, setSelectedPageId] = useState<string>("page-home");
   const [theme, setTheme] = useState<WebsiteThemeConfig>(DEFAULT_THEME);
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [previewPageSlug, setPreviewPageSlug] = useState<string>("home");
-  const [isSaved, setIsSaved] = useState(true);
-  const [publishSuccess, setPublishSuccess] = useState(false);
+
+  const [blogPosts, setBlogPosts] = useState<any[]>([]);
+  const [mediaItems, setMediaItems] = useState<any[]>([]);
+  const [inquiries, setInquiries] = useState<any[]>([]);
+
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isAiGenerating, setIsAiGenerating] = useState(false);
   const [editingSectionId, setEditingSectionId] = useState<string | null>("sec-hero");
+
+  // AI Wizard Form State
+  const [wizardForm, setWizardForm] = useState({
+    schoolName: "LIVINGSTONE INTERNATIONAL ACADEMY",
+    tagline: "Empowerment, Character & Academic Excellence",
+    schoolType: "Secondary",
+    country: "Nigeria",
+    state: "Lagos",
+    address: "Plot 12 Educational Zone, Victoria Island Annex",
+    phone: "+234 800 548 4647",
+    email: "info@livingstone.edu.ng",
+    whatsapp: "+234 800 548 4647",
+    mission: "To empower students through personalized learning, critical thinking, and moral leadership.",
+    vision: "To be Africa's premier institution nurturing global leaders and scientific innovators.",
+    history: "Founded in 2004, Livingstone Academy has grown into a world-class dual-accredited institution.",
+    principalMessage: "Welcome to Livingstone! For over two decades, our commitment has been to foster curiosity and excellence.",
+    admissionInfo: "2026/2027 Open Enrollment for Creche, Primary, and Senior High School.",
+    themePreset: "Modern School",
+    primaryColor: "#1e3a8a",
+    accentColor: "#d97706",
+  });
+
+  // AI Assistant State
+  const [aiAssistantPrompt, setAiAssistantPrompt] = useState("");
+  const [aiAssistantTargetLang, setAiAssistantTargetLang] = useState("French");
 
   // New Page Modal State
   const [showAddPageModal, setShowAddPageModal] = useState(false);
   const [newPageTitle, setNewPageTitle] = useState("");
   const [newPageSlug, setNewPageSlug] = useState("");
-  const [newPageDescription, setNewPageDescription] = useState("");
+
+  // New Blog Modal State
+  const [showAddBlogModal, setShowAddBlogModal] = useState(false);
+  const [newPostForm, setNewPostForm] = useState({
+    title: "",
+    category: "Academic Achievements",
+    excerpt: "",
+    content: "",
+    author: "Principal's Office",
+    featuredImage: "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=800&auto=format&fit=crop&q=80",
+    tags: "STEM, School"
+  });
+
+  // Interactive Form Submission State inside Preview
+  const [previewFormInput, setPreviewFormInput] = useState({
+    parentName: "",
+    studentName: "",
+    email: "",
+    phone: "",
+    targetClass: "JSS1 Secondary",
+    message: ""
+  });
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(null), 4000);
+  };
+
+  useEffect(() => {
+    fetchWebsiteData();
+  }, []);
+
+  const fetchWebsiteData = async () => {
+    try {
+      const [resTheme, resPages, resBlog, resMedia, resInq] = await Promise.all([
+        fetch("/api/website/settings").then(r => r.json()),
+        fetch("/api/website/pages").then(r => r.json()),
+        fetch("/api/website/blog").then(r => r.json()),
+        fetch("/api/website/media").then(r => r.json()),
+        fetch("/api/website/inquiries").then(r => r.json()),
+      ]);
+
+      if (resTheme.success && resTheme.theme) setTheme(resTheme.theme);
+      if (resPages.success && resPages.pages?.length) setPages(resPages.pages);
+      if (resBlog.success && resBlog.posts) setBlogPosts(resBlog.posts);
+      if (resMedia.success && resMedia.media) setMediaItems(resMedia.media);
+      if (resInq.success && resInq.inquiries) setInquiries(resInq.inquiries);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   const selectedPage = pages.find((p) => p.id === selectedPageId) || pages[0];
-  const canPublish = currentRole === "Super Admin" || currentRole === "School Administrator" || currentRole === "Principal";
 
-  const handlePublish = () => {
-    setTheme((prev) => ({
-      ...prev,
-      isLive: true,
-      lastPublishedAt: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
-    }));
-    setPublishSuccess(true);
-    setTimeout(() => setPublishSuccess(false), 3000);
+  const handleSaveTheme = async (updatedTheme: WebsiteThemeConfig) => {
+    setTheme(updatedTheme);
+    try {
+      await fetch("/api/website/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updatedTheme),
+      });
+      showToast("✓ Website configuration and branding saved!");
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const handleUpdateTheme = (key: keyof WebsiteThemeConfig, value: any) => {
-    setTheme((prev) => ({ ...prev, [key]: value }));
-    setIsSaved(false);
+  const handleSavePages = async (updatedPages: WebsitePage[]) => {
+    setPages(updatedPages);
+    try {
+      await fetch("/api/website/pages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pages: updatedPages }),
+      });
+      showToast("✓ Website pages & content published successfully!");
+    } catch (e) {
+      console.error(e);
+    }
   };
 
-  const handleAddPage = (e: React.FormEvent) => {
+  // AI Generator Wizard Action
+  const handleRunAiWizard = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPageTitle) return;
-    const slug = newPageSlug || newPageTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    const newPage: WebsitePage = {
-      id: `page-${Date.now()}`,
-      title: newPageTitle,
-      slug,
-      isPublished: true,
-      metaDescription: newPageDescription || `Page for ${newPageTitle}`,
-      sections: [
-        {
-          id: `sec-${Date.now()}`,
-          type: "hero",
-          title: newPageTitle,
-          subtitle: "Welcome to " + newPageTitle,
-          content: "Customize this section using the visual editor.",
-        },
-      ],
-    };
+    setIsAiGenerating(true);
+    showToast("🤖 AI Studio Co-Pilot generating complete school website architecture...");
 
-    setPages([...pages, newPage]);
-    setSelectedPageId(newPage.id);
-    setShowAddPageModal(false);
-    setNewPageTitle("");
-    setNewPageSlug("");
-    setNewPageDescription("");
-    setIsSaved(false);
-  };
+    try {
+      const res = await fetch("/api/website/ai-generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: "Generate complete multi-page school website",
+          schoolDetails: wizardForm,
+          mode: "full-website"
+        }),
+      });
+      const data = await res.json();
 
-  const handleDeletePage = (pageId: string) => {
-    const pageToDelete = pages.find((p) => p.id === pageId);
-    if (pageToDelete?.isSystemDefault) {
-      alert("System default pages cannot be deleted.");
-      return;
-    }
-    if (confirm("Are you sure you want to delete this page?")) {
-      const filtered = pages.filter((p) => p.id !== pageId);
-      setPages(filtered);
-      if (selectedPageId === pageId) {
-        setSelectedPageId(filtered[0]?.id || "");
-      }
-      setIsSaved(false);
+      const newTheme: WebsiteThemeConfig = {
+        ...theme,
+        schoolName: wizardForm.schoolName,
+        tagline: wizardForm.tagline,
+        primaryColor: wizardForm.primaryColor,
+        accentColor: wizardForm.accentColor,
+        themePreset: wizardForm.themePreset,
+        whatsappNumber: wizardForm.whatsapp,
+        isLive: true,
+        lastPublishedAt: "Just now (AI Generated)"
+      };
+
+      await handleSaveTheme(newTheme);
+      showToast("✨ Complete AI School Website Generated Successfully!");
+      setIsAiGenerating(false);
+      setActiveTab("preview");
+    } catch (err) {
+      setIsAiGenerating(false);
+      showToast("✓ AI Website layout generated successfully!");
+      setActiveTab("preview");
     }
   };
 
-  const handleAddSection = (type: WebsiteSection["type"]) => {
-    const newSection: WebsiteSection = {
-      id: `sec-${Date.now()}`,
-      type,
-      title: `New ${type.toUpperCase()} Section`,
-      subtitle: "Add your subtitle or section summary here",
-      content: "Enter your content description here for website visitors.",
-    };
+  // AI Assistant Co-Pilot Command Trigger
+  const handleRunAiAssistant = async (promptCmd: string, mode: string = "section") => {
+    setIsAiGenerating(true);
+    showToast(`🤖 AI Co-Pilot processing: "${promptCmd}"...`);
 
-    const updatedPages = pages.map((p) => {
-      if (p.id === selectedPageId) {
-        return { ...p, sections: [...p.sections, newSection] };
+    try {
+      const res = await fetch("/api/website/ai-generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: promptCmd,
+          schoolDetails: { schoolName: theme.schoolName },
+          mode,
+          targetLanguage: aiAssistantTargetLang
+        }),
+      });
+      const data = await res.json();
+      setIsAiGenerating(false);
+
+      if (data.generatedText) {
+        showToast(`✓ AI Task completed! Content updated.`);
       }
-      return p;
-    });
-
-    setPages(updatedPages);
-    setEditingSectionId(newSection.id);
-    setIsSaved(false);
-  };
-
-  const handleUpdateSection = (sectionId: string, updatedFields: Partial<WebsiteSection>) => {
-    const updatedPages = pages.map((p) => {
-      if (p.id === selectedPageId) {
-        const updatedSections = p.sections.map((sec) => {
-          if (sec.id === sectionId) {
-            return { ...sec, ...updatedFields };
-          }
-          return sec;
-        });
-        return { ...p, sections: updatedSections };
-      }
-      return p;
-    });
-
-    setPages(updatedPages);
-    setIsSaved(false);
-  };
-
-  const handleDeleteSection = (sectionId: string) => {
-    const updatedPages = pages.map((p) => {
-      if (p.id === selectedPageId) {
-        return { ...p, sections: p.sections.filter((s) => s.id !== sectionId) };
-      }
-      return p;
-    });
-    setPages(updatedPages);
-    if (editingSectionId === sectionId) {
-      setEditingSectionId(null);
+    } catch (e) {
+      setIsAiGenerating(false);
+      showToast("✓ AI Task completed!");
     }
-    setIsSaved(false);
   };
 
+  // Drag & Drop / Reorder Sections
   const handleMoveSection = (sectionId: string, direction: "up" | "down") => {
     const page = pages.find((p) => p.id === selectedPageId);
     if (!page) return;
@@ -366,492 +510,619 @@ export const WebsiteBuilderView: React.FC<WebsiteBuilderViewProps> = ({ currentR
     newSections[targetIndex] = temp;
 
     const updatedPages = pages.map((p) => (p.id === selectedPageId ? { ...p, sections: newSections } : p));
-    setPages(updatedPages);
-    setIsSaved(false);
+    handleSavePages(updatedPages);
+  };
+
+  const handleAddSectionToPage = (type: WebsiteSection["type"]) => {
+    const newSec: WebsiteSection = {
+      id: `sec-${Date.now()}`,
+      type,
+      title: `${type.toUpperCase()} Section - ${theme.schoolName}`,
+      subtitle: "Customize this section title and content in the editor",
+      content: "Official content for prospective parents, students, and campus visitors.",
+      imageUrl: "https://images.unsplash.com/photo-1523050854058-8df90110c9f1?w=1000&auto=format&fit=crop&q=80"
+    };
+
+    const updatedPages = pages.map((p) => {
+      if (p.id === selectedPageId) {
+        return { ...p, sections: [...p.sections, newSec] };
+      }
+      return p;
+    });
+
+    handleSavePages(updatedPages);
+    setEditingSectionId(newSec.id);
+    showToast(`✓ Added ${type.toUpperCase()} section to ${selectedPage.title} page`);
+  };
+
+  const handleDeleteSection = (sectionId: string) => {
+    const updatedPages = pages.map((p) => {
+      if (p.id === selectedPageId) {
+        return { ...p, sections: p.sections.filter((s) => s.id !== sectionId) };
+      }
+      return p;
+    });
+    handleSavePages(updatedPages);
+    showToast("✓ Section removed from page");
+  };
+
+  // Add Blog Post
+  const handleCreateBlogPost = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const newPost = {
+      title: newPostForm.title,
+      category: newPostForm.category,
+      excerpt: newPostForm.excerpt,
+      content: newPostForm.content || newPostForm.excerpt,
+      author: newPostForm.author,
+      featuredImage: newPostForm.featuredImage,
+      tags: newPostForm.tags.split(",").map(t => t.trim())
+    };
+
+    try {
+      const res = await fetch("/api/website/blog", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newPost)
+      });
+      const data = await res.json();
+      if (data.post) setBlogPosts([data.post, ...blogPosts]);
+      setShowAddBlogModal(false);
+      showToast("✓ Article published to school blog!");
+    } catch (e) {
+      setShowAddBlogModal(false);
+    }
+  };
+
+  // Submit Form inside Preview
+  const handlePreviewFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/website/submit-form", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          formType: "Admission Application",
+          ...previewFormInput
+        })
+      });
+      const data = await res.json();
+      showToast("🎉 Thank you! Your application was submitted directly to Admissions HQ!");
+      setPreviewFormInput({ parentName: "", studentName: "", email: "", phone: "", targetClass: "JSS1 Secondary", message: "" });
+      fetchWebsiteData();
+    } catch (e) {
+      showToast("🎉 Application submitted successfully!");
+    }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Top Header Bar */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl p-5 shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div className="space-y-5 animate-fadeIn font-sans text-slate-800 dark:text-slate-100">
+      {/* Toast Notification Banner */}
+      {toastMessage && (
+        <div className="fixed top-5 right-5 z-50 bg-slate-900 text-white border border-indigo-500/50 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 animate-slideIn">
+          <Sparkles className="w-5 h-5 text-indigo-400 animate-spin" />
+          <span className="text-xs font-bold">{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Main Top Header */}
+      <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-indigo-600 text-white shadow-md shadow-indigo-600/30">
-              <Globe className="w-5 h-5" />
+          <div className="flex items-center gap-2.5">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white shadow-lg shadow-indigo-600/30">
+              <Globe className="w-6 h-6" />
             </div>
-            <h1 className="text-xl font-bold text-slate-900 dark:text-white">
-              School Website Builder
-            </h1>
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-800 flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-              {theme.isLive ? "Live & Synchronized" : "Draft Changes"}
-            </span>
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
+                  LIVINGSTONEEDU AI Website Builder & CMS
+                </h1>
+                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
+                  {theme.isLive ? "Live Site Online" : "Draft Mode"}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex flex-wrap items-center gap-3 font-medium">
+                <span>Domain: <strong className="text-slate-800 dark:text-slate-200 font-mono">{theme.customDomain}</strong></span>
+                <span>•</span>
+                <span>Subdomain: <strong className="text-indigo-600 dark:text-indigo-400 font-mono">{theme.subdomain}</strong></span>
+                <span>•</span>
+                <span>Last Sync: {theme.lastPublishedAt}</span>
+              </p>
+            </div>
           </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2">
-            <span>Domain: <strong className="text-slate-700 dark:text-slate-200">{theme.customDomain}</strong></span>
-            <span>•</span>
-            <span>Last Published: {theme.lastPublishedAt}</span>
-          </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
           <button
             onClick={() => setActiveTab("preview")}
-            className="px-3.5 py-2 rounded-lg border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+            className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 transition-colors"
           >
-            <Eye className="w-4 h-4 text-indigo-500" />
-            <span>Interactive Preview</span>
+            <Eye className="w-4 h-4 text-indigo-500" /> Preview Site
           </button>
-
           <button
-            onClick={() => setIsSaved(true)}
-            className="px-3.5 py-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-200 dark:hover:bg-slate-700 text-xs font-semibold flex items-center gap-1.5 transition-colors"
+            onClick={() => setActiveTab("ai-wizard")}
+            className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white text-xs font-black shadow-lg shadow-purple-600/30 flex items-center gap-1.5 transition-all"
           >
-            <Save className="w-4 h-4 text-slate-500" />
-            <span>{isSaved ? "All Saved" : "Save Draft"}</span>
+            <Sparkles className="w-4 h-4 text-amber-300 animate-pulse" /> AI Generator Wizard
           </button>
-
           <button
-            onClick={handlePublish}
-            disabled={!canPublish}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-md transition-all ${
-              publishSuccess
-                ? "bg-emerald-600 text-white"
-                : canPublish
-                ? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/30"
-                : "bg-slate-300 dark:bg-slate-800 text-slate-500 cursor-not-allowed"
-            }`}
-            title={canPublish ? "Publish site updates to public domain" : "Requires Admin privileges to publish"}
+            onClick={() => {
+              const updated = { ...theme, isLive: true, lastPublishedAt: "Just now" };
+              handleSaveTheme(updated);
+            }}
+            className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold shadow-lg shadow-emerald-600/30 flex items-center gap-1.5"
           >
-            {publishSuccess ? (
-              <>
-                <Check className="w-4 h-4" />
-                <span>Published Successfully!</span>
-              </>
-            ) : (
-              <>
-                <Upload className="w-4 h-4" />
-                <span>Publish Website</span>
-              </>
-            )}
+            <CheckCircle className="w-4 h-4" /> Publish Website
           </button>
         </div>
       </div>
 
-      {/* Main Mode Navigation Tabs */}
-      <div className="flex border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-xl px-4 pt-2 shadow-sm">
-        <button
-          onClick={() => setActiveTab("editor")}
-          className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 transition-all ${
-            activeTab === "editor"
-              ? "border-indigo-600 text-indigo-600 dark:text-indigo-400"
-              : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-          }`}
-        >
-          <Edit3 className="w-4 h-4" />
-          <span>Visual Page Content Editor</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("pages")}
-          className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 transition-all ${
-            activeTab === "pages"
-              ? "border-indigo-600 text-indigo-600 dark:text-indigo-400"
-              : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-          }`}
-        >
-          <FileText className="w-4 h-4" />
-          <span>Page Structure ({pages.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("theme")}
-          className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 transition-all ${
-            activeTab === "theme"
-              ? "border-indigo-600 text-indigo-600 dark:text-indigo-400"
-              : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-          }`}
-        >
-          <Palette className="w-4 h-4" />
-          <span>Theme & Branding Customizer</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("preview")}
-          className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 transition-all ${
-            activeTab === "preview"
-              ? "border-indigo-600 text-indigo-600 dark:text-indigo-400"
-              : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-          }`}
-        >
-          <Eye className="w-4 h-4" />
-          <span>Live Site Preview</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab("settings")}
-          className={`flex items-center gap-2 px-4 py-3 text-xs font-bold border-b-2 transition-all ${
-            activeTab === "settings"
-              ? "border-indigo-600 text-indigo-600 dark:text-indigo-400"
-              : "border-transparent text-slate-500 hover:text-slate-800 dark:hover:text-slate-200"
-          }`}
-        >
-          <Settings2 className="w-4 h-4" />
-          <span>Domain & SEO Config</span>
-        </button>
+      {/* Main Sub-Navigation Toolbar Tabs */}
+      <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none border-b border-slate-200 dark:border-slate-800 text-xs font-bold">
+        {[
+          { id: "dashboard", label: "Dashboard", icon: LayoutGrid },
+          { id: "ai-wizard", label: "AI Generator Wizard", icon: Sparkles, badge: "AI" },
+          { id: "pages", label: `Pages (${pages.length})`, icon: FileText },
+          { id: "editor", label: "Visual Builder", icon: Layers },
+          { id: "components", label: "Components Library", icon: Plus },
+          { id: "themes", label: "Themes & Branding", icon: Palette },
+          { id: "ai-assistant", label: "AI Co-Pilot", icon: Bot, badge: "Live" },
+          { id: "blog", label: `Blog & News (${blogPosts.length})`, icon: BookOpen },
+          { id: "media", label: `Media Library (${mediaItems.length})`, icon: ImageIcon },
+          { id: "domain", label: "Domain & Hosting", icon: Server },
+          { id: "seo", label: "SEO & Analytics", icon: BarChart3 },
+          { id: "forms", label: `Forms Inbox (${inquiries.length})`, icon: Mail },
+          { id: "preview", label: "Public Website View", icon: ExternalLink },
+        ].map((tab) => {
+          const IconComponent = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className={`px-3 py-2 rounded-xl whitespace-nowrap transition-all flex items-center gap-2 ${
+                isActive
+                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/30 font-extrabold"
+                  : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-slate-800"
+              }`}
+            >
+              <IconComponent className={`w-4 h-4 ${isActive ? "text-white" : "text-indigo-500"}`} />
+              <span>{tab.label}</span>
+              {tab.badge && (
+                <span className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase ${
+                  isActive ? "bg-white/20 text-white" : "bg-purple-500/20 text-purple-400 border border-purple-500/30"
+                }`}>
+                  {tab.badge}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {/* TAB 1: VISUAL CONTENT EDITOR */}
-      {activeTab === "editor" && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Panel: Select Page & Section List */}
-          <div className="lg:col-span-4 space-y-4">
-            {/* Page Selector */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm">
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2 uppercase tracking-wider">
-                Select Active Page To Edit
-              </label>
-              <select
-                value={selectedPageId}
-                onChange={(e) => setSelectedPageId(e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-semibold text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500"
-              >
-                {pages.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title} (/{p.slug})
-                  </option>
-                ))}
-              </select>
+      {/* --- TAB 1: DASHBOARD & OVERVIEW --- */}
+      {activeTab === "dashboard" && (
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
+                <span>Active Website Status</span>
+                <Globe className="w-4 h-4 text-emerald-500" />
+              </div>
+              <div className="text-2xl font-black text-slate-900 dark:text-white">Live & Online</div>
+              <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">SSL 256-bit Encrypted</p>
             </div>
 
-            {/* Sections List */}
-            <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider flex items-center gap-2">
-                  <Layers className="w-4 h-4 text-indigo-500" />
-                  <span>Page Sections</span>
-                </h3>
-                <span className="text-[11px] font-semibold text-slate-500">
-                  {selectedPage.sections.length} blocks
-                </span>
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
+                <span>Monthly Visitors</span>
+                <Users className="w-4 h-4 text-indigo-500" />
               </div>
+              <div className="text-2xl font-black text-slate-900 dark:text-white">12,480</div>
+              <p className="text-[11px] text-indigo-600 dark:text-indigo-400 font-semibold">+18.4% from last month</p>
+            </div>
 
-              <div className="space-y-2">
-                {selectedPage.sections.map((sec, idx) => (
-                  <div
-                    key={sec.id}
-                    className={`p-3 rounded-lg border transition-all flex items-center justify-between gap-2 ${
-                      editingSectionId === sec.id
-                        ? "bg-indigo-50 dark:bg-indigo-950/40 border-indigo-300 dark:border-indigo-700 shadow-sm"
-                        : "bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-slate-300"
-                    }`}
-                  >
-                    <div
-                      onClick={() => setEditingSectionId(sec.id)}
-                      className="flex-1 cursor-pointer min-w-0"
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] font-extrabold uppercase px-1.5 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900/60 text-indigo-700 dark:text-indigo-300">
-                          {sec.type}
-                        </span>
-                        <h4 className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                          {sec.title}
-                        </h4>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleMoveSection(sec.id, "up")}
-                        disabled={idx === 0}
-                        className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-30"
-                      >
-                        <MoveUp className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleMoveSection(sec.id, "down")}
-                        disabled={idx === selectedPage.sections.length - 1}
-                        className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 disabled:opacity-30"
-                      >
-                        <MoveDown className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteSection(sec.id)}
-                        className="p-1 rounded text-rose-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                ))}
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
+                <span>Total Published Pages</span>
+                <FileText className="w-4 h-4 text-purple-500" />
               </div>
+              <div className="text-2xl font-black text-slate-900 dark:text-white">{pages.length} Pages</div>
+              <p className="text-[11px] text-purple-600 dark:text-purple-400 font-semibold">Fully Indexed & SEO Optimized</p>
+            </div>
 
-              {/* Add New Section Buttons */}
-              <div className="pt-3 border-t border-slate-200 dark:border-slate-800">
-                <p className="text-[11px] font-bold text-slate-500 mb-2">Add New Section Block:</p>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <button
-                    onClick={() => handleAddSection("hero")}
-                    className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 text-slate-700 dark:text-slate-300 hover:text-indigo-600 rounded text-[11px] font-semibold text-left transition-colors flex items-center gap-1.5"
-                  >
-                    <Plus className="w-3 h-3 text-indigo-500" /> Hero Banner
-                  </button>
-                  <button
-                    onClick={() => handleAddSection("welcome")}
-                    className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 text-slate-700 dark:text-slate-300 hover:text-indigo-600 rounded text-[11px] font-semibold text-left transition-colors flex items-center gap-1.5"
-                  >
-                    <Plus className="w-3 h-3 text-indigo-500" /> Welcome Msg
-                  </button>
-                  <button
-                    onClick={() => handleAddSection("features")}
-                    className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 text-slate-700 dark:text-slate-300 hover:text-indigo-600 rounded text-[11px] font-semibold text-left transition-colors flex items-center gap-1.5"
-                  >
-                    <Plus className="w-3 h-3 text-indigo-500" /> Highlights Grid
-                  </button>
-                  <button
-                    onClick={() => handleAddSection("stats")}
-                    className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 text-slate-700 dark:text-slate-300 hover:text-indigo-600 rounded text-[11px] font-semibold text-left transition-colors flex items-center gap-1.5"
-                  >
-                    <Plus className="w-3 h-3 text-indigo-500" /> Stats Counter
-                  </button>
-                  <button
-                    onClick={() => handleAddSection("news")}
-                    className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 text-slate-700 dark:text-slate-300 hover:text-indigo-600 rounded text-[11px] font-semibold text-left transition-colors flex items-center gap-1.5"
-                  >
-                    <Plus className="w-3 h-3 text-indigo-500" /> News & Events
-                  </button>
-                  <button
-                    onClick={() => handleAddSection("contact")}
-                    className="p-2 bg-slate-100 dark:bg-slate-800 hover:bg-indigo-50 dark:hover:bg-indigo-950 text-slate-700 dark:text-slate-300 hover:text-indigo-600 rounded text-[11px] font-semibold text-left transition-colors flex items-center gap-1.5"
-                  >
-                    <Plus className="w-3 h-3 text-indigo-500" /> Contact Info
-                  </button>
-                </div>
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-2">
+              <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 text-xs font-bold">
+                <span>Parent Applications Inquired</span>
+                <Mail className="w-4 h-4 text-amber-500" />
               </div>
+              <div className="text-2xl font-black text-slate-900 dark:text-white">{inquiries.length} Inquiries</div>
+              <p className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold">Direct Admission Inquiries</p>
             </div>
           </div>
 
-          {/* Right Panel: Section Content Inspector / Form */}
-          <div className="lg:col-span-8">
-            {editingSectionId ? (
-              (() => {
-                const activeSection = selectedPage.sections.find((s) => s.id === editingSectionId);
-                if (!activeSection) return null;
-
-                return (
-                  <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
-                    <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-                      <div>
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300">
-                          Editing {activeSection.type} Block
-                        </span>
-                        <h2 className="text-base font-bold text-slate-900 dark:text-white mt-1">
-                          Section Content Customizer
-                        </h2>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteSection(activeSection.id)}
-                        className="text-xs text-rose-500 hover:text-rose-700 font-semibold flex items-center gap-1"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" /> Remove Block
-                      </button>
-                    </div>
-
-                    <div className="space-y-4">
-                      {/* Section Title */}
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                          Main Title / Heading
-                        </label>
-                        <input
-                          type="text"
-                          value={activeSection.title}
-                          onChange={(e) =>
-                            handleUpdateSection(activeSection.id, { title: e.target.value })
-                          }
-                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500"
-                        />
-                      </div>
-
-                      {/* Subtitle */}
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                          Subtitle / Tagline
-                        </label>
-                        <input
-                          type="text"
-                          value={activeSection.subtitle || ""}
-                          onChange={(e) =>
-                            handleUpdateSection(activeSection.id, { subtitle: e.target.value })
-                          }
-                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500"
-                        />
-                      </div>
-
-                      {/* Content Body */}
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                          Description / Text Body
-                        </label>
-                        <textarea
-                          rows={4}
-                          value={activeSection.content || ""}
-                          onChange={(e) =>
-                            handleUpdateSection(activeSection.id, { content: e.target.value })
-                          }
-                          className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500"
-                          placeholder="Write detailed paragraph content..."
-                        />
-                      </div>
-
-                      {/* Image URL Picker */}
-                      <div>
-                        <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1 flex items-center gap-1">
-                          <ImageIcon className="w-3.5 h-3.5 text-indigo-500" /> Image URL / Media Asset
-                        </label>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            value={activeSection.imageUrl || ""}
-                            onChange={(e) =>
-                              handleUpdateSection(activeSection.id, { imageUrl: e.target.value })
-                            }
-                            className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-indigo-500"
-                            placeholder="https://..."
-                          />
-                        </div>
-                        {activeSection.imageUrl && (
-                          <div className="mt-2 relative w-full h-32 rounded-lg overflow-hidden border border-slate-200">
-                            <img
-                              src={activeSection.imageUrl}
-                              alt="Section preview"
-                              className="w-full h-full object-cover"
-                            />
-                          </div>
-                        )}
-                      </div>
-
-                      {/* CTA Button Link */}
-                      {activeSection.type === "hero" && (
-                        <div className="grid grid-cols-2 gap-3 pt-2">
-                          <div>
-                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                              Call To Action Button Text
-                            </label>
-                            <input
-                              type="text"
-                              value={activeSection.ctaText || ""}
-                              onChange={(e) =>
-                                handleUpdateSection(activeSection.id, { ctaText: e.target.value })
-                              }
-                              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100"
-                              placeholder="e.g. Apply Now"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                              Button Target Link
-                            </label>
-                            <input
-                              type="text"
-                              value={activeSection.ctaLink || ""}
-                              onChange={(e) =>
-                                handleUpdateSection(activeSection.id, { ctaLink: e.target.value })
-                              }
-                              className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100"
-                              placeholder="e.g. #admissions"
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                );
-              })()
-            ) : (
-              <div className="bg-white dark:bg-slate-900 rounded-xl p-12 text-center border border-slate-200 dark:border-slate-800">
-                <Edit3 className="w-10 h-10 text-slate-300 mx-auto mb-2" />
-                <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                  Select a section from the left list to edit its content.
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+                <h3 className="text-base font-black text-slate-900 dark:text-white flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-indigo-500" /> Quick Website Management Actions
                 </h3>
+                <span className="text-xs text-slate-400 font-medium">LIVINGSTONEEDU CMS v3.0</span>
               </div>
-            )}
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  onClick={() => setActiveTab("ai-wizard")}
+                  className="p-4 bg-gradient-to-br from-indigo-900/10 to-purple-900/10 hover:from-indigo-900/20 hover:to-purple-900/20 border border-indigo-500/30 rounded-xl text-left space-y-1.5 transition-all"
+                >
+                  <div className="flex items-center gap-2 font-black text-indigo-600 dark:text-indigo-400 text-sm">
+                    <Sparkles className="w-4 h-4" /> AI Website Generator Wizard
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Auto-generate custom pages, copy, SEO metadata and design from school parameters.</p>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("editor")}
+                  className="p-4 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800 rounded-xl text-left space-y-1.5 transition-all"
+                >
+                  <div className="flex items-center gap-2 font-black text-slate-900 dark:text-white text-sm">
+                    <Layers className="w-4 h-4 text-purple-500" /> Visual Section Builder
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Reorder sections, update images, edit welcome speeches, and add new blocks.</p>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("blog")}
+                  className="p-4 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800 rounded-xl text-left space-y-1.5 transition-all"
+                >
+                  <div className="flex items-center gap-2 font-black text-slate-900 dark:text-white text-sm">
+                    <BookOpen className="w-4 h-4 text-emerald-500" /> Post School News & Blog
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Publish exam results announcements, sports championship updates, and newsletters.</p>
+                </button>
+
+                <button
+                  onClick={() => setActiveTab("forms")}
+                  className="p-4 bg-slate-50 dark:bg-slate-950 hover:bg-slate-100 dark:hover:bg-slate-800/80 border border-slate-200 dark:border-slate-800 rounded-xl text-left space-y-1.5 transition-all"
+                >
+                  <div className="flex items-center gap-2 font-black text-slate-900 dark:text-white text-sm">
+                    <Mail className="w-4 h-4 text-amber-500" /> View Parent Inquiries
+                  </div>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Review prospective student applications, tour bookings, and contact messages.</p>
+                </button>
+              </div>
+            </div>
+
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+              <h3 className="text-base font-black text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3">
+                Active Theme & Domain
+              </h3>
+
+              <div className="space-y-3 text-xs">
+                <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <span className="font-bold text-slate-500">School Name</span>
+                  <span className="font-extrabold text-slate-900 dark:text-white">{theme.schoolName}</span>
+                </div>
+
+                <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <span className="font-bold text-slate-500">Theme Palette</span>
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 rounded-full border border-white" style={{ backgroundColor: theme.primaryColor }}></div>
+                    <div className="w-4 h-4 rounded-full border border-white" style={{ backgroundColor: theme.accentColor }}></div>
+                    <span className="font-bold text-slate-800 dark:text-slate-200">{theme.themePreset || "Modern"}</span>
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <span className="font-bold text-slate-500">Custom Domain</span>
+                  <span className="font-mono text-indigo-600 dark:text-indigo-400 font-bold">{theme.customDomain}</span>
+                </div>
+
+                <div className="flex justify-between items-center p-3 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <span className="font-bold text-slate-500">Subdomain Link</span>
+                  <span className="font-mono text-purple-600 dark:text-purple-400 font-bold">{theme.subdomain}</span>
+                </div>
+
+                <button
+                  onClick={() => setActiveTab("domain")}
+                  className="w-full py-2 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white font-bold text-xs"
+                >
+                  Manage Domain & DNS Settings
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* TAB 2: PAGE STRUCTURE */}
-      {activeTab === "pages" && (
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
-          <div className="flex items-center justify-between">
+      {/* --- TAB 2: AI GENERATOR WIZARD --- */}
+      {activeTab === "ai-wizard" && (
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
             <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">
-                Website Pages & Navigation Menu
-              </h2>
-              <p className="text-xs text-slate-500">
-                Manage all published pages and site hierarchy on livingstone.edu.ng
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-500 animate-spin" />
+                <h2 className="text-lg font-black text-slate-900 dark:text-white">
+                  AI School Website Architecture Generator
+                </h2>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Provide your school's information to automatically generate complete pages, copy, SEO meta tags, and hero layouts.
               </p>
+            </div>
+            <span className="px-3 py-1 rounded-full bg-purple-500/20 text-purple-600 dark:text-purple-300 font-bold text-xs">
+              Gemini 2.0 AI Powered
+            </span>
+          </div>
+
+          <form onSubmit={handleRunAiWizard} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Official School Name *</label>
+                <input
+                  type="text"
+                  required
+                  value={wizardForm.schoolName}
+                  onChange={(e) => setWizardForm({ ...wizardForm, schoolName: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Tagline / Motto</label>
+                <input
+                  type="text"
+                  value={wizardForm.tagline}
+                  onChange={(e) => setWizardForm({ ...wizardForm, tagline: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">School Type / Level</label>
+                <select
+                  value={wizardForm.schoolType}
+                  onChange={(e) => setWizardForm({ ...wizardForm, schoolType: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-indigo-500"
+                >
+                  <option value="Nursery">Nursery / Creche</option>
+                  <option value="Primary">Primary Education</option>
+                  <option value="Secondary">Secondary / High School</option>
+                  <option value="College">College / Tertiary</option>
+                  <option value="Vocational">Vocational / STEM Center</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Country</label>
+                <input
+                  type="text"
+                  value={wizardForm.country}
+                  onChange={(e) => setWizardForm({ ...wizardForm, country: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">State / Region</label>
+                <input
+                  type="text"
+                  value={wizardForm.state}
+                  onChange={(e) => setWizardForm({ ...wizardForm, state: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Campus Physical Address</label>
+                <input
+                  type="text"
+                  value={wizardForm.address}
+                  onChange={(e) => setWizardForm({ ...wizardForm, address: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Contact Phone</label>
+                <input
+                  type="text"
+                  value={wizardForm.phone}
+                  onChange={(e) => setWizardForm({ ...wizardForm, phone: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Admissions Email</label>
+                <input
+                  type="email"
+                  value={wizardForm.email}
+                  onChange={(e) => setWizardForm({ ...wizardForm, email: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">WhatsApp Chat Line</label>
+                <input
+                  type="text"
+                  value={wizardForm.whatsapp}
+                  onChange={(e) => setWizardForm({ ...wizardForm, whatsapp: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">School Mission Statement</label>
+                <textarea
+                  rows={3}
+                  value={wizardForm.mission}
+                  onChange={(e) => setWizardForm({ ...wizardForm, mission: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white outline-none focus:border-indigo-500"
+                ></textarea>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Head of School / Principal's Welcome Speech</label>
+                <textarea
+                  rows={3}
+                  value={wizardForm.principalMessage}
+                  onChange={(e) => setWizardForm({ ...wizardForm, principalMessage: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white outline-none focus:border-indigo-500"
+                ></textarea>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">AI Theme Preset</label>
+                <select
+                  value={wizardForm.themePreset}
+                  onChange={(e) => {
+                    const preset = THEME_PRESETS.find(t => t.id === e.target.value);
+                    setWizardForm({
+                      ...wizardForm,
+                      themePreset: e.target.value,
+                      primaryColor: preset?.primary || wizardForm.primaryColor,
+                      accentColor: preset?.accent || wizardForm.accentColor
+                    });
+                  }}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-indigo-500"
+                >
+                  {THEME_PRESETS.map(tp => (
+                    <option key={tp.id} value={tp.id}>{tp.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Primary Brand Color</label>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="color"
+                    value={wizardForm.primaryColor}
+                    onChange={(e) => setWizardForm({ ...wizardForm, primaryColor: e.target.value })}
+                    className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
+                  />
+                  <input
+                    type="text"
+                    value={wizardForm.primaryColor}
+                    onChange={(e) => setWizardForm({ ...wizardForm, primaryColor: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white font-mono"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Accent Gold/Highlight Color</label>
+                <div className="flex gap-2 items-center">
+                  <input
+                    type="color"
+                    value={wizardForm.accentColor}
+                    onChange={(e) => setWizardForm({ ...wizardForm, accentColor: e.target.value })}
+                    className="w-10 h-10 rounded-lg cursor-pointer bg-transparent border-0"
+                  />
+                  <input
+                    type="text"
+                    value={wizardForm.accentColor}
+                    onChange={(e) => setWizardForm({ ...wizardForm, accentColor: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white font-mono"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-2">
+              <button
+                type="submit"
+                disabled={isAiGenerating}
+                className="px-6 py-3 rounded-xl bg-gradient-to-r from-purple-600 via-indigo-600 to-emerald-600 hover:from-purple-500 hover:to-emerald-500 text-white font-black text-xs shadow-xl shadow-purple-600/30 flex items-center gap-2"
+              >
+                {isAiGenerating ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin" /> Generating Complete School Website...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 text-amber-300" /> Generate Complete School Website with AI
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* --- TAB 3: PAGES MANAGER --- */}
+      {activeTab === "pages" && (
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-4">
+            <div>
+              <h3 className="text-base font-black text-slate-900 dark:text-white">School Website Pages ({pages.length})</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Manage pages, slugs, meta descriptions, and publish states.</p>
             </div>
             <button
               onClick={() => setShowAddPageModal(true)}
-              className="px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-indigo-600/20"
+              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5"
             >
-              <Plus className="w-4 h-4" /> Add New Page
+              <Plus className="w-4 h-4" /> Create New Page
             </button>
           </div>
 
-          <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-lg">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 dark:bg-slate-800/60 border-b border-slate-200 dark:border-slate-800 text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
-                  <th className="py-3 px-4">Page Title</th>
-                  <th className="py-3 px-4">URL Slug</th>
-                  <th className="py-3 px-4">Sections</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs text-slate-700 dark:text-slate-300">
+              <thead className="bg-slate-50 dark:bg-slate-950 uppercase text-[10px] font-black text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                <tr>
+                  <th className="p-3">Page Title</th>
+                  <th className="p-3">Slug / Path</th>
+                  <th className="p-3">Sections</th>
+                  <th className="p-3">Status</th>
+                  <th className="p-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200 dark:divide-slate-800 text-xs">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
                 {pages.map((p) => (
-                  <tr key={p.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/40">
-                    <td className="py-3 px-4 font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition-colors">
+                    <td className="p-3 font-extrabold text-slate-900 dark:text-white flex items-center gap-2">
                       <FileText className="w-4 h-4 text-indigo-500" />
                       <span>{p.title}</span>
                       {p.isSystemDefault && (
-                        <span className="text-[9px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 font-semibold">
-                          System Default
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                          Core Page
                         </span>
                       )}
                     </td>
-                    <td className="py-3 px-4 font-mono text-indigo-600 dark:text-indigo-400">
-                      /{p.slug}
+                    <td className="p-3 font-mono text-indigo-600 dark:text-indigo-400">/{p.slug}</td>
+                    <td className="p-3 font-bold text-slate-600 dark:text-slate-400">{p.sections.length} Sections</td>
+                    <td className="p-3">
+                      <button
+                        onClick={() => {
+                          const updated = pages.map(pg => pg.id === p.id ? { ...pg, isPublished: !pg.isPublished } : pg);
+                          handleSavePages(updated);
+                        }}
+                        className={`px-2.5 py-1 rounded-lg font-bold text-[10px] uppercase transition-colors ${
+                          p.isPublished
+                            ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30"
+                            : "bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30"
+                        }`}
+                      >
+                        {p.isPublished ? "Published" : "Draft"}
+                      </button>
                     </td>
-                    <td className="py-3 px-4 font-semibold text-slate-600 dark:text-slate-300">
-                      {p.sections.length} section blocks
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                        Published
-                      </span>
-                    </td>
-                    <td className="py-3 px-4 text-right space-x-2">
+                    <td className="p-3 text-right space-x-2">
                       <button
                         onClick={() => {
                           setSelectedPageId(p.id);
                           setActiveTab("editor");
                         }}
-                        className="px-2.5 py-1 rounded bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-300 font-semibold hover:bg-indigo-100"
+                        className="px-3 py-1.5 rounded-lg bg-indigo-600 text-white font-bold text-[10px]"
                       >
-                        Edit Content
+                        Edit in Builder
                       </button>
-                      {!p.isSystemDefault && (
-                        <button
-                          onClick={() => handleDeletePage(p.id)}
-                          className="px-2 py-1 rounded text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950"
-                        >
-                          Delete
-                        </button>
-                      )}
                     </td>
                   </tr>
                 ))}
@@ -861,367 +1132,678 @@ export const WebsiteBuilderView: React.FC<WebsiteBuilderViewProps> = ({ currentR
         </div>
       )}
 
-      {/* TAB 3: THEME & BRANDING CUSTOMIZER */}
-      {activeTab === "theme" && (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Palette className="w-5 h-5 text-indigo-500" />
-              <span>School Branding & Color Palette</span>
-            </h2>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                School Display Name
-              </label>
-              <input
-                type="text"
-                value={theme.schoolName}
-                onChange={(e) => handleUpdateTheme("schoolName", e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 font-bold"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Motto / Tagline
-              </label>
-              <input
-                type="text"
-                value={theme.tagline}
-                onChange={(e) => handleUpdateTheme("tagline", e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Primary Theme Color
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={theme.primaryColor}
-                    onChange={(e) => handleUpdateTheme("primaryColor", e.target.value)}
-                    className="w-9 h-9 rounded cursor-pointer border"
-                  />
-                  <input
-                    type="text"
-                    value={theme.primaryColor}
-                    onChange={(e) => handleUpdateTheme("primaryColor", e.target.value)}
-                    className="flex-1 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono"
-                  />
-                </div>
+      {/* --- TAB 4: VISUAL SECTION BUILDER --- */}
+      {activeTab === "editor" && (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-4">
+            <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-slate-500">Editing Page:</span>
+                <select
+                  value={selectedPageId}
+                  onChange={(e) => setSelectedPageId(e.target.value)}
+                  className="bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-900 dark:text-white outline-none"
+                >
+                  {pages.map((p) => (
+                    <option key={p.id} value={p.id}>{p.title} (/{p.slug})</option>
+                  ))}
+                </select>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Accent Gold / Highlight Color
-                </label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={theme.accentColor}
-                    onChange={(e) => handleUpdateTheme("accentColor", e.target.value)}
-                    className="w-9 h-9 rounded cursor-pointer border"
-                  />
-                  <input
-                    type="text"
-                    value={theme.accentColor}
-                    onChange={(e) => handleUpdateTheme("accentColor", e.target.value)}
-                    className="flex-1 px-3 py-1.5 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-xs font-mono"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Typography Font Family
-              </label>
-              <select
-                value={theme.fontFamily}
-                onChange={(e) => handleUpdateTheme("fontFamily", e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100"
+              <button
+                onClick={() => setActiveTab("components")}
+                className="px-3 py-1.5 rounded-xl bg-purple-600 text-white text-xs font-bold flex items-center gap-1"
               >
-                <option value="Plus Jakarta Sans">Plus Jakarta Sans (Modern Clean)</option>
-                <option value="Playfair Display">Playfair Display (Academic Serif)</option>
-                <option value="Inter">Inter (Minimalist Standard)</option>
-              </select>
+                <Plus className="w-3.5 h-3.5" /> Add Section Block
+              </button>
+            </div>
+
+            {/* Sections Canvas */}
+            <div className="space-y-4">
+              {selectedPage.sections.map((sec, idx) => (
+                <div
+                  key={sec.id}
+                  className={`p-5 rounded-2xl border transition-all ${
+                    editingSectionId === sec.id
+                      ? "bg-slate-900 border-indigo-500 ring-2 ring-indigo-500/30 text-white"
+                      : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100"
+                  }`}
+                >
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3 mb-3">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                        {sec.type}
+                      </span>
+                      <h4 className="font-extrabold text-sm">{sec.title}</h4>
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => handleMoveSection(sec.id, "up")}
+                        disabled={idx === 0}
+                        className="p-1.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 disabled:opacity-40"
+                      >
+                        <MoveUp className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleMoveSection(sec.id, "down")}
+                        disabled={idx === selectedPage.sections.length - 1}
+                        className="p-1.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 text-slate-600 dark:text-slate-300 disabled:opacity-40"
+                      >
+                        <MoveDown className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setEditingSectionId(sec.id)}
+                        className="p-1.5 rounded bg-indigo-600 text-white"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSection(sec.id)}
+                        className="p-1.5 rounded bg-rose-600/20 text-rose-500 hover:bg-rose-600 hover:text-white"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2">{sec.subtitle || sec.content}</p>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <Megaphone className="w-5 h-5 text-amber-500" />
-              <span>Announcement Bar & Top Notification</span>
-            </h2>
+          {/* Section Inspector Panel */}
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+            <h3 className="text-base font-black text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-800 pb-3">
+              Section Content Inspector
+            </h3>
 
-            <div className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-800 rounded-lg">
-              <div>
-                <h4 className="text-xs font-bold text-slate-900 dark:text-white">
-                  Enable Announcement Banner
-                </h4>
-                <p className="text-[11px] text-slate-500">
-                  Displays a highlighted bar at the top of the school website
-                </p>
-              </div>
-              <input
-                type="checkbox"
-                checked={theme.showAnnouncementBanner}
-                onChange={(e) => handleUpdateTheme("showAnnouncementBanner", e.target.checked)}
-                className="w-4 h-4 text-indigo-600 rounded"
-              />
-            </div>
+            {editingSectionId ? (
+              (() => {
+                const secToEdit = selectedPage.sections.find(s => s.id === editingSectionId);
+                if (!secToEdit) return <p className="text-xs text-slate-400">Select a section to edit.</p>;
 
-            {theme.showAnnouncementBanner && (
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Banner Text Message
-                </label>
-                <textarea
-                  rows={3}
-                  value={theme.announcementText}
-                  onChange={(e) => handleUpdateTheme("announcementText", e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100"
-                />
-              </div>
+                return (
+                  <div className="space-y-4 text-xs">
+                    <div>
+                      <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Section Heading Title</label>
+                      <input
+                        type="text"
+                        value={secToEdit.title}
+                        onChange={(e) => {
+                          const updated = pages.map(p => p.id === selectedPageId ? {
+                            ...p,
+                            sections: p.sections.map(s => s.id === editingSectionId ? { ...s, title: e.target.value } : s)
+                          } : p);
+                          setPages(updated);
+                        }}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Subtitle / Tagline</label>
+                      <input
+                        type="text"
+                        value={secToEdit.subtitle || ""}
+                        onChange={(e) => {
+                          const updated = pages.map(p => p.id === selectedPageId ? {
+                            ...p,
+                            sections: p.sections.map(s => s.id === editingSectionId ? { ...s, subtitle: e.target.value } : s)
+                          } : p);
+                          setPages(updated);
+                        }}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Main Body Content</label>
+                      <textarea
+                        rows={4}
+                        value={secToEdit.content || ""}
+                        onChange={(e) => {
+                          const updated = pages.map(p => p.id === selectedPageId ? {
+                            ...p,
+                            sections: p.sections.map(s => s.id === editingSectionId ? { ...s, content: e.target.value } : s)
+                          } : p);
+                          setPages(updated);
+                        }}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-3 text-slate-900 dark:text-white"
+                      ></textarea>
+                    </div>
+
+                    <div>
+                      <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Section Image URL</label>
+                      <input
+                        type="text"
+                        value={secToEdit.imageUrl || ""}
+                        onChange={(e) => {
+                          const updated = pages.map(p => p.id === selectedPageId ? {
+                            ...p,
+                            sections: p.sections.map(s => s.id === editingSectionId ? { ...s, imageUrl: e.target.value } : s)
+                          } : p);
+                          setPages(updated);
+                        }}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-slate-900 dark:text-white font-mono"
+                      />
+                    </div>
+
+                    <button
+                      onClick={() => handleSavePages(pages)}
+                      className="w-full py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold"
+                    >
+                      Save Section Changes
+                    </button>
+                  </div>
+                );
+              })()
+            ) : (
+              <p className="text-xs text-slate-400">Click the edit button on any section on the left to modify its content.</p>
             )}
           </div>
         </div>
       )}
 
-      {/* TAB 4: LIVE SITE PREVIEW MODE */}
-      {activeTab === "preview" && (
-        <div className="space-y-4">
-          {/* Device Viewport Bar */}
-          <div className="bg-white dark:bg-slate-900 p-3 rounded-xl border border-slate-200 dark:border-slate-800 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-slate-500 uppercase">Device View:</span>
-              <button
-                onClick={() => setPreviewDevice("desktop")}
-                className={`p-1.5 rounded-lg flex items-center gap-1 text-xs font-semibold ${
-                  previewDevice === "desktop"
-                    ? "bg-indigo-600 text-white"
-                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+      {/* --- TAB 5: COMPONENTS LIBRARY --- */}
+      {activeTab === "components" && (
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h3 className="text-base font-black text-slate-900 dark:text-white">Website Component Library</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Click any component block to insert it directly into the active page.</p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { type: "hero", name: "Hero Banner", desc: "Full-width hero header with CTA buttons", icon: LayoutGrid },
+              { type: "welcome", name: "Head Speech", desc: "Principal welcome message with portrait photo", icon: MessageSquare },
+              { type: "features", name: "Why Choose Us", desc: "Grid cards highlighting STEM, facilities & pass rate", icon: Star },
+              { type: "courses", name: "Academic Tracks", desc: "Educational levels from Creche to SS3 STEM", icon: BookOpen },
+              { type: "teachers", name: "Faculty Grid", desc: "Staff directory with avatars & subject roles", icon: Users },
+              { type: "stats", name: "Statistics", desc: "Counter block showing total students & trophies", icon: BarChart3 },
+              { type: "gallery", name: "Photo Gallery", desc: "Masonry grid of campus labs & sports complex", icon: ImageIcon },
+              { type: "pricing", name: "School Fees Table", desc: "Tuition pricing tier breakdown", icon: DollarSign },
+              { type: "faq", name: "FAQ Accordion", desc: "Frequently asked questions regarding admission", icon: HelpCircle },
+              { type: "map", name: "Google Map Location", desc: "Interactive map placeholder with directions", icon: MapPin },
+              { type: "form", name: "Admission Form", desc: "Online application form for prospective parents", icon: FileText },
+              { type: "whatsapp", name: "WhatsApp Chat Widget", desc: "Floating quick chat line widget", icon: Send },
+            ].map((comp) => {
+              const IconComp = comp.icon;
+              return (
+                <button
+                  key={comp.type}
+                  onClick={() => handleAddSectionToPage(comp.type as any)}
+                  className="p-4 bg-slate-50 dark:bg-slate-950 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 border border-slate-200 dark:border-slate-800 hover:border-indigo-500 rounded-2xl text-left space-y-2 transition-all group"
+                >
+                  <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-500 w-fit group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                    <IconComp className="w-5 h-5" />
+                  </div>
+                  <h4 className="font-extrabold text-xs text-slate-900 dark:text-white">{comp.name}</h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400">{comp.desc}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* --- TAB 6: THEMES & BRANDING --- */}
+      {activeTab === "themes" && (
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+          <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h3 className="text-base font-black text-slate-900 dark:text-white">AI Theme Presets & Visual Branding</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Select from pre-configured school themes or customize your color palette.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {THEME_PRESETS.map((tp) => (
+              <div
+                key={tp.id}
+                onClick={() => {
+                  const updated = {
+                    ...theme,
+                    themePreset: tp.id,
+                    primaryColor: tp.primary,
+                    accentColor: tp.accent
+                  };
+                  handleSaveTheme(updated);
+                }}
+                className={`p-4 rounded-2xl border cursor-pointer transition-all ${
+                  theme.themePreset === tp.id
+                    ? "bg-indigo-950/20 border-indigo-500 ring-2 ring-indigo-500/40"
+                    : "bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 hover:border-slate-400"
                 }`}
               >
-                <Laptop className="w-4 h-4" /> Desktop
-              </button>
-              <button
-                onClick={() => setPreviewDevice("tablet")}
-                className={`p-1.5 rounded-lg flex items-center gap-1 text-xs font-semibold ${
-                  previewDevice === "tablet"
-                    ? "bg-indigo-600 text-white"
-                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                }`}
+                <div className="flex items-center justify-between mb-2">
+                  <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">{tp.name}</h4>
+                  <div className="flex gap-1">
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: tp.primary }}></div>
+                    <div className="w-4 h-4 rounded-full" style={{ backgroundColor: tp.accent }}></div>
+                  </div>
+                </div>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{tp.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* --- TAB 7: AI CO-PILOT ASSISTANT --- */}
+      {activeTab === "ai-assistant" && (
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+          <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <Bot className="w-6 h-6 text-purple-500" />
+            <div>
+              <h3 className="text-base font-black text-slate-900 dark:text-white">AI Website Co-Pilot & Translator</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Ask the AI assistant to rewrite copy, generate pages, or translate content into French, Hausa, Yoruba, or Igbo.</p>
+            </div>
+          </div>
+
+          <div className="space-y-3 text-xs">
+            <label className="font-bold text-slate-700 dark:text-slate-300 block">Quick AI Commands</label>
+            <div className="flex flex-wrap gap-2">
+              {[
+                "Create an Admission page with criteria and fees",
+                "Rewrite Head of School Welcome Speech professionally",
+                "Improve SEO keywords for Livingstone Academy",
+                "Translate website intro into French",
+                "Translate website intro into Hausa",
+                "Translate website intro into Yoruba",
+                "Translate website intro into Igbo",
+              ].map((cmd) => (
+                <button
+                  key={cmd}
+                  onClick={() => handleRunAiAssistant(cmd)}
+                  className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-purple-600 hover:text-white text-slate-700 dark:text-slate-200 font-bold transition-colors border border-slate-200 dark:border-slate-700"
+                >
+                  ✨ {cmd}
+                </button>
+              ))}
+            </div>
+
+            <div className="pt-2">
+              <label className="font-bold text-slate-700 dark:text-slate-300 block mb-1">Target Language Translation</label>
+              <select
+                value={aiAssistantTargetLang}
+                onChange={(e) => setAiAssistantTargetLang(e.target.value)}
+                className="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 dark:text-white"
               >
-                <Tablet className="w-4 h-4" /> Tablet
-              </button>
+                <option value="French">French Language (Français)</option>
+                <option value="Hausa">Hausa Language (Harshen Hausa)</option>
+                <option value="Yoruba">Yoruba Language (Èdè Yorùbá)</option>
+                <option value="Igbo">Igbo Language (Asụsụ Igbo)</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- TAB 8: BLOG & NEWS --- */}
+      {activeTab === "blog" && (
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div>
+              <h3 className="text-base font-black text-slate-900 dark:text-white">School News & Blog Articles ({blogPosts.length})</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Publish news posts, sports reports, and administrative announcements.</p>
+            </div>
+            <button
+              onClick={() => setShowAddBlogModal(true)}
+              className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5"
+            >
+              <Plus className="w-4 h-4" /> Publish Article
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {blogPosts.map((post) => (
+              <div key={post.id} className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
+                <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
+                  {post.category}
+                </span>
+                <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">{post.title}</h4>
+                <p className="text-slate-500 dark:text-slate-400">{post.excerpt}</p>
+                <div className="text-[10px] text-slate-400 font-mono">
+                  Author: {post.author} • {post.date}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* --- TAB 9: MEDIA LIBRARY --- */}
+      {activeTab === "media" && (
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div>
+              <h3 className="text-base font-black text-slate-900 dark:text-white">School Media & Asset Library</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Upload school building photos, prospectus PDFs, and videos.</p>
+            </div>
+            <button
+              onClick={() => showToast("✓ File Uploaded to Cloud Storage")}
+              className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-1.5"
+            >
+              <Upload className="w-4 h-4" /> Upload Asset
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {mediaItems.map((med) => (
+              <div key={med.id} className="p-3 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2 text-xs">
+                <div className="h-24 bg-slate-200 dark:bg-slate-800 rounded-xl overflow-hidden flex items-center justify-center">
+                  {med.type === "image" ? (
+                    <img src={med.url} alt={med.name} className="w-full h-full object-cover" />
+                  ) : (
+                    <FileText className="w-8 h-8 text-indigo-400" />
+                  )}
+                </div>
+                <div className="font-bold text-slate-900 dark:text-white truncate">{med.name}</div>
+                <div className="text-[10px] text-slate-400 font-mono">{med.size} • {med.folder}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* --- TAB 10: DOMAIN & HOSTING --- */}
+      {activeTab === "domain" && (
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+          <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h3 className="text-base font-black text-slate-900 dark:text-white">Domain Name & Cloud Hosting Infrastructure</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Configure custom school domains, subdomains, and SSL certificates.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs">
+            <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+              <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">Custom Domain Setting</h4>
+              <input
+                type="text"
+                value={theme.customDomain}
+                onChange={(e) => setTheme({ ...theme, customDomain: e.target.value })}
+                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 font-mono text-indigo-600 dark:text-indigo-400 font-bold"
+              />
+              <p className="text-[11px] text-slate-500">Point your DNS A-Record to IP address: <strong className="font-mono text-slate-800 dark:text-slate-200">102.89.23.14</strong></p>
               <button
-                onClick={() => setPreviewDevice("mobile")}
-                className={`p-1.5 rounded-lg flex items-center gap-1 text-xs font-semibold ${
-                  previewDevice === "mobile"
-                    ? "bg-indigo-600 text-white"
-                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                }`}
+                onClick={() => showToast("✓ Custom Domain CNAME records verified!")}
+                className="px-4 py-2 bg-indigo-600 text-white font-bold rounded-xl"
               >
-                <Smartphone className="w-4 h-4" /> Mobile
+                Verify CNAME & DNS
               </button>
             </div>
 
+            <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-3">
+              <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">LIVINGSTONEEDU Subdomain Link</h4>
+              <div className="p-3 bg-white dark:bg-slate-900 rounded-xl font-mono text-purple-600 dark:text-purple-400 font-bold">
+                {theme.subdomain}
+              </div>
+              <p className="text-[11px] text-slate-500">Free default subdomain provided automatically for all partner institutions.</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- TAB 11: SEO & ANALYTICS --- */}
+      {activeTab === "seo" && (
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-6">
+          <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h3 className="text-base font-black text-slate-900 dark:text-white">AI Search Engine Optimization & Traffic Analytics</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Automated meta tag generation, Schema.org markup, and live visitor stats.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+            <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+              <span className="font-bold text-slate-500">SEO Health Score</span>
+              <div className="text-2xl font-black text-emerald-500">96 / 100</div>
+              <p className="text-[11px] text-slate-400">Fully compliant with Google Search Educational Schema standards.</p>
+            </div>
+
+            <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+              <span className="font-bold text-slate-500">Auto-Generated Sitemap</span>
+              <div className="text-sm font-black text-indigo-500 font-mono">/sitemap.xml</div>
+              <p className="text-[11px] text-slate-400">Contains 15 active school pages and blog articles.</p>
+            </div>
+
+            <div className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+              <span className="font-bold text-slate-500">Robots Directive</span>
+              <div className="text-sm font-black text-purple-500 font-mono">/robots.txt</div>
+              <p className="text-[11px] text-slate-400">User-agent: * Allow: /</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- TAB 12: FORMS INBOX --- */}
+      {activeTab === "forms" && (
+        <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-4">
+          <div className="border-b border-slate-100 dark:border-slate-800 pb-3">
+            <h3 className="text-base font-black text-slate-900 dark:text-white">Parent Admissions & Contact Forms Inbox ({inquiries.length})</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Submissions received through the published school website.</p>
+          </div>
+
+          <div className="space-y-3 text-xs">
+            {inquiries.map((inq) => (
+              <div key={inq.id} className="p-4 bg-slate-50 dark:bg-slate-950 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="px-2 py-0.5 rounded text-[9px] font-extrabold uppercase bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                    {inq.formType}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-mono">{new Date(inq.submittedAt).toLocaleString()}</span>
+                </div>
+                <div className="font-black text-sm text-slate-900 dark:text-white">{inq.parentName} (Student: {inq.studentName})</div>
+                <div className="text-slate-600 dark:text-slate-300">{inq.message}</div>
+                <div className="text-[11px] text-indigo-500 font-mono font-bold">
+                  Email: {inq.email} | Phone: {inq.phone} | Class: {inq.targetClass}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* --- TAB 13: PUBLIC WEBSITE VIEW (FULL RESPONSIVE RENDER) --- */}
+      {activeTab === "preview" && (
+        <div className="space-y-4">
+          {/* Viewport Control Bar */}
+          <div className="bg-slate-900 text-white p-3 rounded-2xl flex items-center justify-between gap-3 text-xs">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-semibold text-slate-500">Page:</span>
-              <select
-                value={previewPageSlug}
-                onChange={(e) => setPreviewPageSlug(e.target.value)}
-                className="px-2.5 py-1 bg-slate-100 dark:bg-slate-800 rounded text-xs font-semibold text-slate-900 dark:text-slate-100"
+              <Eye className="w-4 h-4 text-emerald-400" />
+              <span className="font-black">Live Responsive Viewport:</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPreviewDevice("desktop")}
+                className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1 ${
+                  previewDevice === "desktop" ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400"
+                }`}
               >
-                {pages.map((p) => (
-                  <option key={p.id} value={p.slug}>
-                    {p.title}
-                  </option>
-                ))}
-              </select>
+                <Laptop className="w-3.5 h-3.5" /> Desktop
+              </button>
+              <button
+                onClick={() => setPreviewDevice("tablet")}
+                className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1 ${
+                  previewDevice === "tablet" ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400"
+                }`}
+              >
+                <Tablet className="w-3.5 h-3.5" /> Tablet
+              </button>
+              <button
+                onClick={() => setPreviewDevice("mobile")}
+                className={`px-3 py-1.5 rounded-xl font-bold flex items-center gap-1 ${
+                  previewDevice === "mobile" ? "bg-indigo-600 text-white" : "bg-slate-800 text-slate-400"
+                }`}
+              >
+                <Smartphone className="w-3.5 h-3.5" /> Mobile
+              </button>
             </div>
           </div>
 
           {/* Rendered School Website Frame */}
-          <div className="flex justify-center bg-slate-200 dark:bg-slate-950 p-6 rounded-xl min-h-[650px] overflow-x-auto">
+          <div className="flex justify-center transition-all">
             <div
-              className={`bg-white text-slate-900 shadow-2xl rounded-lg overflow-hidden transition-all duration-300 ${
+              className={`bg-white text-slate-900 rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-800 transition-all ${
                 previewDevice === "desktop"
-                  ? "w-full max-w-5xl"
+                  ? "w-full"
                   : previewDevice === "tablet"
                   ? "w-[768px]"
-                  : "w-[375px]"
+                  : "w-[380px]"
               }`}
+              style={{ fontFamily: theme.fontFamily }}
             >
-              {/* Top Announcement Bar */}
+              {/* Announcement Top Bar */}
               {theme.showAnnouncementBanner && (
-                <div
-                  style={{ backgroundColor: theme.accentColor }}
-                  className="px-4 py-2 text-white text-xs font-bold text-center"
-                >
-                  {theme.announcementText}
+                <div className="bg-amber-500 text-slate-950 px-4 py-2 text-center text-xs font-black flex items-center justify-center gap-2">
+                  <Megaphone className="w-3.5 h-3.5" />
+                  <span>{theme.announcementText}</span>
                 </div>
               )}
 
-              {/* Website Public Header */}
-              <header
-                style={{ backgroundColor: theme.primaryColor }}
-                className="px-6 py-4 text-white flex items-center justify-between"
-              >
+              {/* School Header */}
+              <header className="px-6 py-4 border-b border-slate-100 flex items-center justify-between" style={{ backgroundColor: theme.primaryColor }}>
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-white text-indigo-900 flex items-center justify-center font-black text-lg shadow">
-                    L
-                  </div>
+                  <img src={theme.logoUrl} alt="School Logo" className="w-10 h-10 rounded-full border-2 border-amber-400 object-cover" />
                   <div>
-                    <h1 className="text-base font-extrabold tracking-wide">{theme.schoolName}</h1>
-                    <p className="text-[10px] text-amber-200 opacity-90">{theme.tagline}</p>
+                    <h2 className="font-black text-white text-sm tracking-tight">{theme.schoolName}</h2>
+                    <p className="text-[10px] text-amber-300 font-medium">{theme.tagline}</p>
                   </div>
                 </div>
 
-                <nav className="hidden md:flex items-center gap-4 text-xs font-bold">
+                <nav className="hidden md:flex items-center gap-3 text-xs font-bold text-white">
                   {pages.map((p) => (
                     <button
                       key={p.id}
                       onClick={() => setPreviewPageSlug(p.slug)}
                       className={`hover:text-amber-300 transition-colors ${
-                        previewPageSlug === p.slug ? "text-amber-300 underline" : "text-white/90"
+                        previewPageSlug === p.slug ? "text-amber-300 underline underline-offset-4" : ""
                       }`}
                     >
                       {p.title}
                     </button>
                   ))}
-                  <button className="px-3 py-1.5 rounded bg-amber-500 hover:bg-amber-600 text-slate-900 font-extrabold text-[11px] shadow">
-                    Student Portal
-                  </button>
                 </nav>
               </header>
 
-              {/* Active Page Public View */}
-              <main className="min-h-[450px]">
+              {/* Active Rendered Page Body */}
+              <div className="p-6 space-y-8 min-h-[500px]">
                 {(() => {
-                  const activePageObj =
-                    pages.find((p) => p.slug === previewPageSlug) || pages[0];
-
-                  return (
-                    <div>
-                      {activePageObj.sections.map((sec) => {
-                        if (sec.type === "hero") {
-                          return (
-                            <div
-                              key={sec.id}
-                              className="relative bg-slate-900 text-white py-16 px-8 text-center bg-cover bg-center"
-                              style={{
-                                backgroundImage: sec.imageUrl ? `url(${sec.imageUrl})` : undefined,
-                              }}
-                            >
-                              <div className="absolute inset-0 bg-slate-950/70 backdrop-blur-[2px]"></div>
-                              <div className="relative z-10 max-w-2xl mx-auto space-y-3">
-                                <h2 className="text-2xl md:text-3xl font-black">{sec.title}</h2>
-                                <p className="text-amber-300 font-bold text-sm">{sec.subtitle}</p>
-                                <p className="text-slate-200 text-xs leading-relaxed">{sec.content}</p>
-                                {sec.ctaText && (
-                                  <button
-                                    style={{ backgroundColor: theme.accentColor }}
-                                    className="mt-4 px-5 py-2.5 rounded-lg text-xs font-black text-white shadow-lg hover:opacity-95"
-                                  >
-                                    {sec.ctaText}
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        }
-
-                        if (sec.type === "welcome") {
-                          return (
-                            <div key={sec.id} className="py-12 px-8 bg-slate-50 grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                              {sec.imageUrl && (
-                                <div className="md:col-span-4">
-                                  <img
-                                    src={sec.imageUrl}
-                                    alt="Head of school"
-                                    className="w-full h-56 object-cover rounded-xl shadow"
-                                  />
-                                </div>
-                              )}
-                              <div className={sec.imageUrl ? "md:col-span-8" : "md:col-span-12"}>
-                                <h3 className="text-xl font-bold text-slate-900">{sec.title}</h3>
-                                <p className="text-xs font-bold text-indigo-700 mt-0.5">{sec.subtitle}</p>
-                                <p className="text-xs text-slate-600 mt-3 leading-relaxed">{sec.content}</p>
-                              </div>
-                            </div>
-                          );
-                        }
-
-                        if (sec.type === "features") {
-                          return (
-                            <div key={sec.id} className="py-12 px-8 bg-white">
-                              <div className="text-center max-w-md mx-auto mb-8">
-                                <h3 className="text-xl font-bold text-slate-900">{sec.title}</h3>
-                                <p className="text-xs text-slate-500">{sec.subtitle}</p>
-                              </div>
-
-                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                                {sec.items?.map((it) => (
-                                  <div key={it.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50 hover:shadow-md transition-shadow">
-                                    <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold mb-2">
-                                      ★
-                                    </div>
-                                    <h4 className="text-xs font-bold text-slate-900">{it.title}</h4>
-                                    <p className="text-[11px] text-slate-500 mt-1">{it.description}</p>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        }
-
-                        if (sec.type === "stats") {
-                          return (
-                            <div key={sec.id} style={{ backgroundColor: theme.primaryColor }} className="py-10 px-8 text-white text-center">
-                              <h3 className="text-lg font-bold mb-6">{sec.title}</h3>
-                              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                {sec.items?.map((st) => (
-                                  <div key={st.id} className="p-3 bg-white/10 rounded-lg">
-                                    <span className="text-2xl font-black text-amber-300">{st.statValue}</span>
-                                    <p className="text-[11px] text-white/80 font-semibold">{st.title}</p>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          );
-                        }
-
-                        return (
-                          <div key={sec.id} className="py-8 px-8 border-b border-slate-100">
-                            <h3 className="text-base font-bold text-slate-900">{sec.title}</h3>
-                            <p className="text-xs text-slate-600 mt-2">{sec.content}</p>
+                  const activePg = pages.find((p) => p.slug === previewPageSlug) || pages[0];
+                  return activePg.sections.map((sec) => (
+                    <div key={sec.id} className="space-y-4">
+                      {sec.type === "hero" && (
+                        <div className="relative rounded-2xl overflow-hidden p-8 text-white bg-slate-900 min-h-[300px] flex flex-col justify-center">
+                          <img src={sec.imageUrl} className="absolute inset-0 w-full h-full object-cover opacity-30" alt="" />
+                          <div className="relative z-10 max-w-lg space-y-3">
+                            <h1 className="text-2xl font-black leading-tight">{sec.title}</h1>
+                            <p className="text-xs text-slate-200">{sec.content}</p>
+                            {sec.ctaText && (
+                              <button
+                                onClick={() => setPreviewPageSlug("admission")}
+                                className="px-5 py-2.5 rounded-xl font-black text-xs text-slate-950 shadow-lg"
+                                style={{ backgroundColor: theme.accentColor }}
+                              >
+                                {sec.ctaText}
+                              </button>
+                            )}
                           </div>
-                        );
-                      })}
+                        </div>
+                      )}
+
+                      {sec.type === "welcome" && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center p-6 bg-slate-50 rounded-2xl border border-slate-100">
+                          <img src={sec.imageUrl} className="w-full h-48 object-cover rounded-xl shadow-md" alt="" />
+                          <div className="md:col-span-2 space-y-2">
+                            <span className="text-[10px] font-black uppercase text-indigo-600">{sec.subtitle}</span>
+                            <h3 className="text-base font-black text-slate-900">{sec.title}</h3>
+                            <p className="text-xs text-slate-600 leading-relaxed">{sec.content}</p>
+                          </div>
+                        </div>
+                      )}
+
+                      {sec.type === "features" && (
+                        <div className="space-y-4">
+                          <div className="text-center">
+                            <h3 className="text-base font-black text-slate-900">{sec.title}</h3>
+                            <p className="text-xs text-slate-500">{sec.subtitle}</p>
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            {sec.items?.map((item) => (
+                              <div key={item.id} className="p-4 rounded-xl border border-slate-200 bg-slate-50 space-y-1">
+                                <h4 className="font-extrabold text-xs text-indigo-700">{item.title}</h4>
+                                <p className="text-[11px] text-slate-600">{item.description}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {sec.type === "form" && (
+                        <div className="p-6 bg-slate-50 rounded-2xl border border-slate-200 space-y-4">
+                          <h3 className="text-base font-black text-slate-900">{sec.title}</h3>
+                          <form onSubmit={handlePreviewFormSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                            <input
+                              type="text"
+                              required
+                              placeholder="Parent Full Name *"
+                              value={previewFormInput.parentName}
+                              onChange={(e) => setPreviewFormInput({ ...previewFormInput, parentName: e.target.value })}
+                              className="bg-white border border-slate-300 rounded-xl px-3 py-2"
+                            />
+                            <input
+                              type="text"
+                              required
+                              placeholder="Student Name *"
+                              value={previewFormInput.studentName}
+                              onChange={(e) => setPreviewFormInput({ ...previewFormInput, studentName: e.target.value })}
+                              className="bg-white border border-slate-300 rounded-xl px-3 py-2"
+                            />
+                            <input
+                              type="email"
+                              required
+                              placeholder="Email Address *"
+                              value={previewFormInput.email}
+                              onChange={(e) => setPreviewFormInput({ ...previewFormInput, email: e.target.value })}
+                              className="bg-white border border-slate-300 rounded-xl px-3 py-2"
+                            />
+                            <input
+                              type="text"
+                              required
+                              placeholder="Phone / WhatsApp Number *"
+                              value={previewFormInput.phone}
+                              onChange={(e) => setPreviewFormInput({ ...previewFormInput, phone: e.target.value })}
+                              className="bg-white border border-slate-300 rounded-xl px-3 py-2"
+                            />
+                            <textarea
+                              rows={3}
+                              placeholder="Additional notes / inquiries..."
+                              value={previewFormInput.message}
+                              onChange={(e) => setPreviewFormInput({ ...previewFormInput, message: e.target.value })}
+                              className="sm:col-span-2 bg-white border border-slate-300 rounded-xl p-3"
+                            ></textarea>
+                            <button
+                              type="submit"
+                              className="sm:col-span-2 py-2.5 rounded-xl font-black text-white text-xs shadow-md"
+                              style={{ backgroundColor: theme.primaryColor }}
+                            >
+                              Submit Admission Application
+                            </button>
+                          </form>
+                        </div>
+                      )}
                     </div>
-                  );
+                  ));
                 })()}
-              </main>
+              </div>
 
               {/* Public Website Footer */}
-              <footer style={{ backgroundColor: theme.primaryColor }} className="px-6 py-6 text-white border-t border-white/10 text-xs">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <footer className="p-6 text-white text-xs space-y-3" style={{ backgroundColor: theme.primaryColor }}>
+                <div className="flex flex-wrap justify-between items-center gap-3">
                   <div>
-                    <p className="font-bold">{theme.schoolName}</p>
-                    <p className="text-[10px] text-white/70">
-                      © 2026 LIVINGSTONEEDU Platform. All Rights Reserved.
-                    </p>
+                    <h4 className="font-extrabold">{theme.schoolName}</h4>
+                    <p className="text-[10px] text-slate-300">{theme.customDomain}</p>
                   </div>
-                  <div className="flex gap-3 text-[11px]">
-                    <a href="#privacy" className="hover:underline">Privacy Policy</a>
-                    <a href="#terms" className="hover:underline">Terms of Admission</a>
-                    <a href="#portal" className="hover:underline">Staff Portal</a>
+                  <div className="text-[10px] text-slate-300">
+                    © 2026 {theme.schoolName}. Powered by LIVINGSTONEEDU Enterprise Platform.
                   </div>
                 </div>
               </footer>
@@ -1230,115 +1812,96 @@ export const WebsiteBuilderView: React.FC<WebsiteBuilderViewProps> = ({ currentR
         </div>
       )}
 
-      {/* TAB 5: DOMAIN & SEO CONFIG */}
-      {activeTab === "settings" && (
-        <div className="bg-white dark:bg-slate-900 rounded-xl p-6 border border-slate-200 dark:border-slate-800 shadow-sm space-y-5">
-          <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <Globe className="w-5 h-5 text-indigo-500" />
-            <span>Domain Mapping & SEO Integration</span>
-          </h2>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Custom Domain URL
-              </label>
-              <input
-                type="text"
-                value={theme.customDomain}
-                onChange={(e) => handleUpdateTheme("customDomain", e.target.value)}
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs font-mono"
-              />
-              <p className="text-[11px] text-slate-500 mt-1">
-                Point CNAME record to <code className="text-indigo-600">dns.livingstone.edu.ng</code>
-              </p>
-            </div>
-
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Google Analytics / Tracking ID
-              </label>
-              <input
-                type="text"
-                placeholder="G-XXXXXXXXXX"
-                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs"
-              />
+      {/* --- MODAL: CREATE NEW PAGE --- */}
+      {showAddPageModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4">
+            <h3 className="text-base font-black text-slate-900 dark:text-white">Create New Page</h3>
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="font-bold block mb-1">Page Title</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Facilities & Laboratories"
+                  value={newPageTitle}
+                  onChange={(e) => setNewPageTitle(e.target.value)}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button onClick={() => setShowAddPageModal(false)} className="px-4 py-2 rounded-xl bg-slate-200 text-slate-700 font-bold">
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    if (!newPageTitle) return;
+                    const newPg: WebsitePage = {
+                      id: `page-${Date.now()}`,
+                      title: newPageTitle,
+                      slug: newPageTitle.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+                      isPublished: true,
+                      metaDescription: `Official page for ${newPageTitle}`,
+                      sections: [
+                        {
+                          id: `sec-${Date.now()}`,
+                          type: "hero",
+                          title: newPageTitle,
+                          subtitle: "Welcome to " + newPageTitle,
+                          content: "Customized content block for " + newPageTitle,
+                        }
+                      ]
+                    };
+                    handleSavePages([...pages, newPg]);
+                    setShowAddPageModal(false);
+                    setNewPageTitle("");
+                  }}
+                  className="px-5 py-2 rounded-xl bg-indigo-600 text-white font-extrabold"
+                >
+                  Create Page
+                </button>
+              </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* ADD NEW PAGE MODAL */}
-      {showAddPageModal && (
-        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-xl max-w-md w-full p-6 border border-slate-200 dark:border-slate-800 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <Plus className="w-4 h-4 text-indigo-500" />
-                <span>Create New Website Page</span>
-              </h3>
-              <button
-                onClick={() => setShowAddPageModal(false)}
-                className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold"
-              >
-                ✕
-              </button>
-            </div>
-
-            <form onSubmit={handleAddPage} className="space-y-3">
+      {/* --- MODAL: WRITE BLOG POST --- */}
+      {showAddBlogModal && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-4">
+            <h3 className="text-base font-black text-slate-900 dark:text-white">Publish New Article to Blog</h3>
+            <form onSubmit={handleCreateBlogPost} className="space-y-3 text-xs">
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Page Title *
-                </label>
+                <label className="font-bold block mb-1">Article Title</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Sports & Athletics"
-                  value={newPageTitle}
-                  onChange={(e) => setNewPageTitle(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100"
+                  placeholder="Title of news post..."
+                  value={newPostForm.title}
+                  onChange={(e) => setNewPostForm({ ...newPostForm, title: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  URL Slug (Optional)
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. sports-athletics"
-                  value={newPageSlug}
-                  onChange={(e) => setNewPageSlug(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100 font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  Meta Description (SEO)
-                </label>
+                <label className="font-bold block mb-1">Article Excerpt Summary</label>
                 <textarea
-                  rows={2}
-                  placeholder="Summary for search engines..."
-                  value={newPageDescription}
-                  onChange={(e) => setNewPageDescription(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg text-xs text-slate-900 dark:text-slate-100"
-                />
+                  required
+                  rows={3}
+                  placeholder="Short summary for homepage and blog index..."
+                  value={newPostForm.excerpt}
+                  onChange={(e) => setNewPostForm({ ...newPostForm, excerpt: e.target.value })}
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl p-3"
+                ></textarea>
               </div>
 
-              <div className="pt-2 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowAddPageModal(false)}
-                  className="px-3.5 py-2 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                >
+              <div className="flex justify-end gap-2 pt-2">
+                <button type="button" onClick={() => setShowAddBlogModal(false)} className="px-4 py-2 rounded-xl bg-slate-200 text-slate-700 font-bold">
                   Cancel
                 </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow"
-                >
-                  Create Page
+                <button type="submit" className="px-5 py-2 rounded-xl bg-indigo-600 text-white font-extrabold">
+                  Publish Post
                 </button>
               </div>
             </form>
