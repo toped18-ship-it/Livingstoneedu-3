@@ -43,7 +43,9 @@ import {
   Settings,
   Lock,
   Edit3,
-  LogOut
+  LogOut,
+  Sun,
+  Moon
 } from "lucide-react";
 import { UserRole } from "../../types";
 
@@ -51,9 +53,11 @@ interface StudentParentPortalViewProps {
   currentRole?: UserRole;
   userSession?: any;
   onLogout?: () => void;
+  isDark?: boolean;
+  onToggleTheme?: () => void;
 }
 
-export function StudentParentPortalView({ currentRole, userSession, onLogout }: StudentParentPortalViewProps) {
+export function StudentParentPortalView({ currentRole, userSession, onLogout, isDark = true, onToggleTheme }: StudentParentPortalViewProps) {
   // Mobile Sidebar Drawer State
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -476,8 +480,18 @@ export function StudentParentPortalView({ currentRole, userSession, onLogout }: 
           </div>
         </div>
 
-        {/* Quick Avatar */}
+        {/* Quick Avatar & Theme Toggle */}
         <div className="flex items-center gap-2">
+          {onToggleTheme && (
+            <button
+              onClick={onToggleTheme}
+              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-colors"
+              title={isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
+            >
+              {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-slate-300" />}
+            </button>
+          )}
+
           {photoUrl ? (
             <img
               src={photoUrl}
@@ -685,9 +699,25 @@ export function StudentParentPortalView({ currentRole, userSession, onLogout }: 
             </button>
           </div>
 
-          {/* Logout Button */}
-          {onLogout && (
-            <div className="p-3 border-t border-slate-800/80">
+          {/* Theme Toggle & Logout Button */}
+          <div className="p-3 border-t border-slate-800/80 space-y-2">
+            {onToggleTheme && (
+              <button
+                type="button"
+                onClick={onToggleTheme}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-slate-700/60 text-xs font-bold transition-all flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  {isDark ? <Sun className="w-4 h-4 text-amber-400" /> : <Moon className="w-4 h-4 text-indigo-400" />}
+                  <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
+                </div>
+                <span className="text-[10px] text-slate-400 font-mono">
+                  {isDark ? "Dark" : "Light"}
+                </span>
+              </button>
+            )}
+
+            {onLogout && (
               <button
                 type="button"
                 onClick={() => {
@@ -699,8 +729,8 @@ export function StudentParentPortalView({ currentRole, userSession, onLogout }: 
                 <LogOut className="w-4 h-4 text-rose-400" />
                 <span>Log Out</span>
               </button>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Footer Info */}
           <div className="p-4 border-t border-slate-800/80 text-[10px] text-slate-500 space-y-1">

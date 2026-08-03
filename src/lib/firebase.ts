@@ -1,27 +1,30 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore, doc, getDocFromServer } from "firebase/firestore";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getStorage } from "firebase/storage";
 import { getDatabase } from "firebase/database";
+import firebaseAppletConfig from "../../firebase-applet-config.json";
 
 const metaEnv = (import.meta as any).env || {};
 
 const firebaseConfig = {
-  apiKey: metaEnv.VITE_FIREBASE_API_KEY || "AIzaSyDFWBa-XQ5Ppz8aAcChO8U5uWQ5gMRrBRM",
-  authDomain: metaEnv.VITE_FIREBASE_AUTH_DOMAIN || "livingstoneedu-1ef57.firebaseapp.com",
-  projectId: metaEnv.VITE_FIREBASE_PROJECT_ID || "livingstoneedu-1ef57",
-  storageBucket: metaEnv.VITE_FIREBASE_STORAGE_BUCKET || "livingstoneedu-1ef57.firebasestorage.app",
-  messagingSenderId: metaEnv.VITE_FIREBASE_MESSAGING_SENDER_ID || "862725103424",
-  appId: metaEnv.VITE_FIREBASE_APP_ID || "1:862725103424:web:90228b701a71650f3424a5",
-  measurementId: metaEnv.VITE_FIREBASE_MEASUREMENT_ID || "G-75JWGXXVWJ",
-  databaseURL: metaEnv.VITE_FIREBASE_DATABASE_URL || "https://livingstoneedu-1ef57-default-rtdb.firebaseio.com/",
+  apiKey: firebaseAppletConfig?.apiKey || metaEnv.VITE_FIREBASE_API_KEY || "AIzaSyDFWBa-XQ5Ppz8aAcChO8U5uWQ5gMRrBRM",
+  authDomain: firebaseAppletConfig?.authDomain || metaEnv.VITE_FIREBASE_AUTH_DOMAIN || "livingstoneedu-1ef57.firebaseapp.com",
+  projectId: firebaseAppletConfig?.projectId || metaEnv.VITE_FIREBASE_PROJECT_ID || "livingstoneedu-1ef57",
+  storageBucket: firebaseAppletConfig?.storageBucket || metaEnv.VITE_FIREBASE_STORAGE_BUCKET || "livingstoneedu-1ef57.firebasestorage.app",
+  messagingSenderId: firebaseAppletConfig?.messagingSenderId || metaEnv.VITE_FIREBASE_MESSAGING_SENDER_ID || "862725103424",
+  appId: firebaseAppletConfig?.appId || metaEnv.VITE_FIREBASE_APP_ID || "1:862725103424:web:90228b701a71650f3424a5",
+  measurementId: firebaseAppletConfig?.measurementId || metaEnv.VITE_FIREBASE_MEASUREMENT_ID || "G-75JWGXXVWJ",
+  databaseURL: metaEnv.VITE_FIREBASE_DATABASE_URL || `https://${firebaseAppletConfig?.projectId || "livingstoneedu-1ef57"}-default-rtdb.firebaseio.com/`,
 };
 
 // Initialize Firebase App
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
 export const auth = getAuth(app);
-export const db = getFirestore(app);
+export const db = firebaseAppletConfig?.firestoreDatabaseId && firebaseAppletConfig.firestoreDatabaseId !== "(default)"
+  ? getFirestore(app, firebaseAppletConfig.firestoreDatabaseId)
+  : getFirestore(app);
 export const storage = getStorage(app);
 export const rtdb = getDatabase(app);
 

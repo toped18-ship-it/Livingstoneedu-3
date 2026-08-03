@@ -394,6 +394,8 @@ export default function App() {
         currentRole={currentRole === "Student" || currentRole === "Parent" ? currentRole : "Student"}
         userSession={userSession}
         onLogout={handleLogout}
+        isDark={isDark}
+        onToggleTheme={() => setIsDark((prev) => !prev)}
       />
     );
   }
@@ -436,7 +438,7 @@ export default function App() {
             }
           }}
           isDark={isDark}
-          onToggleTheme={() => setIsDark(!isDark)}
+          onToggleTheme={() => setIsDark((prev) => !prev)}
           onOpenAIAssistant={() => setIsAiModalOpen(true)}
           onSelectTab={handleSelectTab}
           notificationsCount={3}
