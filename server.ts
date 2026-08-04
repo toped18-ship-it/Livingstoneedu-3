@@ -3724,8 +3724,41 @@ app.put("/api/superadmin/schools/:id/suspend", (req, res) => {
   res.json({ success: true, message: "School suspended", data: sch });
 });
 
+app.delete("/api/superadmin/schools/:id", (req, res) => {
+  const idx = superAdminSchoolsStore.findIndex((s) => s.id === req.params.id);
+  if (idx !== -1) superAdminSchoolsStore.splice(idx, 1);
+  res.json({ success: true, message: "School deleted from system" });
+});
+
 app.get("/api/superadmin/users", (req, res) => {
   res.json({ success: true, data: usersStore });
+});
+
+app.post("/api/superadmin/users", (req, res) => {
+  const newUser = {
+    id: `USR-${String(usersStore.length + 1).padStart(3, "0")}`,
+    name: req.body.name || "New Platform User",
+    email: req.body.email || "user@livingstone.edu",
+    role: req.body.role || "Teacher",
+    schoolId: req.body.schoolId || "SCH-001",
+    status: req.body.status || "Active",
+  };
+  usersStore.unshift(newUser);
+  res.json({ success: true, message: "User created successfully", data: newUser });
+});
+
+app.delete("/api/superadmin/users/:id", (req, res) => {
+  const idx = usersStore.findIndex((u) => u.id === req.params.id);
+  if (idx !== -1) usersStore.splice(idx, 1);
+  res.json({ success: true, message: "User account deleted from system" });
+});
+
+app.post("/api/superadmin/reset-all", (req, res) => {
+  superAdminSchoolsStore.length = 0;
+  const superAdmins = usersStore.filter((u) => u.role === "Super Admin");
+  usersStore.length = 0;
+  usersStore.push(...superAdmins);
+  res.json({ success: true, message: "System data reset to factory default." });
 });
 
 // --- WEBSITE BUILDER MODULE STORES & ENDPOINTS ---

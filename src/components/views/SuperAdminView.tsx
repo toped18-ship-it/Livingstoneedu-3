@@ -53,6 +53,8 @@ import {
   LogOut,
   Sun,
   Moon,
+  Trash2,
+  RotateCcw,
 } from "lucide-react";
 
 export interface SuperAdminViewProps {
@@ -218,8 +220,34 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
   const [isApiKeysOpen, setIsApiKeysOpen] = useState(false);
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [isTeacherNoticeModalOpen, setIsTeacherNoticeModalOpen] = useState(false);
+  const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
+  const [isPricingModalOpen, setIsPricingModalOpen] = useState(false);
+  const [isFreshStartModalOpen, setIsFreshStartModalOpen] = useState(false);
+
+  // Multi-Select & Bulk Delete State
+  const [selectedSchoolIds, setSelectedSchoolIds] = useState<string[]>([]);
+  const [selectedUserIds, setSelectedUserIds] = useState<string[]>([]);
+  const [confirmDeleteModal, setConfirmDeleteModal] = useState<{
+    open: boolean;
+    type: "schools" | "users";
+    ids: string[];
+  }>({ open: false, type: "schools", ids: [] });
 
   // Forms State
+  const [newUserForm, setNewUserForm] = useState({
+    name: "",
+    email: "",
+    role: "Teacher",
+    schoolId: "SCH-001",
+    status: "Active",
+  });
+
+  const [pricingForm, setPricingForm] = useState({
+    enterprisePrice: "250,000",
+    standardPrice: "120,000",
+    starterPrice: "50,000",
+    aiQuotaMonthly: "50,000,000",
+  });
   const [newSchoolForm, setNewSchoolForm] = useState({
     name: "",
     code: "",
@@ -446,6 +474,155 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
     } catch (err) {
       // Ignored
     }
+  };
+
+  const toggleSelectSchool = (id: string) => {
+    setSelectedSchoolIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAllSchools = (list: any[]) => {
+    if (selectedSchoolIds.length === list.length && list.length > 0) {
+      setSelectedSchoolIds([]);
+    } else {
+      setSelectedSchoolIds(list.map((s) => s.id));
+    }
+  };
+
+  const toggleSelectUser = (id: string) => {
+    setSelectedUserIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const toggleSelectAllUsers = (list: any[]) => {
+    if (selectedUserIds.length === list.length && list.length > 0) {
+      setSelectedUserIds([]);
+    } else {
+      setSelectedUserIds(list.map((u) => u.id));
+    }
+  };
+
+  const triggerConfirmDelete = (type: "schools" | "users", ids: string[]) => {
+    if (ids.length === 0) return;
+    setConfirmDeleteModal({ open: true, type, ids });
+  };
+
+  const handleExecuteBulkDelete = async () => {
+    const { type, ids } = confirmDeleteModal;
+    if (type === "schools") {
+      setSchools((prev) => prev.filter((s) => !ids.includes(s.id)));
+      setSelectedSchoolIds((prev) => prev.filter((id) => !ids.includes(id)));
+      showToast(`🗑️ Permanently deleted ${ids.length} school(s)`);
+      for (const id of ids) {
+        try {
+          await fetch(`/api/superadmin/schools/${id}`, { method: "DELETE" });
+        } catch (e) {}
+      }
+    } else {
+      setUsers((prev) => prev.filter((u) => !ids.includes(u.id)));
+      setSelectedUserIds((prev) => prev.filter((id) => !ids.includes(id)));
+      showToast(`🗑️ Deleted ${ids.length} user account(s)`);
+      for (const id of ids) {
+        try {
+          await fetch(`/api/superadmin/users/${id}`, { method: "DELETE" });
+        } catch (e) {}
+      }
+    }
+    setConfirmDeleteModal({ open: false, type: "schools", ids: [] });
+  };
+
+  const deleteSchool = (schoolId: string) => {
+    triggerConfirmDelete("schools", [schoolId]);
+  };
+
+  const clearAllSchools = () => {
+    if (window.confirm("Are you sure you want to delete ALL partner schools to start fresh?")) {
+      setSchools([]);
+      setDashboardData((prev: any) => ({ ...prev, totalSchools: 0 }));
+      showToast("🧹 All schools cleared from system.");
+    }
+  };
+
+  const handleCreateUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newUserForm.name || !newUserForm.email) return;
+
+    const createdUser = {
+      id: `USR-${String(users.length + 1).padStart(3, "0")}`,
+      name: newUserForm.name,
+      email: newUserForm.email,
+      role: newUserForm.role,
+      schoolId: newUserForm.schoolId || "SCH-001",
+      status: newUserForm.status || "Active",
+    };
+
+    setUsers([createdUser, ...users]);
+    setIsCreateUserOpen(false);
+    showToast(`✓ Created platform user "${createdUser.name}" (${createdUser.role})`);
+    setNewUserForm({ name: "", email: "", role: "Teacher", schoolId: "SCH-001", status: "Active" });
+
+    try {
+      await fetch("/api/superadmin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(createdUser),
+      });
+    } catch (err) {}
+  };
+
+  const deleteUser = (userId: string) => {
+    triggerConfirmDelete("users", [userId]);
+  };
+
+  const clearAllUsers = () => {
+    if (window.confirm("Are you sure you want to clear all non-admin users?")) {
+      setUsers((prev) => prev.filter((u) => u.role === "Super Admin"));
+      showToast("🧹 All non-admin user accounts cleared.");
+    }
+  };
+
+  const deleteBackup = (backupId: string) => {
+    setBackups((prev) => prev.filter((b) => b.id !== backupId));
+    showToast("🗑️ Backup snapshot deleted successfully");
+  };
+
+  const clearPromptLogs = () => {
+    setPromptLogs([]);
+    showToast("🧹 AI Prompt Cache & Audit Logs cleared");
+  };
+
+  const deletePromptLog = (logId: string) => {
+    setPromptLogs((prev) => prev.filter((l) => l.id !== logId));
+    showToast("🗑️ Prompt audit log removed");
+  };
+
+  const resetTokenQuotas = () => {
+    setSchools((prev) => prev.map((s) => ({ ...s, aiCreditsUsed: 0 })));
+    showToast("✓ Token quota reset to 100% for all registered schools");
+  };
+
+  const handleFreshStart = async () => {
+    setSchools([]);
+    setUsers(INITIAL_USERS.filter((u) => u.role === "Super Admin"));
+    setPromptLogs([]);
+    setAuditLogs([]);
+    setBackups([]);
+    setDashboardData({
+      ...DEFAULT_METRICS,
+      totalSchools: 0,
+      totalTeachers: 0,
+      totalStudents: 0,
+      totalParents: 0,
+      activeUsers: 1,
+    });
+    setIsFreshStartModalOpen(false);
+    showToast("🧹 Fresh Start complete! System data reset to factory defaults.");
+
+    try {
+      await fetch("/api/superadmin/reset-all", { method: "POST" });
+    } catch (e) {}
   };
 
   // Navigation Items Config with Sub-Items matching User Specification
@@ -1155,18 +1332,44 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
                     <Building2 className="w-5 h-5 text-purple-400" />
                     <h3 className="text-base font-black text-white">Multi-Tenant Partner Schools</h3>
                   </div>
-                  <button
-                    onClick={() => setIsCreateSchoolOpen(true)}
-                    className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center gap-1.5"
-                  >
-                    <Plus className="w-4 h-4" /> Provision New School
-                  </button>
+                  <div className="flex items-center gap-2">
+                    {selectedSchoolIds.length > 0 && (
+                      <button
+                        onClick={() => triggerConfirmDelete("schools", selectedSchoolIds)}
+                        className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-rose-600/30 animate-in fade-in"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Delete Selected ({selectedSchoolIds.length})
+                      </button>
+                    )}
+                    {schools.length > 0 && (
+                      <button
+                        onClick={clearAllSchools}
+                        className="px-3.5 py-2 rounded-xl bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-300 text-xs font-bold flex items-center gap-1.5"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Clear All Schools
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setIsCreateSchoolOpen(true)}
+                      className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center gap-1.5"
+                    >
+                      <Plus className="w-4 h-4" /> Provision New School
+                    </button>
+                  </div>
                 </div>
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs text-slate-300">
                     <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] font-extrabold tracking-wider border-b border-slate-800">
                       <tr>
+                        <th className="p-3 w-10">
+                          <input
+                            type="checkbox"
+                            checked={selectedSchoolIds.length === filteredSchools.length && filteredSchools.length > 0}
+                            onChange={() => toggleSelectAllSchools(filteredSchools)}
+                            className="w-4 h-4 rounded border-slate-700 text-purple-600 focus:ring-purple-500 cursor-pointer accent-purple-600"
+                          />
+                        </th>
                         <th className="p-3">School Name</th>
                         <th className="p-3">School Code</th>
                         <th className="p-3">Admin Email</th>
@@ -1178,55 +1381,73 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/60">
-                      {filteredSchools.map((sch) => (
-                        <tr key={sch.id} className="hover:bg-slate-800/40 transition-colors">
-                          <td className="p-3 font-bold text-white flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-lg bg-purple-900/50 border border-purple-700/50 flex items-center justify-center text-purple-300 font-extrabold text-[10px]">
-                              {sch.name.charAt(0)}
-                            </div>
-                            <span>{sch.name}</span>
-                          </td>
-                          <td className="p-3 font-mono text-slate-400">{sch.code}</td>
-                          <td className="p-3 text-slate-300">{sch.adminEmail}</td>
-                          <td className="p-3">
-                            <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold">
-                              {sch.plan}
-                            </span>
-                          </td>
-                          <td className="p-3 font-mono">{sch.storageUsedGB || 0.1} GB / {sch.storageLimitGB || 100} GB</td>
-                          <td className="p-3 font-mono text-amber-400">{((sch.aiCredits || 50000) - (sch.aiCreditsUsed || 0)).toLocaleString()} pts</td>
-                          <td className="p-3">
-                            <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
-                              sch.status === "Active"
-                                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                                : "bg-rose-500/20 text-rose-400 border border-rose-500/30"
-                            }`}>
-                              {sch.status}
-                            </span>
-                          </td>
-                          <td className="p-3 text-right space-x-2">
-                            {sch.status !== "Active" ? (
+                      {filteredSchools.map((sch) => {
+                        const isSelected = selectedSchoolIds.includes(sch.id);
+                        return (
+                          <tr key={sch.id} className={`hover:bg-slate-800/40 transition-colors ${isSelected ? "bg-purple-950/30" : ""}`}>
+                            <td className="p-3">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => toggleSelectSchool(sch.id)}
+                                className="w-4 h-4 rounded border-slate-700 text-purple-600 focus:ring-purple-500 cursor-pointer accent-purple-600"
+                              />
+                            </td>
+                            <td className="p-3 font-bold text-white flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-lg bg-purple-900/50 border border-purple-700/50 flex items-center justify-center text-purple-300 font-extrabold text-[10px]">
+                                {sch.name.charAt(0)}
+                              </div>
+                              <span>{sch.name}</span>
+                            </td>
+                            <td className="p-3 font-mono text-slate-400">{sch.code}</td>
+                            <td className="p-3 text-slate-300">{sch.adminEmail}</td>
+                            <td className="p-3">
+                              <span className="px-2 py-0.5 rounded bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold">
+                                {sch.plan}
+                              </span>
+                            </td>
+                            <td className="p-3 font-mono">{sch.storageUsedGB || 0.1} GB / {sch.storageLimitGB || 100} GB</td>
+                            <td className="p-3 font-mono text-amber-400">{((sch.aiCredits || 50000) - (sch.aiCreditsUsed || 0)).toLocaleString()} pts</td>
+                            <td className="p-3">
+                              <span className={`px-2 py-0.5 rounded text-[10px] font-extrabold uppercase ${
+                                sch.status === "Active"
+                                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                                  : "bg-rose-500/20 text-rose-400 border border-rose-500/30"
+                              }`}>
+                                {sch.status}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right space-x-2">
+                              {sch.status !== "Active" ? (
+                                <button
+                                  onClick={() => approveSchool(sch.id)}
+                                  className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px]"
+                                >
+                                  Approve
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={async () => {
+                                    await fetch(`/api/superadmin/schools/${sch.id}/suspend`, { method: "PUT" });
+                                    fetchSuperAdminData();
+                                    showToast(`Suspended ${sch.name}`);
+                                  }}
+                                  className="px-2.5 py-1 rounded bg-slate-800 hover:bg-rose-950 text-slate-300 hover:text-rose-300 border border-slate-700 font-bold text-[10px]"
+                                >
+                                  Suspend
+                                </button>
+                              )}
                               <button
-                                onClick={() => approveSchool(sch.id)}
-                                className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-[10px]"
+                                onClick={() => deleteSchool(sch.id)}
+                                className="p-1 rounded bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-300 inline-flex items-center"
+                                title="Delete School"
                               >
-                                Approve
+                                <Trash2 className="w-3.5 h-3.5" />
                               </button>
-                            ) : (
-                              <button
-                                onClick={async () => {
-                                  await fetch(`/api/superadmin/schools/${sch.id}/suspend`, { method: "PUT" });
-                                  fetchSuperAdminData();
-                                  showToast(`Suspended ${sch.name}`);
-                                }}
-                                className="px-2.5 py-1 rounded bg-slate-800 hover:bg-rose-950 text-slate-300 hover:text-rose-300 border border-slate-700 font-bold text-[10px]"
-                              >
-                                Suspend
-                              </button>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -1246,6 +1467,14 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {selectedUserIds.length > 0 && (
+                      <button
+                        onClick={() => triggerConfirmDelete("users", selectedUserIds)}
+                        className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-rose-600/30 animate-in fade-in"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Delete Selected ({selectedUserIds.length})
+                      </button>
+                    )}
                     <button
                       onClick={() => setIsTeacherNoticeModalOpen(true)}
                       className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-emerald-600/30"
@@ -1281,6 +1510,14 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
                   <table className="w-full text-left text-xs text-slate-300">
                     <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] font-extrabold tracking-wider border-b border-slate-800">
                       <tr>
+                        <th className="p-3 w-10">
+                          <input
+                            type="checkbox"
+                            checked={selectedUserIds.length === filteredUsers.length && filteredUsers.length > 0}
+                            onChange={() => toggleSelectAllUsers(filteredUsers)}
+                            className="w-4 h-4 rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+                          />
+                        </th>
                         <th className="p-3">User Name</th>
                         <th className="p-3">Email Address</th>
                         <th className="p-3">Role</th>
@@ -1290,51 +1527,69 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-800/60">
-                      {filteredUsers.map((u) => (
-                        <tr key={u.id} className="hover:bg-slate-800/40 transition-colors">
-                          <td className="p-3 font-bold text-white flex items-center gap-2">
-                            <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-purple-400">
-                              {u.name.charAt(0)}
-                            </div>
-                            <span>{u.name}</span>
-                          </td>
-                          <td className="p-3 text-slate-300 font-mono">{u.email}</td>
-                          <td className="p-3">
-                            <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold text-[10px]">
-                              {u.role}
-                            </span>
-                          </td>
-                          <td className="p-3 font-mono text-slate-400">{u.schoolId || "SCH-001"}</td>
-                          <td className="p-3">
-                            <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold text-[10px]">
-                              {u.status || "Active"}
-                            </span>
-                          </td>
-                          <td className="p-3 text-right space-x-2">
-                            {u.role === "Teacher" && (
+                      {filteredUsers.map((u) => {
+                        const isSelected = selectedUserIds.includes(u.id);
+                        return (
+                          <tr key={u.id} className={`hover:bg-slate-800/40 transition-colors ${isSelected ? "bg-indigo-950/30" : ""}`}>
+                            <td className="p-3">
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => toggleSelectUser(u.id)}
+                                className="w-4 h-4 rounded border-slate-700 text-indigo-600 focus:ring-indigo-500 cursor-pointer accent-indigo-600"
+                              />
+                            </td>
+                            <td className="p-3 font-bold text-white flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-xs text-purple-400">
+                                {u.name.charAt(0)}
+                              </div>
+                              <span>{u.name}</span>
+                            </td>
+                            <td className="p-3 text-slate-300 font-mono">{u.email}</td>
+                            <td className="p-3">
+                              <span className="px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold text-[10px]">
+                                {u.role}
+                              </span>
+                            </td>
+                            <td className="p-3 font-mono text-slate-400">{u.schoolId || "SCH-001"}</td>
+                            <td className="p-3">
+                              <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold text-[10px]">
+                                {u.status || "Active"}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right space-x-2">
+                              {u.role === "Teacher" && (
+                                <button
+                                  onClick={() => {
+                                    setTeacherNoticeForm({
+                                      ...teacherNoticeForm,
+                                      teacherId: u.id,
+                                      teacherName: u.name
+                                    });
+                                    setIsTeacherNoticeModalOpen(true);
+                                  }}
+                                  className="px-2.5 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-[10px]"
+                                >
+                                  Message Teacher
+                                </button>
+                              )}
                               <button
-                                onClick={() => {
-                                  setTeacherNoticeForm({
-                                    ...teacherNoticeForm,
-                                    teacherId: u.id,
-                                    teacherName: u.name
-                                  });
-                                  setIsTeacherNoticeModalOpen(true);
-                                }}
-                                className="px-2.5 py-1 rounded bg-emerald-700 hover:bg-emerald-600 text-white font-bold text-[10px]"
+                                onClick={() => showToast(`✓ Password reset link sent to ${u.email}`)}
+                                className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-[10px]"
                               >
-                                Message Teacher
+                                Reset Access
                               </button>
-                            )}
-                            <button
-                              onClick={() => showToast(`✓ Password reset link sent to ${u.email}`)}
-                              className="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-[10px]"
-                            >
-                              Reset Access
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                              <button
+                                onClick={() => deleteUser(u.id)}
+                                className="p-1 rounded bg-rose-950/60 hover:bg-rose-900 border border-rose-800/80 text-rose-300 inline-flex items-center"
+                                title="Delete User"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -2305,6 +2560,75 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 7: CONFIRM BULK / SINGLE DELETION MODAL */}
+      {confirmDeleteModal.open && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 w-full max-w-md shadow-2xl space-y-4">
+            <div className="flex items-center gap-3 text-rose-400 border-b border-slate-800 pb-3">
+              <div className="p-2 rounded-xl bg-rose-950/80 border border-rose-800/80">
+                <AlertTriangle className="w-6 h-6 text-rose-400" />
+              </div>
+              <div>
+                <h3 className="text-base font-black text-white">
+                  Confirm Deletion
+                </h3>
+                <p className="text-xs text-rose-400 font-bold">
+                  Permanent Action
+                </p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Are you sure you want to permanently delete <strong className="text-rose-400">{confirmDeleteModal.ids.length}</strong> selected {confirmDeleteModal.type === "schools" ? "school record(s)" : "user account(s)"} from the system?
+            </p>
+
+            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs max-h-32 overflow-y-auto space-y-1">
+              <span className="text-[10px] font-extrabold uppercase text-slate-500 block mb-1">Target items:</span>
+              {confirmDeleteModal.type === "schools"
+                ? schools
+                    .filter((s) => confirmDeleteModal.ids.includes(s.id))
+                    .slice(0, 5)
+                    .map((s) => (
+                      <div key={s.id} className="flex justify-between font-bold text-slate-200">
+                        <span>{s.name}</span>
+                        <span className="font-mono text-[10px] text-slate-500">{s.code}</span>
+                      </div>
+                    ))
+                : users
+                    .filter((u) => confirmDeleteModal.ids.includes(u.id))
+                    .slice(0, 5)
+                    .map((u) => (
+                      <div key={u.id} className="flex justify-between font-bold text-slate-200">
+                        <span>{u.name}</span>
+                        <span className="font-mono text-[10px] text-slate-500">{u.email}</span>
+                      </div>
+                    ))}
+              {confirmDeleteModal.ids.length > 5 && (
+                <p className="text-[10px] text-slate-500 italic">...and {confirmDeleteModal.ids.length - 5} more item(s)</p>
+              )}
+            </div>
+
+            <div className="pt-2 flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmDeleteModal({ open: false, type: "schools", ids: [] })}
+                className="w-1/2 py-2.5 rounded-xl border border-slate-700 text-xs font-bold text-slate-300 hover:bg-slate-800"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleExecuteBulkDelete}
+                className="w-1/2 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-lg shadow-rose-600/40 flex items-center justify-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Confirm Deletion
+              </button>
+            </div>
           </div>
         </div>
       )}
