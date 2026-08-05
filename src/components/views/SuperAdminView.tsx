@@ -393,7 +393,7 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
       if (healthRes.success) setMonitoringHealth(healthRes.system);
       if (auditRes.success) setAuditLogs(auditRes.data);
       if (backupsRes.success) setBackups(backupsRes.data);
-      if (settingsRes.success) setSettings(settingsRes.data);
+      if (settingsRes.success) setSettings({ maintenanceMode: false, aiGradingEnabled: true, ...settingsRes.data });
     } catch (err) {
       console.error("Failed to load Super Admin data:", err);
     } finally {
@@ -2671,24 +2671,399 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
           {activeMainSection === "settings" && (
             <div className="space-y-6 animate-fadeIn">
               <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 space-y-4">
-                <h3 className="text-base font-black text-slate-900 dark:text-white">Platform Master Configuration</h3>
-                <div className="space-y-3 text-xs">
-                  <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
-                    <div>
-                      <div className="font-bold text-slate-900 dark:text-white">Maintenance Mode</div>
-                      <div className="text-slate-500 dark:text-slate-400">Temporarily lock school portals for platform upgrades</div>
-                    </div>
-                    <span className="px-2.5 py-1 rounded bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-bold">OFF</span>
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
+                  <div>
+                    <h3 className="text-base font-black text-slate-900 dark:text-white">Platform Master Configuration</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      {activeSubItem === "all" && "Global platform identity, integrations and system defaults"}
+                      {activeSubItem === "branding" && "Edit the platform brand name and identity used across all schools"}
+                      {activeSubItem === "logo" && "Update the platform logo shown on portals and the public website"}
+                      {activeSubItem === "themes" && "Choose the default theme and styling applied to all portals"}
+                      {activeSubItem === "flags" && "Toggle platform-wide feature flags and capabilities"}
+                      {activeSubItem === "maintenance" && "Control platform maintenance mode and access lock"}
+                      {activeSubItem === "version" && "View and manage platform version information"}
+                    </p>
                   </div>
-
-                  <div className="flex items-center justify-between p-3 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
-                    <div>
-                      <div className="font-bold text-slate-900 dark:text-white">Gemini AI Auto-Grading</div>
-                      <div className="text-slate-500 dark:text-slate-400">Enable automatic AI evaluation for theory exam submissions</div>
-                    </div>
-                    <span className="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">ENABLED</span>
-                  </div>
+                  <button
+                    onClick={async () => {
+                      const patch: any = {
+                        appName: settings.appName,
+                        platformLogo: settings.platformLogo,
+                        smtpHost: settings.smtpHost,
+                        smtpPort: settings.smtpPort,
+                        smtpUser: settings.smtpUser,
+                        firebaseProjectId: settings.firebaseProjectId,
+                        geminiModel: settings.geminiModel,
+                        cloudinaryCloudName: settings.cloudinaryCloudName,
+                        paystackPublicKey: settings.paystackPublicKey,
+                        flutterwavePublicKey: settings.flutterwavePublicKey,
+                        systemTheme: settings.systemTheme,
+                        timezone: settings.timezone,
+                        maintenanceMode: settings.maintenanceMode,
+                        aiGradingEnabled: settings.aiGradingEnabled,
+                      };
+                      await saveGlobalSettings(patch, "✓ Platform Configuration saved & published successfully!");
+                    }}
+                    className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold shadow-lg shadow-purple-600/30 flex items-center gap-1.5"
+                  >
+                    <Send className="w-3.5 h-3.5" /> Save & Publish
+                  </button>
                 </div>
+
+                {/* GLOBAL SETTINGS */}
+                {activeSubItem === "all" && (
+                  <div className="space-y-3 text-xs">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div>
+                        <label className="font-bold text-slate-600 dark:text-slate-300 block mb-1">Platform App Name</label>
+                        <input
+                          type="text"
+                          value={settings.appName || ""}
+                          onChange={(e) => setSettings({ ...settings, appName: e.target.value })}
+                          className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-purple-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-600 dark:text-slate-300 block mb-1">System Theme</label>
+                        <select
+                          value={settings.systemTheme || ""}
+                          onChange={(e) => setSettings({ ...settings, systemTheme: e.target.value })}
+                          className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-purple-500"
+                        >
+                          <option value="Default Light with Dark Toggle">Default Light with Dark Toggle</option>
+                          <option value="Dark Mode Default">Dark Mode Default</option>
+                          <option value="Light Mode Only">Light Mode Only</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-600 dark:text-slate-300 block mb-1">Timezone</label>
+                        <select
+                          value={settings.timezone || ""}
+                          onChange={(e) => setSettings({ ...settings, timezone: e.target.value })}
+                          className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-purple-500"
+                        >
+                          <option value="Africa/Lagos (GMT+1)">Africa/Lagos (GMT+1)</option>
+                          <option value="Africa/Abuja (GMT+1)">Africa/Abuja (GMT+1)</option>
+                          <option value="Africa/Cairo (GMT+2)">Africa/Cairo (GMT+2)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-600 dark:text-slate-300 block mb-1">Gemini AI Model</label>
+                        <select
+                          value={settings.geminiModel || ""}
+                          onChange={(e) => setSettings({ ...settings, geminiModel: e.target.value })}
+                          className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-purple-500"
+                        >
+                          <option value="gemini-3.6-flash">gemini-3.6-flash</option>
+                          <option value="gemini-2.5-flash">gemini-2.5-flash</option>
+                          <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-600 dark:text-slate-300 block mb-1">SMTP Host</label>
+                        <input
+                          type="text"
+                          value={settings.smtpHost || ""}
+                          onChange={(e) => setSettings({ ...settings, smtpHost: e.target.value })}
+                          className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-purple-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-600 dark:text-slate-300 block mb-1">SMTP Port</label>
+                        <input
+                          type="number"
+                          value={settings.smtpPort ?? 587}
+                          onChange={(e) => setSettings({ ...settings, smtpPort: Number(e.target.value) })}
+                          className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-purple-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-600 dark:text-slate-300 block mb-1">SMTP User / No-Reply Email</label>
+                        <input
+                          type="text"
+                          value={settings.smtpUser || ""}
+                          onChange={(e) => setSettings({ ...settings, smtpUser: e.target.value })}
+                          className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-purple-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-600 dark:text-slate-300 block mb-1">Firebase Project ID</label>
+                        <input
+                          type="text"
+                          value={settings.firebaseProjectId || ""}
+                          onChange={(e) => setSettings({ ...settings, firebaseProjectId: e.target.value })}
+                          className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-purple-500"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
+                      <div>
+                        <label className="font-bold text-slate-600 dark:text-slate-300 block mb-1">Cloudinary Cloud Name</label>
+                        <input
+                          type="text"
+                          value={settings.cloudinaryCloudName || ""}
+                          onChange={(e) => setSettings({ ...settings, cloudinaryCloudName: e.target.value })}
+                          className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-purple-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-600 dark:text-slate-300 block mb-1">Paystack Public Key</label>
+                        <input
+                          type="text"
+                          value={settings.paystackPublicKey || ""}
+                          onChange={(e) => setSettings({ ...settings, paystackPublicKey: e.target.value })}
+                          className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-purple-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="font-bold text-slate-600 dark:text-slate-300 block mb-1">Flutterwave Public Key</label>
+                        <input
+                          type="text"
+                          value={settings.flutterwavePublicKey || ""}
+                          onChange={(e) => setSettings({ ...settings, flutterwavePublicKey: e.target.value })}
+                          className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-purple-500"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* BRANDING */}
+                {activeSubItem === "branding" && (
+                  <div className="space-y-3 text-xs">
+                    <div>
+                      <label className="font-bold text-slate-600 dark:text-slate-300 block mb-1">Brand Name</label>
+                      <input
+                        type="text"
+                        value={settings.appName || ""}
+                        onChange={(e) => setSettings({ ...settings, appName: e.target.value })}
+                        className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-purple-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="font-bold text-slate-600 dark:text-slate-300 block mb-1">Brand Tagline</label>
+                      <input
+                        type="text"
+                        value={settings.brandTagline || "Smart AI School Management & Teacher Portal"}
+                        onChange={(e) => setSettings({ ...settings, brandTagline: e.target.value })}
+                        placeholder="Smart AI School Management & Teacher Portal"
+                        className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-purple-500"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-3.5 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <div>
+                        <div className="font-bold text-slate-900 dark:text-white">Brand Accent Color</div>
+                        <div className="text-slate-500 dark:text-slate-400">Primary color used across all school portals</div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="color"
+                          value={settings.brandColor || "#7c3aed"}
+                          onChange={(e) => setSettings({ ...settings, brandColor: e.target.value })}
+                          className="w-10 h-9 rounded-lg border border-slate-300 dark:border-slate-700 cursor-pointer bg-transparent"
+                        />
+                        <span className="font-mono text-slate-500 dark:text-slate-400">{settings.brandColor || "#7c3aed"}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* APP LOGO */}
+                {activeSubItem === "logo" && (
+                  <div className="space-y-3 text-xs">
+                    <div>
+                      <label className="font-bold text-slate-600 dark:text-slate-300 block mb-1">Platform Logo URL</label>
+                      <input
+                        type="text"
+                        value={settings.platformLogo || ""}
+                        onChange={(e) => setSettings({ ...settings, platformLogo: e.target.value })}
+                        className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-purple-500"
+                      />
+                    </div>
+                    <div className="flex items-center gap-4 p-3.5 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <div className="w-14 h-14 rounded-xl bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 overflow-hidden flex items-center justify-center">
+                        {settings.platformLogo ? (
+                          <img src={settings.platformLogo} alt="Platform Logo" className="w-full h-full object-cover" />
+                        ) : (
+                          <Building2 className="w-6 h-6 text-slate-500 dark:text-slate-400" />
+                        )}
+                      </div>
+                      <div>
+                        <div className="font-bold text-slate-900 dark:text-white">Logo Preview</div>
+                        <div className="text-slate-500 dark:text-slate-400">This logo appears on login pages, headers and the public website.</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* THEMES & STYLING */}
+                {activeSubItem === "themes" && (
+                  <div className="space-y-3 text-xs">
+                    <div>
+                      <label className="font-bold text-slate-600 dark:text-slate-300 block mb-1">Default Portal Theme</label>
+                      <select
+                        value={settings.systemTheme || ""}
+                        onChange={(e) => setSettings({ ...settings, systemTheme: e.target.value })}
+                        className="w-full bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-slate-900 dark:text-white outline-none focus:border-purple-500"
+                      >
+                        <option value="Default Light with Dark Toggle">Default Light with Dark Toggle</option>
+                        <option value="Dark Mode Default">Dark Mode Default</option>
+                        <option value="Light Mode Only">Light Mode Only</option>
+                        <option value="Emerald Professional">Emerald Professional</option>
+                        <option value="Royal Purple">Royal Purple</option>
+                      </select>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {["Default Light with Dark Toggle", "Dark Mode Default", "Emerald Professional", "Royal Purple"].map((t) => (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => setSettings({ ...settings, systemTheme: t })}
+                          className={`p-4 rounded-xl border text-left transition-all ${
+                            settings.systemTheme === t
+                              ? "border-purple-500 bg-purple-500/10 shadow-lg shadow-purple-500/10"
+                              : "border-slate-200 dark:border-slate-800 bg-slate-100 dark:bg-slate-950 hover:border-slate-300 dark:hover:border-slate-700"
+                          }`}
+                        >
+                          <div className={`w-8 h-8 rounded-lg mb-2 ${t.includes("Dark") ? "bg-slate-900" : t.includes("Emerald") ? "bg-emerald-600" : t.includes("Royal") ? "bg-purple-600" : "bg-white border border-slate-300"}`} />
+                          <div className="font-bold text-slate-900 dark:text-white text-[11px]">{t}</div>
+                          {settings.systemTheme === t && (
+                            <div className="text-[10px] text-purple-600 dark:text-purple-400 font-bold mt-1">ACTIVE</div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* FEATURE FLAGS */}
+                {activeSubItem === "flags" && (
+                  <div className="space-y-3 text-xs">
+                    <div className="flex items-center justify-between p-3.5 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <div>
+                        <div className="font-bold text-slate-900 dark:text-white">Gemini AI Auto-Grading & Remarks</div>
+                        <div className="text-slate-500 dark:text-slate-400">Enable automatic AI evaluation for theory exam submissions and report cards</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newGrading = !settings.aiGradingEnabled;
+                          setSettings({ ...settings, aiGradingEnabled: newGrading });
+                          showToast(newGrading ? "✓ Gemini AI Auto-Grading ENABLED" : "⚠️ Gemini AI Auto-Grading DISABLED");
+                        }}
+                        className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-colors ${
+                          settings.aiGradingEnabled ? "bg-emerald-600 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        {settings.aiGradingEnabled ? "ENABLED" : "OFF"}
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between p-3.5 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <div>
+                        <div className="font-bold text-slate-900 dark:text-white">AI Lesson Note Generation</div>
+                        <div className="text-slate-500 dark:text-slate-400">Allow teachers to generate AI lesson notes from the curriculum</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newFlag = !(settings.aiLessonNotesEnabled !== false);
+                          setSettings({ ...settings, aiLessonNotesEnabled: newFlag });
+                          showToast(newFlag ? "✓ AI Lesson Notes ENABLED" : "⚠️ AI Lesson Notes DISABLED");
+                        }}
+                        className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-colors ${
+                          settings.aiLessonNotesEnabled !== false ? "bg-emerald-600 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        {settings.aiLessonNotesEnabled !== false ? "ENABLED" : "OFF"}
+                      </button>
+                    </div>
+                    <div className="flex items-center justify-between p-3.5 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <div>
+                        <div className="font-bold text-slate-900 dark:text-white">Online Payment Processing</div>
+                        <div className="text-slate-500 dark:text-slate-400">Enable Paystack / Flutterwave payment collection on student portals</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newFlag = !(settings.onlinePaymentsEnabled !== false);
+                          setSettings({ ...settings, onlinePaymentsEnabled: newFlag });
+                          showToast(newFlag ? "✓ Online Payments ENABLED" : "⚠️ Online Payments DISABLED");
+                        }}
+                        className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-colors ${
+                          settings.onlinePaymentsEnabled !== false ? "bg-emerald-600 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        {settings.onlinePaymentsEnabled !== false ? "ENABLED" : "OFF"}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* MAINTENANCE MODE */}
+                {activeSubItem === "maintenance" && (
+                  <div className="space-y-3 text-xs">
+                    <div className="flex items-center justify-between p-3.5 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <div>
+                        <div className="font-bold text-slate-900 dark:text-white">Maintenance Mode</div>
+                        <div className="text-slate-500 dark:text-slate-400">Temporarily lock school portals for platform upgrades</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newMode = !settings.maintenanceMode;
+                          setSettings({ ...settings, maintenanceMode: newMode });
+                          showToast(newMode ? "⚠️ Maintenance Mode ENABLED" : "✓ Maintenance Mode DISABLED");
+                        }}
+                        className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-colors ${
+                          settings.maintenanceMode ? "bg-rose-600 text-white" : "bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-white"
+                        }`}
+                      >
+                        {settings.maintenanceMode ? "ENABLED" : "OFF"}
+                      </button>
+                    </div>
+                    {settings.maintenanceMode && (
+                      <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-400">
+                        ⚠️ Maintenance mode is currently ENABLED. All school portals will show the maintenance screen. Click Save & Publish to apply immediately.
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* VERSION CONTROL */}
+                {activeSubItem === "version" && (
+                  <div className="space-y-3 text-xs">
+                    <div className="flex items-center justify-between p-3.5 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <div>
+                        <div className="font-bold text-slate-900 dark:text-white">Platform Version</div>
+                        <div className="text-slate-500 dark:text-slate-400">Current deployed version of LIVINGSTONEEDU</div>
+                      </div>
+                      <span className="px-2.5 py-1 rounded bg-purple-500/20 text-purple-600 dark:text-purple-400 font-bold">v{settings.platformVersion || "4.2.0"}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3.5 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <div>
+                        <div className="font-bold text-slate-900 dark:text-white">Last Published</div>
+                        <div className="text-slate-500 dark:text-slate-400">When the current platform configuration was last published</div>
+                      </div>
+                      <span className="px-2.5 py-1 rounded bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">{settings.lastPublished || "Today, 06:00 AM"}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3.5 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800">
+                      <div>
+                        <div className="font-bold text-slate-900 dark:text-white">Release Channel</div>
+                        <div className="text-slate-500 dark:text-slate-400">Update cadence for school portals</div>
+                      </div>
+                      <select
+                        value={settings.releaseChannel || "stable"}
+                        onChange={(e) => setSettings({ ...settings, releaseChannel: e.target.value })}
+                        className="bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-1.5 text-slate-700 dark:text-slate-200 font-bold outline-none focus:border-purple-500"
+                      >
+                        <option value="stable">Stable</option>
+                        <option value="beta">Beta</option>
+                        <option value="canary">Canary</option>
+                      </select>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
