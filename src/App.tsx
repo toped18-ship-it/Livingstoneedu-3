@@ -1,5 +1,4 @@
-import React, { useState, useEffect } from "react";
-import { GraduationCap, Sparkles, ShieldCheck, Loader2 } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
 import { Sidebar } from "./components/Sidebar";
 import { Header } from "./components/Header";
 import { AIAssistantModal } from "./components/AIAssistantModal";
@@ -20,6 +19,7 @@ import { SuperAdminView } from "./components/views/SuperAdminView";
 import { TeacherPortalView } from "./components/views/TeacherPortalView";
 import { StudentParentPortalView } from "./components/views/StudentParentPortalView";
 import { AuthView } from "./components/views/AuthView";
+import { LoadingOverlay } from "./components/LoadingOverlay";
 import { UserRole } from "./types";
 
 export default function App() {
@@ -27,7 +27,11 @@ export default function App() {
     if (typeof window !== "undefined") {
       try {
         const saved = localStorage.getItem("livingstone_user_session");
-        if (saved) return JSON.parse(saved);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed?.role) return parsed;
+          localStorage.removeItem("livingstone_user_session");
+        }
       } catch (e) {}
     }
     return null;
@@ -46,21 +50,19 @@ export default function App() {
   });
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
     if (typeof window !== "undefined") {
-      return !!localStorage.getItem("livingstone_user_session");
+      try {
+        const saved = localStorage.getItem("livingstone_user_session");
+        if (!saved) return false;
+        const parsed = JSON.parse(saved);
+        return !!parsed?.role;
+      } catch (e) {
+        return false;
+      }
     }
     return false;
   });
 
-  const [isLoadingApp, setIsLoadingApp] = useState(true);
   const [activeTab, setActiveTab] = useState("dashboard");
-
-  // Initial app startup loading overlay
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setIsLoadingApp(false);
-    }, 2500);
-    return () => clearTimeout(timer);
-  }, []);
   const [accessDeniedMessage, setAccessDeniedMessage] = useState("");
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== "undefined") {
@@ -75,6 +77,116 @@ export default function App() {
   });
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [startupLoading, setStartupLoading] = useState(true);
+  const [transition, setTransition] = useState<{ show: boolean; message: string }>({ show: false, message: "" });
+  const [publicPage, setPublicPage] = useState<"privacy" | "terms" | null>(null);
+
+  const PUBLIC_PATHS = ["/", "/home", "/login", "/about", "/features", "/pricing", "/contact", "/register-student", "/register-teacher", "/forgot-password"];
+
+  // Map an app tab to its own URL address
+  const routeForTab = (tab: string) =>
+    tab === "superadmin" ? "/admin" : `/app/${tab.replace(/:/g, "/")}`;
+
+  // Map a URL address back to an app tab
+  const tabForRoute = (path: string): string => {
+    const m = path.match(/^\/app\/(.+)$/);
+    return m ? m[1].replace(/\//g, ":") : "dashboard";
+  };
+
+  const APP_PAGE_TITLES: Record<string, string> = {
+    dashboard: "Dashboard",
+    "teacher-portal": "Teacher Portal",
+    "student-parent-portal": "Student & Parent Portal",
+    superadmin: "Super Admin HQ",
+    students: "Students",
+    teachers: "Teachers",
+    finance: "Finance & Billing",
+    library: "Library",
+    communication: "Communication",
+    "ai-lesson-notes": "AI Lesson Notes",
+    "ai-exam-generator": "AI Exam Generator",
+    "question-bank": "Question Bank",
+    "report-cards": "Report Cards",
+    "website-builder": "Website Builder",
+    subscription: "Subscription & Billing",
+    settings: "Settings"
+  };
+
+  // Sync URL -> app state on initial load and browser back/forward
+  const isAuthedRef = useRef(isAuthenticated);
+  useEffect(() => {
+    isAuthedRef.current = isAuthenticated;
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    const applyRoute = () => {
+      const p = window.location.pathname;
+      if (p === "/privacy") {
+        setPublicPage("privacy");
+        return;
+      }
+      if (p === "/terms") {
+        setPublicPage("terms");
+        return;
+      }
+      setPublicPage(null);
+      if (p === "/admin" || p.startsWith("/admin")) {
+        setIsAuthenticated(true);
+        setCurrentRole("Super Admin");
+        setActiveTab("superadmin");
+        return;
+      }
+      if (PUBLIC_PATHS.includes(p)) return;
+      if (isAuthedRef.current) {
+        setActiveTab(tabForRoute(p) as any);
+      }
+    };
+    applyRoute();
+    window.addEventListener("popstate", applyRoute);
+    return () => window.removeEventListener("popstate", applyRoute);
+  }, []);
+
+  // Sync app state -> URL so every page has its own shareable address
+  const firstRouteSync = useRef(true);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    if (publicPage) {
+      const target = publicPage === "privacy" ? "/privacy" : "/terms";
+      document.title = publicPage === "privacy" ? "Privacy Policy | LIVINGSTONEEDU" : "Terms of Service | LIVINGSTONEEDU";
+      if (window.location.pathname !== target) window.history.pushState(null, "", target);
+      return;
+    }
+    if (!isAuthenticated) {
+      const p = window.location.pathname;
+      if (p.startsWith("/app/") || p === "/admin" || p.startsWith("/admin")) {
+        window.history.replaceState(null, "", "/login");
+        document.title = "Portal Login | LIVINGSTONEEDU";
+      }
+      return;
+    }
+    const target = routeForTab(activeTab);
+    if (window.location.pathname !== target) {
+      if (firstRouteSync.current) {
+        window.history.replaceState(null, "", target);
+        firstRouteSync.current = false;
+      } else {
+        window.history.pushState(null, "", target);
+      }
+    }
+    const label = APP_PAGE_TITLES[activeTab.split(":")[0]] || APP_PAGE_TITLES[activeTab] || "Portal";
+    document.title = `${label} | LIVINGSTONEEDU`;
+  }, [activeTab, isAuthenticated, publicPage]);
+
+  // Branded startup overlay before revealing the auth page or dashboard
+  useEffect(() => {
+    const t = setTimeout(() => setStartupLoading(false), 6000);
+    return () => clearTimeout(t);
+  }, []);
+
+  const runTransition = (message: string, durationMs = 1200) => {
+    setTransition({ show: true, message });
+    setTimeout(() => setTransition({ show: false, message: "" }), durationMs);
+  };
 
   // Sync dark class on root document element and localStorage
   useEffect(() => {
@@ -116,32 +228,6 @@ export default function App() {
     }
   }, [isAuthenticated]);
 
-  // Check URL pathname for /admin route on mount and URL changes
-  useEffect(() => {
-    const handleUrlRouting = () => {
-      const path = window.location.pathname;
-      const hash = window.location.hash;
-      if (path === "/admin" || path.startsWith("/admin") || hash === "#admin") {
-        handleSelectTab("settings");
-      }
-    };
-
-    handleUrlRouting();
-    window.addEventListener("popstate", handleUrlRouting);
-    return () => window.removeEventListener("popstate", handleUrlRouting);
-  }, []);
-
-  // Sync browser address bar with /admin when settings tab is active
-  useEffect(() => {
-    if (activeTab.startsWith("settings")) {
-      if (window.location.pathname !== "/admin") {
-        try {
-          window.history.pushState(null, "", "/admin");
-        } catch (e) {}
-      }
-    }
-  }, [activeTab]);
-
   const handleSelectTab = (tab: string, overrideRole?: UserRole) => {
     const effectiveRole = overrideRole || currentRole;
 
@@ -176,10 +262,10 @@ export default function App() {
   };
 
   const handleLoginSuccess = (detectedRole: UserRole, targetTab: string, userData?: any) => {
-    setIsLoadingApp(true);
     setIsAuthenticated(true);
     setCurrentRole(detectedRole);
     setUserSession(userData || null);
+    setPublicPage(null);
 
     const sessionData = {
       ...(userData || {}),
@@ -204,34 +290,26 @@ export default function App() {
       handleSelectTab(targetTab || "dashboard", detectedRole);
     }
 
-    setTimeout(() => {
-      setIsLoadingApp(false);
-    }, 1500);
+    runTransition(
+      detectedRole === "Super Admin"
+        ? "Authenticating Super Admin Dashboard..."
+        : "Authenticating your secure portal...",
+      1200
+    );
   };
 
   const handleLogout = () => {
-    setIsLoadingApp(true);
-    setIsAuthenticated(false);
-    setUserSession(null);
-    setCurrentRole("Student");
-    try {
-      localStorage.removeItem("livingstone_user_session");
-    } catch (e) {}
-    if (typeof window !== "undefined") {
-      try {
-        if (window.location.pathname === "/admin" || window.location.pathname.startsWith("/admin")) {
-          window.history.pushState(null, "", "/");
-        }
-        if (window.location.hash) {
-          window.location.hash = "";
-        }
-      } catch (e) {}
-    }
-    setActiveTab("auth");
-
+    setTransition({ show: true, message: "Signing you out securely..." });
     setTimeout(() => {
-      setIsLoadingApp(false);
-    }, 1500);
+      setIsAuthenticated(false);
+      setUserSession(null);
+      setPublicPage(null);
+      try {
+        localStorage.removeItem("livingstone_user_session");
+      } catch (e) {}
+      setActiveTab("auth");
+      setTransition({ show: false, message: "" });
+    }, 950);
   };
 
   const renderCurrentView = () => {
@@ -304,160 +382,132 @@ export default function App() {
     }
   };
 
-  // 0. INITIAL APP LOADING OVERLAY
-  if (isLoadingApp) {
-    return (
-      <div className="fixed inset-0 z-50 bg-slate-950 flex flex-col items-center justify-center text-white select-none overflow-hidden font-sans">
-        {/* Ambient Glowing Background Orbs */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none animate-pulse" />
-        <div className="absolute top-1/3 left-1/3 w-64 h-64 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
-
-        {/* Main Loading Card */}
-        <div className="relative z-10 flex flex-col items-center max-w-sm px-6 text-center space-y-6">
-          {/* Animated Icon Badge */}
-          <div className="relative">
-            <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-emerald-500 p-0.5 shadow-2xl shadow-purple-500/30 animate-bounce">
-              <div className="w-full h-full bg-slate-950 rounded-[22px] flex items-center justify-center">
-                <GraduationCap className="w-10 h-10 text-purple-400" />
-              </div>
-            </div>
-            <Sparkles className="w-6 h-6 text-emerald-400 absolute -top-2 -right-2 animate-spin" />
-          </div>
-
-          {/* Title & Subtitle */}
-          <div className="space-y-1.5">
-            <h1 className="text-2xl font-black tracking-tight text-white flex items-center justify-center gap-2">
-              LIVINGSTONE<span className="text-purple-400">EDU</span>
-            </h1>
-            <p className="text-xs font-semibold text-slate-400">
-              Smart AI School Management & Teacher Portal
-            </p>
-          </div>
-
-          {/* Progress Loading Bar */}
-          <div className="w-full space-y-2">
-            <div className="w-full h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800 p-0.5">
-              <div className="h-full bg-gradient-to-r from-purple-500 via-indigo-500 to-emerald-400 rounded-full animate-pulse w-full transition-all duration-1000" />
-            </div>
-            <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
-              <span className="flex items-center gap-1.5 text-purple-300">
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-purple-400" />
-                Initializing AI Engine & Curriculum...
-              </span>
-              <span className="text-emerald-400 font-bold">100%</span>
-            </div>
-          </div>
-
-          {/* Badge Footer */}
-          <div className="pt-2 flex items-center justify-center gap-2 text-[10px] text-slate-500 font-mono">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
-            <span>NERDC 2026 Official Curriculum Aligned</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // 1. PUBLIC LAYOUT: Render AuthView when user is not authenticated
-  if (!isAuthenticated) {
-    return (
-      <AuthView
-        currentRole={currentRole}
-        onLoginSuccess={handleLoginSuccess}
-        isDark={isDark}
-        onToggleTheme={() => setIsDark((prev) => !prev)}
-      />
-    );
-  }
-
-  // 2. PLATFORM SUPER ADMIN LAYOUT: Completely separate layout without School Sidebar or Header
-  if (currentRole === "Super Admin" || activeTab === "superadmin") {
-    return (
-      <SuperAdminView
-        onLogout={handleLogout}
-        isDark={isDark}
-        onToggleTheme={() => setIsDark((prev) => !prev)}
-        onSwitchRole={(role) => {
-          setCurrentRole(role);
-          if (role !== "Super Admin") {
-            setActiveTab("dashboard");
-          }
-        }}
-      />
-    );
-  }
-
-  // 3. STUDENT & PARENT STANDALONE LAYOUT: Standalone Student Portal view without duplicate outer admin sidebar/header
-  if (currentRole === "Student" || currentRole === "Parent" || activeTab === "student-parent-portal") {
-    return (
-      <StudentParentPortalView
-        currentRole={currentRole === "Student" || currentRole === "Parent" ? currentRole : "Student"}
-        userSession={userSession}
-        onLogout={handleLogout}
-        isDark={isDark}
-        onToggleTheme={() => setIsDark((prev) => !prev)}
-      />
-    );
-  }
-
-  // 4. SCHOOL DASHBOARD LAYOUT: Standard layout for School Owners, Teachers, Admins
-  return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex font-sans antialiased selection:bg-indigo-500 selection:text-white transition-colors">
-      {/* School Sidebar Navigation */}
-      <Sidebar
-        activeTab={activeTab}
-        onSelectTab={handleSelectTab}
-        currentRole={currentRole}
-        collapsed={sidebarCollapsed}
-        onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-        onLogout={handleLogout}
-      />
-
-      {/* Main Content Workspace */}
-      <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-x-hidden">
-        {/* Access Denied Warning Toast/Banner */}
-        {accessDeniedMessage && (
-          <div className="bg-rose-600 text-white text-xs font-bold px-4 py-2 text-center shadow-lg animate-fade-in flex items-center justify-center gap-2">
-            <span>⚠️ {accessDeniedMessage}</span>
-          </div>
-        )}
-
-        {/* Top Header */}
-        <Header
+  const renderContent = () => {
+    // 0. PUBLIC LEGAL PAGES: /privacy and /terms are public and render regardless of auth state
+    if (publicPage === "privacy" || publicPage === "terms") {
+      return (
+        <AuthView
           currentRole={currentRole}
-          onRoleChange={(role) => {
-            setCurrentRole(role);
-            if (role === "Super Admin") {
-              handleSelectTab("superadmin");
-            } else if (role === "Student" || role === "Parent") {
-              handleSelectTab("student-parent-portal");
-            } else if (role === "Teacher") {
-              handleSelectTab("teacher-portal");
-            } else {
-              handleSelectTab("dashboard");
-            }
-          }}
+          onLoginSuccess={handleLoginSuccess}
           isDark={isDark}
           onToggleTheme={() => setIsDark((prev) => !prev)}
-          onOpenAIAssistant={() => setIsAiModalOpen(true)}
+          initialPage={publicPage}
+        />
+      );
+    }
+
+    // 1. PUBLIC LAYOUT: Render AuthView when user is not authenticated
+    if (!isAuthenticated) {
+      return (
+        <AuthView
+          currentRole={currentRole}
+          onLoginSuccess={handleLoginSuccess}
+          isDark={isDark}
+          onToggleTheme={() => setIsDark((prev) => !prev)}
+        />
+      );
+    }
+
+    // 2. PLATFORM SUPER ADMIN LAYOUT: Completely separate layout without School Sidebar or Header
+    if (currentRole === "Super Admin" || activeTab === "superadmin") {
+      return (
+        <SuperAdminView
+          onLogout={handleLogout}
+          isDark={isDark}
+          onToggleTheme={() => setIsDark((prev) => !prev)}
+          onSwitchRole={(role) => {
+            setCurrentRole(role);
+            if (role !== "Super Admin") {
+              setActiveTab("dashboard");
+            }
+          }}
+        />
+      );
+    }
+
+    // 3. STUDENT & PARENT STANDALONE LAYOUT: Single Student Sidebar layout without duplicate outer sidebar/header
+    if (currentRole === "Student" || currentRole === "Parent") {
+      return (
+        <StudentParentPortalView
+          currentRole={currentRole}
+          userSession={userSession}
+          onLogout={handleLogout}
+          isDark={isDark}
+          onToggleTheme={() => setIsDark((prev) => !prev)}
+        />
+      );
+    }
+
+    // 4. SCHOOL DASHBOARD LAYOUT: Standard layout for School Owners, Teachers, Admins
+    return (
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex font-sans antialiased selection:bg-indigo-500 selection:text-white transition-colors">
+        {/* School Sidebar Navigation */}
+        <Sidebar
+          activeTab={activeTab}
           onSelectTab={handleSelectTab}
-          notificationsCount={3}
-          isAuthenticated={isAuthenticated}
+          currentRole={currentRole}
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           onLogout={handleLogout}
         />
 
-        {/* View Render Area */}
-        <main className="flex-1 p-3 md:p-5 max-w-7xl w-full mx-auto">
-          {renderCurrentView()}
-        </main>
-      </div>
+        {/* Main Content Workspace */}
+        <div className="flex-1 flex flex-col min-w-0 min-h-screen overflow-x-hidden">
+          {/* Access Denied Warning Toast/Banner */}
+          {accessDeniedMessage && (
+            <div className="bg-rose-600 text-white text-xs font-bold px-4 py-2 text-center shadow-lg animate-fade-in flex items-center justify-center gap-2">
+              <span>⚠️ {accessDeniedMessage}</span>
+            </div>
+          )}
 
-      {/* Floating AI Assistant Copilot Modal */}
-      <AIAssistantModal
-        isOpen={isAiModalOpen}
-        onClose={() => setIsAiModalOpen(false)}
-        currentRole={currentRole}
+          {/* Top Header */}
+          <Header
+            currentRole={currentRole}
+            onRoleChange={(role) => {
+              setCurrentRole(role);
+              if (role === "Super Admin") {
+                handleSelectTab("superadmin");
+              } else if (role === "Student" || role === "Parent") {
+                handleSelectTab("student-parent-portal");
+              } else if (role === "Teacher") {
+                handleSelectTab("teacher-portal");
+              } else {
+                handleSelectTab("dashboard");
+              }
+            }}
+            isDark={isDark}
+            onToggleTheme={() => setIsDark(!isDark)}
+            onOpenAIAssistant={() => setIsAiModalOpen(true)}
+            onSelectTab={handleSelectTab}
+            notificationsCount={3}
+            isAuthenticated={isAuthenticated}
+            onLogout={handleLogout}
+          />
+
+          {/* View Render Area */}
+          <main className="flex-1 p-3 md:p-5 max-w-7xl w-full mx-auto">
+            {renderCurrentView()}
+          </main>
+        </div>
+
+        {/* Floating AI Assistant Copilot Modal */}
+        <AIAssistantModal
+          isOpen={isAiModalOpen}
+          onClose={() => setIsAiModalOpen(false)}
+          currentRole={currentRole}
+        />
+      </div>
+    );
+  };
+
+  return (
+    <>
+      {renderContent()}
+      <LoadingOverlay
+        show={startupLoading || transition.show}
+        message={transition.show ? transition.message : "Initializing LIVINGSTONEEDU..."}
+        indeterminate={transition.show}
       />
-    </div>
+    </>
   );
 }

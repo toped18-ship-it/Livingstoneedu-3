@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import { getFirebaseAdmin, getAdminAuth, getAdminDatabase } from "./server/firebaseAdmin";
+import { registerStore, hydrateStoresFromFirebase, syncStoresToFirebase } from "./server/firebaseStore";
 
 const app = express();
 const PORT = 3000;
@@ -691,11 +692,13 @@ const studentFeesStore: any[] = [
     status: "Partially Paid",
     dueDate: "2026-08-15",
     items: [
-      { description: "First Term Tuition Fee", amount: 250000 },
-      { description: "Development & Infrastructural Levy", amount: 50000 },
-      { description: "E-Learning & Gemini AI License", amount: 25000 },
-      { description: "WAEC/NECO Practical Lab Materials", amount: 30000 },
-      { description: "Library & Sports Facility Fee", amount: 30000 }
+      { description: "School Fee", amount: 150000 },
+      { description: "Lesson Fee", amount: 50000 },
+      { description: "Exam Fee", amount: 35000 },
+      { description: "Hostel Fee (For Boarders)", amount: 80000 },
+      { description: "Transport Fee", amount: 30000 },
+      { description: "P.T.A Fee", amount: 20000 },
+      { description: "Craft Fee (For Those Who Pay)", amount: 20000 }
     ],
     paymentsHistory: [
       {
@@ -742,19 +745,6 @@ app.get("/api/firebase/status", (req, res) => {
 });
 
 // Authentication APIs
-app.post("/api/auth/login", (req, res) => {
-  const { email, role } = req.body;
-  const user = usersStore.find((u) => u.email === email) || {
-    id: `usr-${Date.now()}`,
-    name: email ? email.split("@")[0] : "User",
-    email: email || "user@livingstone.edu",
-    role: role || "School Administrator",
-    schoolId: "SCH-001",
-  };
-  const token = `jwt_simulated_${Buffer.from(JSON.stringify(user)).toString("base64")}`;
-  res.json({ success: true, token, user, message: `Authenticated successfully as ${user.role}` });
-});
-
 app.get("/api/auth/me", (req, res) => {
   res.json({ success: true, user: usersStore[0] });
 });
@@ -1590,24 +1580,26 @@ app.post("/api/teacher/lesson-notes/generate", async (req, res) => {
     const ai = getGeminiAI();
     let generatedContent = "";
     if (ai) {
-      const prompt = `Act as an expert Nigerian Secondary School Master Teacher. Generate a comprehensive NERDC and WAEC compliant lesson note for ${subject}, Class: ${classLevel}, Term: ${term}, Week: ${week}, Topic: ${topic}, Sub-Topic: ${subTopic}. 
+      const prompt = `You are an expert school curriculum designer and textbook author. Your job is to write highly detailed, broad, and comprehensive lesson notes on the requested topic.
 
-Include:
-- Performance Objectives & Learning Outcomes
-- Previous Knowledge
-- Instructional Materials & Teaching Resources
-- References (NERDC Textbooks)
-- Lesson Introduction & Development
-- Teacher Activities & Learner Activities
-- Guided Practice & Class Discussion
-- Evaluation Questions & Assignment
-- Board Summary & Key Vocabulary
-- Moral Lesson & Inclusive Learning Strategy
-- Assessment Rubric`;
+Produce a lesson note for ${subject}, Class: ${classLevel}, Term: ${term}, Week: ${week}, Topic: ${topic}, Sub-Topic: ${subTopic}.
+
+The notes must be written in a structured, textbook style so students can easily copy them into their physical notebooks through their teachers. Do not use conversational filler or summaries.
+
+Structure every response exactly like this:
+1. TOPIC: [Title of the lesson]
+2. LESSON OBJECTIVES: [3 clear bullet points starting with 'By the end of this lesson, students should be able to...']
+3. KEY DEFINITIONS: [Bold terms with broad, detailed, 2-3 sentence explanations]
+4. CORE CONTENT HEADINGS: [Break down the topic into 3 distinct headings. Under each heading, write a comprehensive 2-paragraph detailed explanation. Avoid shortcuts or abbreviations.]
+5. PRACTICAL EXAMPLES: [Provide at least 2 real-world examples or step-by-step applications relevant to the topic]
+6. SUMMARY NOTES: [A short 4-bullet point checklist of the most critical facts to remember]`;
 
       const response = await ai.models.generateContent({
         model: "gemini-2.5-flash",
         contents: prompt,
+        config: {
+          maxOutputTokens: 4096,
+        },
       });
       generatedContent = response.text || "";
     } else {
@@ -2341,6 +2333,27 @@ const validSchoolStaffRecords: Record<string, any> = {
   "SA-001": { staffName: "Super System Admin", defaultRole: "Super Admin", department: "Ecosystem" }
 };
 
+// Staff accounts created via self-service Teacher Registration (persisted so the registered name/role survives re-login)
+const staffAccountsStore: any[] = [];
+
+// Map a staff role to the portal it should open
+function redirectTabForStaffRole(role: string): string {
+  if (role === "Super Admin" || role === "Super Administrator") return "superadmin";
+  if (
+    role === "School Administrator" ||
+    role === "Admin" ||
+    role === "Principal" ||
+    role === "Vice Principal" ||
+    role === "School Owner" ||
+    role === "Proprietor"
+  )
+    return "dashboard";
+  if (role === "Account Officer" || role === "Bursar") return "finance";
+  if (role === "Exam Officer") return "academic-ai-exam-generator";
+  if (role === "Librarian") return "library";
+  return "teacher-portal";
+}
+
 // Get List of Verified Schools
 app.get("/api/auth/schools", (req, res) => {
   res.json({ success: true, schools: verifiedSchoolsStore });
@@ -2434,7 +2447,17 @@ app.post("/api/auth/login", (req, res) => {
     let detectedRole: any = "Teacher";
     let redirectTab = "teacher-portal";
 
-    if (inputLower.includes("superadmin") || inputLower === "sa-001") {
+    // Prefer a self-service registered staff account so the registered name & role are used
+    const registeredStaff = staffAccountsStore.find(s =>
+      (s.email && s.email.toLowerCase() === inputLower) ||
+      (s.staffId && s.staffId.toLowerCase() === inputLower) ||
+      (s.staffId && s.staffId.toLowerCase() === inputClean.toUpperCase())
+    );
+
+    if (registeredStaff?.assignedRole) {
+      detectedRole = registeredStaff.assignedRole;
+      redirectTab = redirectTabForStaffRole(detectedRole);
+    } else if (inputLower.includes("superadmin") || inputLower === "sa-001") {
       detectedRole = "Super Admin";
       redirectTab = "superadmin";
     } else if (inputLower.includes("owner") || inputLower.includes("proprietor")) {
@@ -2477,10 +2500,11 @@ app.post("/api/auth/login", (req, res) => {
     }
 
     const staffUser = {
-      id: "TCH-2026-001",
-      name: validSchoolStaffRecords[inputClean.toUpperCase()]?.staffName || "Mrs. Okonkwo Beatrice",
-      email: inputLower.includes("@") ? inputLower : "okonkwo.b@livingstone.edu.ng",
-      staffId: inputClean.toUpperCase() || "STF-9921",
+      id: registeredStaff?.id || "TCH-2026-001",
+      name: registeredStaff?.name || registeredStaff?.fullName || validSchoolStaffRecords[inputClean.toUpperCase()]?.staffName || "Mrs. Okonkwo Beatrice",
+      fullName: registeredStaff?.name || registeredStaff?.fullName || validSchoolStaffRecords[inputClean.toUpperCase()]?.staffName || "Mrs. Okonkwo Beatrice",
+      email: registeredStaff?.email || (inputLower.includes("@") ? inputLower : "okonkwo.b@livingstone.edu.ng"),
+      staffId: registeredStaff?.staffId || inputClean.toUpperCase() || "STF-9921",
       assignedRole: detectedRole,
       role: detectedRole,
       schoolId: school.id,
@@ -2572,10 +2596,17 @@ app.post("/api/auth/me", (req, res) => {
   }
 
   const defaultSchool = verifiedSchoolsStore[0];
+  const registeredStaff = staffAccountsStore.find(s =>
+    (s.email && s.email.toLowerCase() === inputEmail) ||
+    (s.staffId && s.staffId.toLowerCase() === String(staffId).toLowerCase()) ||
+    (s.staffId && s.staffId.toLowerCase() === inputEmail)
+  );
   const staffUser = {
-    id: staffId || "TCH-2026-001",
-    name: "Mrs. Okonkwo Beatrice",
-    email: inputEmail || "okonkwo.b@livingstone.edu.ng",
+    id: registeredStaff?.id || staffId || "TCH-2026-001",
+    name: registeredStaff?.name || registeredStaff?.fullName || "Mrs. Okonkwo Beatrice",
+    fullName: registeredStaff?.name || registeredStaff?.fullName || "Mrs. Okonkwo Beatrice",
+    email: registeredStaff?.email || inputEmail || "okonkwo.b@livingstone.edu.ng",
+    staffId: registeredStaff?.staffId || staffId || "STF-9921",
     role: verifiedRole,
     schoolId: defaultSchool.id,
     schoolName: defaultSchool.name
@@ -2591,6 +2622,93 @@ app.post("/api/auth/me", (req, res) => {
 
 // Audit Store for Class Promotion Changes
 const classChangeAuditLogStore: any[] = [];
+
+// --- FIREBASE PERSISTENCE REGISTRATION ---
+// Register every in-memory store so it can be hydrated from / synced to Firebase RTDB.
+// Fire-and-forget pattern: if Firebase is unavailable, the app keeps running in-memory only.
+
+// Seed snapshots captured at startup so all tables/cards can be reset to factory defaults
+const arrayStoreSeeds: { arr: any[]; seed: any[] }[] = [];
+const recordStoreSeeds: { rec: Record<string, any>; seed: Record<string, any> }[] = [];
+
+function registerArraySync(name: string, storeArr: any[]) {
+  arrayStoreSeeds.push({ arr: storeArr, seed: JSON.parse(JSON.stringify(storeArr)) });
+  registerStore(
+    name,
+    () => storeArr,
+    (items: any) => {
+      if (!Array.isArray(items)) return;
+      storeArr.splice(0, storeArr.length, ...items);
+    }
+  );
+}
+
+function registerRecordSync(name: string, storeRec: Record<string, any>) {
+  recordStoreSeeds.push({ rec: storeRec, seed: JSON.parse(JSON.stringify(storeRec)) });
+  registerStore(
+    name,
+    () => storeRec,
+    (items: any) => {
+      if (!items || typeof items !== "object") return;
+      Object.keys(storeRec).forEach((k) => delete storeRec[k]);
+      Object.assign(storeRec, items);
+    }
+  );
+}
+
+// Restore every registered store to its original factory seed data
+function resetStoresToSeed(): void {
+  arrayStoreSeeds.forEach(({ arr, seed }) => {
+    arr.splice(0, arr.length, ...JSON.parse(JSON.stringify(seed)));
+  });
+  recordStoreSeeds.forEach(({ rec, seed }) => {
+    Object.keys(rec).forEach((k) => delete rec[k]);
+    Object.assign(rec, JSON.parse(JSON.stringify(seed)));
+  });
+}
+
+{
+  const register = (name: string, arr: any[]) => registerArraySync(name, arr);
+  register("users", usersStore);
+  register("students", studentsStore);
+  register("teachers", teachersStore);
+  register("questionBank", questionBank);
+  register("lessonNotes", lessonNotesStore);
+  register("announcements", announcementsStore);
+  register("libraryBooks", libraryBooksStore);
+  register("financeInvoices", financeInvoicesStore);
+  register("cbtExams", cbtExamsStore);
+  register("transportRoutes", transportRoutesStore);
+  register("hostelRooms", hostelRoomsStore);
+  register("superAdminSchools", superAdminSchoolsStore);
+  register("superAdminUsers", superAdminUsersStore);
+  register("superAdminAiLogs", superAdminAiLogsStore);
+  register("superAdminCurriculum", superAdminCurriculumStore);
+  register("superAdminPayments", superAdminPaymentsStore);
+  register("superAdminBackups", superAdminBackupsStore);
+  register("teacherLessons", teacherLessonsStore);
+  register("teacherSchemes", teacherSchemesStore);
+  register("teacherAssignments", teacherAssignmentsStore);
+  register("teacherExams", teacherExamsStore);
+  register("teacherCbt", teacherCbtStore);
+  register("teacherAttendance", teacherAttendanceStore);
+  register("teacherCa", teacherCaStore);
+  register("teacherTimetable", teacherTimetableStore);
+  register("teacherFiles", teacherFilesStore);
+  register("teacherMessages", teacherMessagesStore);
+  register("parentProfiles", parentProfilesStore);
+  register("studentProfiles", studentProfilesStore);
+  register("studentAssignments", studentAssignmentsStore);
+  register("studentCbt", studentCbtStore);
+  register("studentCbtAttempts", studentCbtAttemptsStore);
+  register("studentFees", studentFeesStore);
+  register("auditLogs", auditLogsStore);
+  register("classChangeAuditLog", classChangeAuditLogStore);
+  register("verifiedSchools", verifiedSchoolsStore);
+  register("staffAccounts", staffAccountsStore);
+  registerRecordSync("superAdminWebsiteConfigs", superAdminWebsiteConfigsStore);
+  registerRecordSync("validSchoolAdmissionRecords", validSchoolAdmissionRecords);
+}
 
 // Student Account Registration with Admission Number Verification & Required Fields
 app.post("/api/auth/register/student", (req, res) => {
@@ -2745,21 +2863,49 @@ app.post("/api/auth/register/teacher", (req, res) => {
   }
 
   const detectedRole = record ? record.defaultRole : "Teacher";
+  const staffAccountId = `TCH-${Date.now()}`;
+
+  // Persist the staff account so the registered name, email, staff ID and role survive re-login
+  const staffAccount = {
+    id: staffAccountId,
+    staffId: cleanStaffId,
+    name: fullName || record?.staffName || "Mrs. Okonkwo Beatrice",
+    fullName: fullName || record?.staffName || "Mrs. Okonkwo Beatrice",
+    email: email || "",
+    password: password || "",
+    assignedRole: detectedRole,
+    role: detectedRole,
+    schoolId: school.id,
+    schoolName: registeredSchoolName,
+    status: "Active",
+    createdAt: new Date().toISOString()
+  };
+  staffAccountsStore.unshift(staffAccount);
+
+  // Also surface in the staff directory when the staff ID is not already listed
+  if (!teachersStore.some(t => (t.staffId || t.id) === cleanStaffId)) {
+    teachersStore.unshift({
+      id: staffAccountId,
+      name: staffAccount.name,
+      fullName: staffAccount.name,
+      staffId: cleanStaffId,
+      email: email || "",
+      role: detectedRole,
+      assignedRole: detectedRole,
+      schoolId: school.id,
+      schoolName: registeredSchoolName,
+      status: "Active"
+    });
+  }
 
   return res.json({
     success: true,
     message: `Staff Account Activated Successfully! Verified Role: ${detectedRole}`,
     userRole: detectedRole,
-    redirectTab: detectedRole === "School Administrator" || detectedRole === "Principal" ? "dashboard" : "teacher-portal",
+    redirectTab: redirectTabForStaffRole(detectedRole),
     token: `JWT_REGISTERED_STAFF_${Date.now()}`,
     school: { ...school, name: registeredSchoolName },
-    staff: {
-      staffId: cleanStaffId,
-      name: fullName || record?.staffName || "Mrs. Okonkwo Beatrice",
-      assignedRole: detectedRole,
-      email,
-      schoolName: registeredSchoolName
-    }
+    staff: staffAccount
   });
 });
 
@@ -2771,6 +2917,25 @@ app.post("/api/auth/forgot-password", (req, res) => {
     success: true,
     message: `Secure password reset instructions & verification OTP have been dispatched to ${email || "your registered email address"}.`
   });
+});
+
+// Reset All Demo Data (restores every table/card store to its factory seed)
+app.post("/api/data/reset", (req, res) => {
+  resetStoresToSeed();
+  syncStoresToFirebase();
+
+  res.json({
+    success: true,
+    message: "All school records, students, teachers, fees, exams, lesson notes, announcements and audit logs have been reset to factory defaults. The portal is ready for fresh usage.",
+    resetAt: new Date().toISOString(),
+    storesRestored: arrayStoreSeeds.length + recordStoreSeeds.length
+  });
+});
+
+// Data Reset Audit Log
+const dataResetAuditLogStore: any[] = [];
+app.get("/api/data/reset/audit", (req, res) => {
+  res.json({ success: true, count: dataResetAuditLogStore.length, logs: dataResetAuditLogStore });
 });
 
 // --- STUDENT & PARENT PORTAL REST API ENDPOINTS ---
@@ -2822,7 +2987,7 @@ app.get("/api/student/dashboard", (req, res) => {
   const student = studentProfilesStore[0];
   const fees = studentFeesStore[0];
   const activeCbt = studentCbtStore.filter(c => c.status === "Active");
-  const pendingAssignments = studentAssignmentsStore.filter(a => a.submissions.length === 0);
+  const pendingAssignments = studentAssignmentsStore.filter(a => (a.submissions?.length || 0) === 0);
 
   res.json({
     success: true,
@@ -3169,6 +3334,40 @@ app.get("/api/student/fees/invoice", (req, res) => {
   res.json({ success: true, invoice: studentFeesStore[0] });
 });
 
+app.get("/api/teacher/fees/items", (req, res) => {
+  res.json({ success: true, invoice: studentFeesStore[0] });
+});
+
+app.post("/api/teacher/fees/items", (req, res) => {
+  const { items } = req.body || {};
+  if (!Array.isArray(items) || !items.length) {
+    return res.status(400).json({ success: false, message: "Provide at least one fee item with a description and amount." });
+  }
+  const cleaned = items
+    .filter((it: any) => it && typeof it.description === "string" && it.description.trim() !== "")
+    .map((it: any) => ({
+      description: (it.description as string).trim(),
+      amount: Math.max(0, Math.round(Number(it.amount) || 0)),
+    }));
+  if (!cleaned.length) {
+    return res.status(400).json({ success: false, message: "Each fee item needs a description and a valid amount." });
+  }
+  const totalAmount = cleaned.reduce((sum: number, it: any) => sum + it.amount, 0);
+  for (const fees of studentFeesStore) {
+    fees.items = cleaned;
+    fees.totalAmount = totalAmount;
+    fees.paidAmount = 0;
+    fees.outstandingBalance = totalAmount;
+    fees.status = "Not Yet Paid";
+    fees.paymentsHistory = [];
+  }
+  res.json({
+    success: true,
+    message: "New fee structure posted to the student fee ledger successfully.",
+    invoice: studentFeesStore[0],
+  });
+});
+
 app.post("/api/student/fees/pay", (req, res) => {
   const { amount, paymentMethod = "Paystack Online Gateway", cardOrBankDetails } = req.body;
   const fees = studentFeesStore[0];
@@ -3323,15 +3522,17 @@ app.post("/api/ai/lesson-notes", async (req, res) => {
 
   if (gemini) {
     try {
-      const prompt = `You are a Master Curriculum Developer & Senior Pedagogy Expert for secondary schools following the ${curriculum} (Country: ${country}, State: ${state}).
-Generate a highly detailed, professional, production-grade Lesson Note for:
+      const prompt = `You are an expert school curriculum designer and textbook author for secondary schools following the ${curriculum} (Country: ${country}, State: ${state}).
+Your job is to write highly detailed, broad, and comprehensive lesson notes on the requested topic. The notes must be written in a structured, textbook style so students can easily copy them into their physical notebooks through their teachers. Do not use conversational filler or summaries.
+
+Generate a comprehensive, production-grade lesson note for:
 - Class: ${className}
 - Subject: ${subject}
 - Term: ${term}, ${week}
 - Topic: ${topic}
 - Learning Objectives: ${objectives || "Define key concepts, explain physical principles, calculate numerical problems, list real-world applications."}
 
-Respond ONLY with a valid JSON object matching this schema:
+Respond ONLY with a valid JSON object matching this schema. Make the content broad and detailed: every "explanation" must be a comprehensive 2-paragraph textbook-style write-up, and provide at least 2 practical examples:
 {
   "topic": "string",
   "subject": "string",
@@ -3352,6 +3553,7 @@ Respond ONLY with a valid JSON object matching this schema:
   ],
   "teacherDemonstration": "string",
   "studentActivities": ["string"],
+  "practicalExamples": ["string"],
   "evaluationQuestions": ["string"],
   "summaryWrapUp": "string",
   "assignment": "string"
@@ -3362,6 +3564,7 @@ Respond ONLY with a valid JSON object matching this schema:
         contents: prompt,
         config: {
           responseMimeType: "application/json",
+          maxOutputTokens: 4096,
         },
       });
 
@@ -3656,13 +3859,34 @@ app.get("/api/audit-logs", (req, res) => {
 });
 
 // Announcements Endpoint
-app.get("/api/announcements", (req, res) => {
-  res.json({ success: true, data: announcementsStore });
+app.get("/api/announcements", async (req, res) => {
+  let remote: any[] = [];
+  try {
+    const db = getAdminDatabase();
+    if (db) {
+      const snap = await db.ref("communications/announcements").get();
+      const val = snap.val();
+      if (val) remote = Object.values(val);
+    }
+  } catch (err: any) {
+    console.warn("Firebase RTDB announcements read unavailable:", err?.message || err);
+  }
+  const byId = new Map<string, any>();
+  [...remote, ...announcementsStore].forEach((a) => a && a.id && byId.set(a.id, a));
+  res.json({ success: true, data: Array.from(byId.values()) });
 });
 
 app.post("/api/announcements", (req, res) => {
   const newAnn = { id: `ann-${Date.now()}`, date: new Date().toISOString().split("T")[0], ...req.body };
   announcementsStore.unshift(newAnn);
+  try {
+    const db = getAdminDatabase();
+    if (db) {
+      db.ref(`communications/announcements/${newAnn.id}`).set(newAnn).catch(() => {});
+    }
+  } catch (err) {
+    console.warn("Firebase RTDB announcements write unavailable:", err);
+  }
   res.json({ success: true, message: "Announcement broadcasted successfully", data: newAnn });
 });
 
@@ -4401,6 +4625,17 @@ app.get("/api/docs", (req, res) => {
 
 // Mount Vite middleware for dev or static serving for production
 async function startServer() {
+  await hydrateStoresFromFirebase().catch((err) => console.warn("Firebase hydrate skipped:", err?.message || err));
+
+  const syncTimer = setInterval(() => syncStoresToFirebase(), 5000);
+  const shutdownSync = () => {
+    clearInterval(syncTimer);
+    syncStoresToFirebase();
+    process.exit(0);
+  };
+  process.on("SIGINT", shutdownSync);
+  process.on("SIGTERM", shutdownSync);
+
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({
       server: { middlewareMode: true },

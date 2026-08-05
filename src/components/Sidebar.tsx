@@ -932,11 +932,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </button>
         )}
 
-        {/* 9. PARENT PORTAL */}
-        {matchesSearch("Parent Portal") && (
+        {/* 9. STUDENT PORTAL */}
+        {matchesSearch("Student Portal") && (
           <button
             onClick={() => onSelectTab("student-parent-portal")}
-            title={isCollapsed ? "Parent Portal" : undefined}
+            title={isCollapsed ? "Student Portal" : undefined}
             className={`w-full flex items-center ${
               isCollapsed ? "justify-center px-0" : "gap-3 px-3"
             } py-2 rounded-lg text-xs font-semibold transition-all ${
@@ -946,7 +946,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             }`}
           >
             <UserCheck className="w-4 h-4 text-sky-400 flex-shrink-0" />
-            {!isCollapsed && <span>Parent Portal</span>}
+            {!isCollapsed && <span>Student Portal</span>}
           </button>
         )}
 

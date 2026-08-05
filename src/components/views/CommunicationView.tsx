@@ -1,7 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { MessageSquare, Send, Bell, Mail, PhoneCall, Check, Plus, AlertCircle } from "lucide-react";
+import { ref, onValue } from "firebase/database";
+import { rtdb } from "../../lib/firebase";
 import { initialAnnouncements } from "../../data/initialData";
 import { Announcement } from "../../types";
+
+const mergeAnnouncements = (lists: Announcement[][]): Announcement[] => {
+  const map = new Map<string, Announcement>();
+  lists.flat().forEach((a) => {
+    if (a && a.id) map.set(a.id, a);
+  });
+  return Array.from(map.values()).sort((a, b) => (a.date > b.date ? -1 : a.date < b.date ? 1 : 0));
+};
 
 export const CommunicationView: React.FC = () => {
   const [announcements, setAnnouncements] = useState<Announcement[]>(initialAnnouncements);
@@ -10,11 +20,45 @@ export const CommunicationView: React.FC = () => {
   const [channel, setChannel] = useState<"Email" | "SMS" | "WhatsApp" | "Notice Board">("Notice Board");
   const [sentMsg, setSentMsg] = useState("");
 
-  const handlePublish = () => {
+  useEffect(() => {
+    let active = true;
+    fetch("/api/announcements")
+      .then((r) => (r.ok ? r.json() : { data: [] }))
+      .then((res) => {
+        if (active && Array.isArray(res.data) && res.data.length) {
+          setAnnouncements((prev) => (active ? mergeAnnouncements([res.data, prev]) : prev));
+        }
+      })
+      .catch(() => {});
+
+    const annRef = ref(rtdb, "communications/announcements");
+    const unsub = onValue(
+      annRef,
+      (snap) => {
+        if (!active) return;
+        const val = snap.val();
+        if (!val) return;
+        const live = Object.values(val) as Announcement[];
+        if (live.length) {
+          setAnnouncements((prev) => (active ? mergeAnnouncements([live, prev]) : prev));
+        }
+      },
+      (err) => {
+        console.warn("Firebase RTDB announcements listener unavailable:", err?.message || err);
+      }
+    );
+
+    return () => {
+      active = false;
+      unsub();
+    };
+  }, []);
+
+  const handlePublish = async () => {
     if (!newTitle.trim() || !newContent.trim()) return;
 
     const newAnn: Announcement = {
-      id: `ann-${Date.now()}`,
+      id: `ann-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       title: newTitle,
       category: "Broadcast",
       sender: "Principal / Admin",
@@ -28,6 +72,16 @@ export const CommunicationView: React.FC = () => {
     setNewTitle("");
     setNewContent("");
     setTimeout(() => setSentMsg(""), 4000);
+
+    try {
+      await fetch("/api/announcements", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...newAnn, channel }),
+      });
+    } catch (err) {
+      console.warn("Broadcast persistence failed; showing locally:", err);
+    }
   };
 
   return (

@@ -219,6 +219,37 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [showKeyMask, setShowKeyMask] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string>("");
 
+  // Clear All Data (Reset Demo Data) State
+  const [showClearDataModal, setShowClearDataModal] = useState(false);
+  const [clearingData, setClearingData] = useState(false);
+
+  const handleClearAllData = async () => {
+    setClearingData(true);
+    try {
+      const res = await fetch("/api/data/reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ confirm: true })
+      }).then(r => r.json());
+
+      if (res.success) {
+        logAuditAction("Cleared All Portal Data", "DATABASE", "Reset all student, teacher, fee, exam and lesson records back to factory defaults.");
+        setShowClearDataModal(false);
+        setSaveStatus(res.message || "All portal data has been reset to factory defaults!");
+        setTimeout(() => setSaveStatus(null), 6000);
+      } else {
+        setSaveStatus("Failed to reset data. Please try again.");
+        setTimeout(() => setSaveStatus(null), 4000);
+      }
+    } catch (e) {
+      console.error("Failed to reset data:", e);
+      setSaveStatus("Data reset failed. Check server connection.");
+      setTimeout(() => setSaveStatus(null), 4000);
+    } finally {
+      setClearingData(false);
+    }
+  };
+
   // Audit Log State
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(() => {
     const savedLogs = localStorage.getItem("livingstone_settings_audit_logs");
@@ -914,6 +945,30 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   />
                 </div>
               </div>
+
+              {/* Clear All Data / Reset Demo Data */}
+              <div className="p-5 rounded-2xl bg-rose-50 border border-rose-200 dark:bg-rose-950/40 dark:border-rose-800/60 space-y-3">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h4 className="text-sm font-bold text-rose-800 dark:text-rose-300 flex items-center gap-2">
+                      <Trash2 className="w-4 h-4" />
+                      Clear All Data & Reset for Fresh Usage
+                    </h4>
+                    <p className="text-xs text-rose-700/80 dark:text-rose-300/70 mt-1 max-w-xl">
+                      Wipe every table and card on the platform (students, teachers, fees, exams, lesson notes,
+                      announcements, audit logs) back to factory defaults so the portal starts fresh for a new session.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowClearDataModal(true)}
+                    className="px-4 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-rose-600/30 transition-all"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    <span>Clear All Data</span>
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 
@@ -1255,6 +1310,40 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold shadow-md shadow-amber-600/30"
               >
                 Confirm Reset
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showClearDataModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 p-4 backdrop-blur-sm animate-in fade-in">
+          <div className="bg-slate-900 border border-rose-900 rounded-3xl p-6 max-w-md w-full space-y-4 shadow-2xl text-white">
+            <div className="flex items-center gap-3 text-rose-400">
+              <AlertTriangle className="w-6 h-6" />
+              <h3 className="text-lg font-bold">Clear All Data & Reset?</h3>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              This will permanently wipe every table and card on the platform — students, teachers, fees, CBT exams,
+              lesson notes, assignments, announcements, report cards and audit logs — and restore the factory demo
+              data so the portal starts fresh. This action cannot be undone.
+            </p>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setShowClearDataModal(false)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleClearAllData}
+                disabled={clearingData}
+                className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold shadow-md shadow-rose-600/30 flex items-center gap-2 disabled:opacity-60"
+              >
+                {clearingData ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                <span>{clearingData ? "Clearing..." : "Yes, Clear All Data"}</span>
               </button>
             </div>
           </div>
