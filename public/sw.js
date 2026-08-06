@@ -1,5 +1,5 @@
 /* LIVINGSTONEEDU service worker */
-const CACHE = "livingstoneedu-v1";
+const CACHE = "livingstoneedu-v2";
 const APP_SHELL = ["./", "./index.html", "./manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
