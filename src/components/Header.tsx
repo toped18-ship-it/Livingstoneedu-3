@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { UserRole } from "../types";
 import {
   GraduationCap,
@@ -21,6 +21,7 @@ import {
   PhoneCall,
   LogOut,
   Settings,
+  Download,
 } from "lucide-react";
 
 interface HeaderProps {
@@ -62,7 +63,35 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
 }) => {
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
+  const [installPrompt, setInstallPrompt] = useState<any>(null);
   const activeRoleObj = ALL_ROLES.find((r) => r.role === currentRole) || ALL_ROLES[1];
+
+  useEffect(() => {
+    const syncInstall = () => {
+      const prompt = (window as any).__livingstoneInstallPrompt || null;
+      setInstallPrompt(prompt);
+    };
+    syncInstall();
+    window.addEventListener("app:installable", syncInstall);
+    window.addEventListener("app:installed", syncInstall);
+    return () => {
+      window.removeEventListener("app:installable", syncInstall);
+      window.removeEventListener("app:installed", syncInstall);
+    };
+  }, []);
+
+  const handleInstall = async () => {
+    const prompt = installPrompt || (window as any).__livingstoneInstallPrompt;
+    if (!prompt) return;
+    try {
+      prompt.prompt();
+      const choice = await prompt.userChoice;
+      if (choice && choice.outcome === "accepted") setInstallPrompt(null);
+    } catch (err) {
+      console.warn("Install prompt rejected", err);
+    }
+    setInstallPrompt((window as any).__livingstoneInstallPrompt || null);
+  };
 
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-4 md:px-6 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 transition-colors">
@@ -168,6 +197,18 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <GraduationCap className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Portal Login</span>
+          </button>
+        )}
+
+        {/* Install App (PWA) */}
+        {installPrompt && (
+          <button
+            onClick={handleInstall}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90 rounded-lg text-xs font-semibold shadow-sm active:scale-95 transition-all"
+            title="Install LIVINGSTONEEDU as an app on this device"
+          >
+            <Download className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Install App</span>
           </button>
         )}
 

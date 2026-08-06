@@ -2,12 +2,41 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LIVINGSTONEEDU</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>LIVINGSTONEEDU — School Management & AI Platform</title>
+    <meta
+      name="description"
+      content="LIVINGSTONEEDU is a Nigerian school-management SaaS platform with AI lesson notes, exam generation, report cards and multi-role portals for admins, teachers, students and parents."
+    />
+    <meta name="theme-color" content="#4f46e5" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="64x64" href="./favicon-64.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="LivingstoneEDU" />
+    <script>
+      try {
+        window.__livingstoneInstallPrompt = null;
+        window.addEventListener("beforeinstallprompt", (event) => {
+          event.preventDefault();
+          window.__livingstoneInstallPrompt = event;
+          window.dispatchEvent(new CustomEvent("app:installable"));
+        });
+        window.addEventListener("appinstalled", () => {
+          window.__livingstoneInstallPrompt = null;
+          window.dispatchEvent(new CustomEvent("app:installed"));
+        });
+      } catch (err) {
+        console.warn("PWA install keying unavailable", err);
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-
