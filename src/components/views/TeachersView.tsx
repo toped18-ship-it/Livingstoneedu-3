@@ -1,10 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Users, Plus, Mail, Phone, BookOpen, Award, Check, QrCode, Trash2, AlertTriangle, CheckSquare, Square, LayoutGrid, Table, Pencil, X } from "lucide-react";
 import { initialTeachers } from "../../data/initialData";
 import { TeacherRecord } from "../../types";
+import { useLiveData, notifyDataChanged } from "../../lib/liveStore";
 
 export const TeachersView: React.FC = () => {
+  const live = useLiveData<TeacherRecord>("teachers");
   const [teachers, setTeachers] = useState<TeacherRecord[]>(initialTeachers);
+
+  // Sync the faculty directory to the live server store.
+  useEffect(() => {
+    if (live.data && live.data.length) setTeachers(live.data);
+  }, [live.data]);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [idCardModalTeacher, setIdCardModalTeacher] = useState<TeacherRecord | null>(null);
 
@@ -52,6 +59,21 @@ export const TeachersView: React.FC = () => {
     setSuccessMsg(`✓ Updated teacher record for ${editName}!`);
     setEditModalTeacher(null);
     setTimeout(() => setSuccessMsg(""), 3500);
+    fetch(`/api/teachers/${editModalTeacher.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: editName,
+        staffId: editStaffId,
+        subjectSpecialization: editSubjectSpecialization,
+        assignedClass: editAssignedClass,
+        email: editEmail,
+        phone: editPhone,
+        status: editStatus,
+      })
+    })
+      .then(() => notifyDataChanged(["teachers"]))
+      .catch(() => {});
   };
 
   // Multi-select & Bulk Delete state
@@ -94,6 +116,11 @@ export const TeachersView: React.FC = () => {
     setDeleteModalOpen(false);
     setDeleteTargetIds([]);
     setTimeout(() => setSuccessMsg(""), 3500);
+    Promise.all(
+      deleteTargetIds.map((id) =>
+        fetch(`/api/teachers/${id}`, { method: "DELETE" }).catch(() => {})
+      )
+    ).then(() => notifyDataChanged(["teachers"]));
   };
 
   const handleAddTeacher = (e: React.FormEvent) => {
@@ -119,6 +146,17 @@ export const TeachersView: React.FC = () => {
     setPhone("");
     setAddModalOpen(false);
     setTimeout(() => setSuccessMsg(""), 3500);
+    fetch("/api/teachers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newTeacher)
+    })
+      .then((res) => res.json())
+      .then((json) => {
+        if (json?.data) setTeachers((prev) => prev.map((t) => (t.id === newTeacher.id ? json.data : t)));
+        notifyDataChanged(["teachers"]);
+      })
+      .catch(() => notifyDataChanged(["teachers"]));
   };
 
   return (

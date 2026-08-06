@@ -1,13 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { Database, Search, Plus, Trash2, Edit3, Filter, Download, Check, Sparkles, BookOpen } from "lucide-react";
 import { ObjectiveQuestion, ALL_CLASSES, ALL_SUBJECTS } from "../../types";
+import { useLiveData, notifyDataChanged } from "../../lib/liveStore";
 
 export const QuestionBankView: React.FC = () => {
+  const live = useLiveData<any[]>("questionBank");
   const [questions, setQuestions] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedSubject, setSelectedSubject] = useState("All");
   const [selectedClass, setSelectedClass] = useState("All");
   const [loading, setLoading] = useState(true);
+
+  // Keep this view live: any question added/removed anywhere refreshes instantly.
+  useEffect(() => {
+    if (live.data && live.data.length) setQuestions(live.data);
+  }, [live.data]);
 
   const fetchQuestions = async () => {
     try {
@@ -29,6 +36,9 @@ export const QuestionBankView: React.FC = () => {
 
   const handleDelete = (id: string) => {
     setQuestions((prev) => prev.filter((q) => q.id !== id));
+    fetch(`/api/question-bank/${id}`, { method: "DELETE" })
+      .then(() => notifyDataChanged(["questionBank"]))
+      .catch(() => {});
   };
 
   const filteredQuestions = questions.filter((q) => {

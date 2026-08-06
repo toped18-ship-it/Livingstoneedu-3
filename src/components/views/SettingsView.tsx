@@ -50,8 +50,11 @@ import {
   Activity,
   UserCheck,
   FolderTree,
+  Send,
+  Plug,
 } from "lucide-react";
 import { UserRole } from "../../types";
+import { useLiveData, notifyDataChanged } from "../../lib/liveStore";
 
 export type AppSettingsTab =
   | "general"
@@ -211,6 +214,190 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   // Saved baseline for "Cancel" comparison
   const [savedBaseline, setSavedBaseline] = useState(() => ({ ...settings }));
+
+  // ------------------------------------------------------------------
+  // Gmail API Integration (Google Cloud Console) state + handlers
+  // ------------------------------------------------------------------
+  const liveSubscribers = useLiveData<any[]>("emailSubscribers");
+  const [subscribers, setSubscribers] = useState<any[]>([]);
+  const [gmailConfig, setGmailConfig] = useState({
+    clientId: "",
+    clientSecret: "",
+    refreshToken: "",
+    senderEmail: "",
+    senderName: "",
+    connected: false,
+    profileEmail: "",
+    hasRefreshToken: false,
+  });
+  const [gmailLoading, setGmailLoading] = useState(true);
+  const [savingGmail, setSavingGmail] = useState(false);
+  const [gmailMode, setGmailMode] = useState<"all" | "selected">("all");
+  const [selectedSubs, setSelectedSubs] = useState<string[]>([]);
+  const [newSubName, setNewSubName] = useState("");
+  const [newSubEmail, setNewSubEmail] = useState("");
+  const [broadcastSubject, setBroadcastSubject] = useState("");
+  const [broadcastBody, setBroadcastBody] = useState("");
+  const [sendingBroadcast, setSendingBroadcast] = useState(false);
+  const [gmailStatus, setGmailStatus] = useState<{ type: "success" | "error" | "info"; text: string } | null>(null);
+  const [gmailLogs, setGmailLogs] = useState<any[]>([]);
+
+  // Keep the subscriber list in sync with the rest of the app (live data bus)
+  useEffect(() => {
+    if (Array.isArray(liveSubscribers.data)) setSubscribers(liveSubscribers.data);
+  }, [liveSubscribers.data]);
+
+  useEffect(() => {
+    let mounted = true;
+    Promise.all([
+      fetch("/api/gmail/config").then((r) => r.json()).catch(() => null),
+      fetch("/api/gmail/logs").then((r) => r.json()).catch(() => null),
+    ]).then(([cfg, logs]) => {
+      if (!mounted) return;
+      if (cfg?.success && cfg.config) {
+        setGmailConfig((prev) => ({
+          clientId: cfg.config.clientId ?? prev.clientId,
+          clientSecret: cfg.config.clientSecret ?? prev.clientSecret,
+          refreshToken: cfg.config.refreshToken ?? "",
+          senderEmail: cfg.config.senderEmail ?? prev.senderEmail,
+          senderName: cfg.config.senderName ?? prev.senderName,
+          connected: !!cfg.config.connected,
+          profileEmail: cfg.config.profileEmail ?? "",
+          hasRefreshToken: !!cfg.config.hasRefreshToken,
+        }));
+      }
+      if (logs?.success) setGmailLogs(logs.logs || []);
+      setGmailLoading(false);
+    });
+    return () => { mounted = false; };
+  }, []);
+
+  const saveGmailConfig = async () => {
+    setSavingGmail(true);
+    setGmailStatus(null);
+    try {
+      const res = await fetch("/api/gmail/config", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          clientId: gmailConfig.clientId,
+          clientSecret: gmailConfig.clientSecret,
+          refreshToken: gmailConfig.refreshToken,
+          senderEmail: gmailConfig.senderEmail,
+          senderName: gmailConfig.senderName,
+        }),
+      }).then((r) => r.json());
+      setGmailStatus({ type: res.success ? "success" : "error", text: res.message || "Credentials saved." });
+      logAuditAction(res.success ? "Saved Gmail Integration Credentials" : "Gmail Save Failed", "Communication", res.message || "");
+    } catch (e) {
+      setGmailStatus({ type: "error", text: "Could not reach the server to save Gmail credentials." });
+    } finally {
+      setSavingGmail(false);
+    }
+  };
+
+  const handleGmailAuth = async () => {
+    setGmailStatus(null);
+    try {
+      const res = await fetch("/api/gmail/auth-url").then((r) => r.json());
+      if (res.success && res.authUrl) {
+        setGmailStatus({ type: "info", text: `Opening Google Cloud consent screen… Callback: ${res.redirectUri}` });
+        window.open(res.authUrl, "_blank", "noopener,width=620,height=700");
+        logAuditAction("Started Gmail OAuth Flow", "Google Cloud", `Redirect URI: ${res.redirectUri}`);
+      } else {
+        setGmailStatus({ type: "error", text: res.message || "Save your Google Cloud OAuth Client ID first." });
+      }
+    } catch (e) {
+      setGmailStatus({ type: "error", text: "Could not contact server to build the OAuth URL." });
+    }
+  };
+
+  const testGmail = async () => {
+    setGmailStatus(null);
+    try {
+      const res = await fetch("/api/gmail/test", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" }).then((r) => r.json());
+      setGmailStatus({ type: res.success ? "success" : "error", text: res.message || "Test failed." });
+      if (res.success) setGmailConfig((prev) => ({ ...prev, connected: true, profileEmail: res.profileEmail || prev.profileEmail }));
+    } catch (e) {
+      setGmailStatus({ type: "error", text: "Gmail test request failed." });
+    }
+  };
+
+  const disconnectGmail = async () => {
+    setGmailStatus(null);
+    try {
+      const res = await fetch("/api/gmail/disconnect", { method: "POST" }).then((r) => r.json());
+      setGmailConfig((prev) => ({ ...prev, connected: false, profileEmail: "", hasRefreshToken: false }));
+      setGmailStatus({ type: "info", text: res.message || "Gmail disconnected." });
+    } catch (e) {
+      setGmailStatus({ type: "error", text: "Disconnect request failed." });
+    }
+  };
+
+  const addSubscriber = async () => {
+    if (!newSubEmail.trim() || !newSubEmail.includes("@")) {
+      setGmailStatus({ type: "error", text: "Enter a valid email address to subscribe." });
+      return;
+    }
+    try {
+      const res = await fetch("/api/gmail/subscribers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: newSubEmail, name: newSubName }),
+      }).then((r) => r.json());
+      setGmailStatus({ type: res.success ? "success" : "error", text: res.message || "Added." });
+      if (res.success) {
+        notifyDataChanged(["emailSubscribers"]);
+        setNewSubEmail("");
+        setNewSubName("");
+      }
+    } catch (e) {
+      setGmailStatus({ type: "error", text: "Could not add subscriber." });
+    }
+  };
+
+  const removeSubscriber = async (id: string) => {
+    try {
+      const res = await fetch(`/api/gmail/subscribers/${id}`, { method: "DELETE" }).then((r) => r.json());
+      setGmailStatus({ type: res.success ? "success" : "error", text: res.message || "Removed." });
+      if (res.success) notifyDataChanged(["emailSubscribers"]);
+    } catch (e) {
+      setGmailStatus({ type: "error", text: "Could not remove subscriber." });
+    }
+  };
+
+  const sendBroadcast = async () => {
+    if (!broadcastSubject.trim()) {
+      setGmailStatus({ type: "error", text: "Enter a subject for the email." });
+      return;
+    }
+    if (!broadcastBody.trim()) {
+      setGmailStatus({ type: "error", text: "Enter the email message body." });
+      return;
+    }
+    const targets = gmailMode === "selected" ? selectedSubs : undefined;
+    if (gmailMode === "selected" && !targets?.length) {
+      setGmailStatus({ type: "error", text: "Select at least one subscriber, or switch to All subscribers." });
+      return;
+    }
+    setSendingBroadcast(true);
+    try {
+      const res = await fetch("/api/gmail/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subject: broadcastSubject, message: broadcastBody, toEmails: targets }),
+      }).then((r) => r.json());
+      setGmailStatus({ type: res.success ? "success" : "error", text: res.message || "Send finished." });
+      setBroadcastSubject("");
+      setBroadcastBody("");
+      fetch("/api/gmail/logs").then((r) => r.json()).then((j) => { if (j.success) setGmailLogs(j.logs || []); }).catch(() => {});
+      logAuditAction(res.success ? `Gmail Broadcast Sent (${res.recipients ?? 0})` : "Gmail Broadcast Failed", "Communication", res.message || "");
+    } catch (e) {
+      setGmailStatus({ type: "error", text: "Broadcast request failed." });
+    } finally {
+      setSendingBroadcast(false);
+    }
+  };
 
   // Status Banners & Modals State
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
@@ -1011,10 +1198,339 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   </select>
                 </div>
               </div>
+
+              {/* ============ GMAIL API INTEGRATION (Google Cloud) ============ */}
+              <div className="p-5 rounded-2xl border border-indigo-200 dark:border-indigo-800 bg-gradient-to-br from-indigo-50 to-white dark:from-slate-900 dark:to-slate-900 space-y-5 mt-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="p-2 rounded-lg bg-indigo-500/20 text-indigo-600 dark:text-indigo-400">
+                      <Plug className="w-4 h-4" />
+                    </span>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                        Gmail API Integration (Google Cloud Console)
+                      </h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Connect your Gmail API from Google Cloud to send emails to website subscribers.
+                      </p>
+                    </div>
+                  </div>
+
+                  {gmailLoading ? (
+                    <span className="text-[11px] text-slate-400">Loading connection status…</span>
+                  ) : gmailConfig.connected ? (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold border border-emerald-300 dark:border-emerald-800">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Connected as {gmailConfig.profileEmail || gmailConfig.senderEmail}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-[11px] font-bold border border-amber-300 dark:border-amber-800">
+                      <AlertTriangle className="w-3.5 h-3.5" />
+                      Not Connected
+                    </span>
+                  )}
+                </div>
+
+                {gmailStatus && (
+                  <div
+                    className={`px-3.5 py-2.5 rounded-xl text-xs font-semibold animate-in fade-in ${
+                      gmailStatus.type === "success"
+                        ? "bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800"
+                        : gmailStatus.type === "error"
+                        ? "bg-rose-100 dark:bg-rose-950/60 text-rose-800 dark:text-rose-300 border border-rose-300 dark:border-rose-800"
+                        : "bg-sky-100 dark:bg-sky-950/60 text-sky-800 dark:text-sky-300 border border-sky-300 dark:border-sky-800"
+                    }`}
+                  >
+                    {gmailStatus.text}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="md:col-span-2">
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      OAuth Client ID <span className="text-indigo-500 font-mono text-[10px]">(Google Cloud → APIs & Services → Credentials → OAuth 2.0 Client ID)</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={gmailConfig.clientId}
+                      onChange={(e) => setGmailConfig({ ...gmailConfig, clientId: e.target.value })}
+                      placeholder="1234567890-xxxxxxxx.apps.googleusercontent.com"
+                      className="w-full px-3.5 py-2 text-xs rounded-xl bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      OAuth Client Secret
+                    </label>
+                    <input
+                      type="password"
+                      value={gmailConfig.clientSecret}
+                      onChange={(e) => setGmailConfig({ ...gmailConfig, clientSecret: e.target.value })}
+                      placeholder="GOCSPX-xxxxxxxx"
+                      className="w-full px-3.5 py-2 text-xs rounded-xl bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Refresh Token <span className="text-slate-400 font-medium normal-case">(optional – auto-filled after OAuth)</span>
+                    </label>
+                    <input
+                      type="password"
+                      value={gmailConfig.refreshToken}
+                      onChange={(e) => setGmailConfig({ ...gmailConfig, refreshToken: e.target.value })}
+                      placeholder="1//0xxxxx-xxxxxxxx"
+                      className="w-full px-3.5 py-2 text-xs rounded-xl bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Sender Email (From)
+                    </label>
+                    <input
+                      type="email"
+                      value={gmailConfig.senderEmail}
+                      onChange={(e) => setGmailConfig({ ...gmailConfig, senderEmail: e.target.value })}
+                      placeholder="notifications@your-school.com"
+                      className="w-full px-3.5 py-2 text-xs rounded-xl bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                      Sender Display Name
+                    </label>
+                    <input
+                      type="text"
+                      value={gmailConfig.senderName}
+                      onChange={(e) => setGmailConfig({ ...gmailConfig, senderName: e.target.value })}
+                      placeholder="LIVINGSTONEEDU"
+                      className="w-full px-3.5 py-2 text-xs rounded-xl bg-white dark:bg-slate-800 border border-indigo-200 dark:border-indigo-800"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={saveGmailConfig}
+                    disabled={savingGmail}
+                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-600/30"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    {savingGmail ? "Saving…" : "Save Credentials"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleGmailAuth}
+                    className="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 dark:bg-white dark:hover:bg-slate-200 text-white dark:text-slate-900 text-xs font-bold flex items-center gap-1.5 shadow-md"
+                  >
+                    <Plug className="w-3.5 h-3.5" />
+                    Connect Gmail via Google Cloud
+                  </button>
+                  <button
+                    type="button"
+                    onClick={testGmail}
+                    disabled={!gmailConfig.connected && !gmailConfig.hasRefreshToken}
+                    className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 disabled:opacity-40 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-sky-600/30"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    Test Connection
+                  </button>
+                  {gmailConfig.connected && (
+                    <button
+                      type="button"
+                      onClick={disconnectGmail}
+                      className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center gap-1.5"
+                    >
+                      <XCircle className="w-3.5 h-3.5" />
+                      Disconnect
+                    </button>
+                  )}
+                </div>
+
+                <div className="p-3 rounded-xl bg-slate-100 dark:bg-slate-800/70 text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed border border-slate-200 dark:border-slate-700">
+                  <strong className="text-slate-700 dark:text-slate-300">How to connect:</strong> In Google Cloud Console, enable the Gmail API, create an OAuth 2.0 Client ID (Web application),
+                  add <code className="font-mono text-indigo-600 dark:text-indigo-400">http://localhost:3000/api/gmail/oauth/callback</code> (and your live domain URL) as an authorized
+                  redirect URI, then click <strong>Connect Gmail via Google Cloud</strong>, grant permission, and this panel will be ready instantly. Scope: <code className="font-mono">gmail.send</code>.
+                </div>
+              </div>
+
+              {/* ============ SUBSCRIBERS & BROADCAST ============ */}
+              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 mt-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="p-2 rounded-lg bg-sky-500/20 text-sky-600 dark:text-sky-400">
+                      <Mail className="w-4 h-4" />
+                    </span>
+                    <div>
+                      <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                        Email Subscribers <span className="text-slate-400 font-normal">({subscribers.length})</span>
+                      </h4>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        Collected automatically from website newsletter forms or added manually below.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="text"
+                    value={newSubName}
+                    onChange={(e) => setNewSubName(e.target.value)}
+                    placeholder="Subscriber name (optional)"
+                    className="flex-1 px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-sky-500"
+                  />
+                  <input
+                    type="email"
+                    value={newSubEmail}
+                    onChange={(e) => setNewSubEmail(e.target.value)}
+                    placeholder="subscriber@example.com"
+                    className="flex-1 px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-sky-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={addSubscriber}
+                    className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-md shadow-sky-600/30"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    Add Subscriber
+                  </button>
+                </div>
+
+                <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden max-h-52 overflow-y-auto">
+                  {subscribers.length === 0 ? (
+                    <p className="p-4 text-xs text-slate-400 text-center">No subscribers yet. Add one above or wait for website newsletter signups.</p>
+                  ) : (
+                    <table className="w-full text-left text-xs">
+                      <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                        {subscribers.map((sub) => (
+                          <tr key={sub.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                            <td className="p-2.5 pl-3.5 w-8">
+                              <input
+                                type="checkbox"
+                                checked={selectedSubs.includes(sub.email)}
+                                onChange={() =>
+                                  setSelectedSubs((prev) =>
+                                    prev.includes(sub.email) ? prev.filter((e) => e !== sub.email) : [...prev, sub.email]
+                                  )
+                                }
+                                className="w-3.5 h-3.5 rounded border-slate-300 dark:border-slate-700 text-sky-600 focus:ring-sky-500"
+                              />
+                            </td>
+                            <td className="p-2.5">
+                              <span className="block font-bold text-slate-800 dark:text-slate-200">{sub.name}</span>
+                              <span className="text-[10px] text-slate-400">{sub.source}</span>
+                            </td>
+                            <td className="p-2.5 font-mono text-slate-600 dark:text-slate-400">{sub.email}</td>
+                            <td className="p-2.5 w-10 text-right">
+                              <button
+                                type="button"
+                                onClick={() => removeSubscriber(sub.id)}
+                                className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded-lg"
+                                title="Remove subscriber"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </div>
+
+              {/* ============ SEND BROADCAST ============ */}
+              <div className="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-4 mt-4">
+                <div className="flex items-center gap-2">
+                  <span className="p-2 rounded-lg bg-emerald-500/20 text-emerald-600 dark:text-emerald-400">
+                    <Send className="w-4 h-4" />
+                  </span>
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                      Send Email to Subscribers
+                    </h4>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                      Delivered via your connected Gmail API. Without a connection emails are simulated and logged.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setGmailMode("all")}
+                    className={`px-3.5 py-1.5 rounded-xl text-[11px] font-bold transition-all ${
+                      gmailMode === "all"
+                        ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                    }`}
+                  >
+                    All Subscribers ({subscribers.length})
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGmailMode("selected")}
+                    className={`px-3.5 py-1.5 rounded-xl text-[11px] font-bold transition-all ${
+                      gmailMode === "selected"
+                        ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/30"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
+                    }`}
+                  >
+                    Selected ({selectedSubs.length})
+                  </button>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Subject
+                  </label>
+                  <input
+                    type="text"
+                    value={broadcastSubject}
+                    onChange={(e) => setBroadcastSubject(e.target.value)}
+                    placeholder="e.g. Welcome to our 2026/2027 Academic Newsletters"
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-emerald-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                    Message Body
+                  </label>
+                  <textarea
+                    value={broadcastBody}
+                    onChange={(e) => setBroadcastBody(e.target.value)}
+                    rows={5}
+                    placeholder="Dear subscriber, …"
+                    className="w-full px-3.5 py-2 text-xs rounded-xl bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-emerald-500 resize-y"
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={sendBroadcast}
+                  disabled={sendingBroadcast || subscribers.length === 0}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white text-xs font-bold flex items-center gap-2 shadow-md shadow-emerald-600/30"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  {sendingBroadcast ? "Sending…" : `Send Email to ${gmailMode === "all" ? subscribers.length : selectedSubs.length} Subscribers`}
+                </button>
+
+                {gmailLogs.length > 0 && (
+                  <div className="border-t border-slate-100 dark:border-slate-800 pt-3 space-y-1.5">
+                    <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Recent Send Log</p>
+                    {gmailLogs.slice(0, 4).map((log) => (
+                      <div key={log.id} className="flex items-center justify-between text-[11px]">
+                        <span className="font-semibold text-slate-700 dark:text-slate-300 truncate">{log.subject}</span>
+                        <span className="text-slate-400 ml-2">{log.recipients} → {log.mode}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
-
-          {/* 8. SUBSCRIPTION */}
           {currentTab === "subscription" && (
             <div className="space-y-6">
               <div className="border-b border-slate-100 dark:border-slate-800 pb-4">

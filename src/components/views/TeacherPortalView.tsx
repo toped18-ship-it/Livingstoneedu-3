@@ -3,6 +3,7 @@ import { lookupCurriculumTopic } from "../../data/curriculumData";
 import { WebsiteBuilderView } from "./WebsiteBuilderView";
 import { TeachersView } from "./TeachersView";
 import { downloadTextFile, buildBroadsheetCsv } from "../../lib/downloads";
+import { useGlobalRefresh } from "../../lib/liveStore";
 import {
   BookOpen,
   GraduationCap,
@@ -280,6 +281,15 @@ export function TeacherPortalView({ currentRole = "Teacher", userSession }: Teac
     fetchExams();
     fetchCaData();
   }, []);
+
+  // Keep the portal fresh whenever the admin panel changes any data.
+  useGlobalRefresh(() => {
+    fetchDashboard();
+    fetchStudents();
+    fetchLessonNotes();
+    fetchExams();
+    fetchCaData();
+  });
 
   const fetchDashboard = async () => {
     try {

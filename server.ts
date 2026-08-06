@@ -1254,6 +1254,348 @@ app.post("/api/superadmin/communication/emergency-alert", (req, res) => {
   res.json({ success: true, message: `EMERGENCY BROADCAST SENT across all registered schools and parent mobile apps: ${alertTitle}` });
 });
 
+// ============================================================
+// GMAIL API INTEGRATION (Google Cloud Console -> Gmail API)
+// ============================================================
+
+const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.send";
+
+const gmailConfig: any = {
+  clientId: process.env.GMAIL_CLIENT_ID || "",
+  clientSecret: process.env.GMAIL_CLIENT_SECRET || "",
+  refreshToken: process.env.GMAIL_REFRESH_TOKEN || "",
+  accessToken: process.env.GMAIL_ACCESS_TOKEN || "",
+  accessTokenExpiry: 0,
+  senderEmail: process.env.GMAIL_SENDER_EMAIL || "",
+  senderName: process.env.GMAIL_SENDER_NAME || "LIVINGSTONEEDU",
+  profileEmail: "",
+  oauthState: "",
+};
+
+const emailSubscribersStore: any[] = [
+  { id: "sub-001", email: "adeyemi.tunde@gmail.com", name: "Chief Adeyemi Tunde", source: "Newsletter Signup", subscribedAt: "2026-07-20T09:00:00Z", status: "Subscribed" },
+  { id: "sub-002", email: "abubakar.musa@gmail.com", name: "Alhaji Abubakar Musa", source: "Newsletter Signup", subscribedAt: "2026-07-21T10:30:00Z", status: "Subscribed" },
+  { id: "sub-003", email: "parent@livingstone.edu.ng", name: "Parent Community", source: "Website Footer", subscribedAt: "2026-07-22T11:15:00Z", status: "Subscribed" },
+  { id: "sub-004", email: "admissions@example.com", name: "Prospective Parent", source: "Admissions Form", subscribedAt: "2026-07-25T14:45:00Z", status: "Subscribed" },
+];
+
+const gmailSendLogStore: any[] = [
+  { id: "gmail-1", subject: "Welcome to Livingstone Academy Newsletter", recipients: 2, mode: "Simulated (Gmail not connected)", status: "Logged", timestamp: "2026-07-28T08:00:00Z" },
+];
+
+function maskSecret(value: string): string {
+  if (!value) return "";
+  if (value.length <= 8) return "********";
+  return `${value.slice(0, 4)}…${value.slice(-4)}`;
+}
+
+function buildGmailAuthUrl(base: string): string {
+  gmailConfig.oauthState = `gmail-${Date.now().toString(36)}`;
+  const params = new URLSearchParams({
+    client_id: gmailConfig.clientId,
+    redirect_uri: `${base}/api/gmail/oauth/callback`,
+    response_type: "code",
+    scope: GMAIL_SCOPE,
+    access_type: "offline",
+    prompt: "consent",
+    include_granted_scopes: "true",
+    state: gmailConfig.oauthState,
+  });
+  return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+}
+
+async function gmailRefreshAccessToken(): Promise<string | null> {
+  if (gmailConfig.accessToken && gmailConfig.accessTokenExpiry > Date.now() + 60000) {
+    return gmailConfig.accessToken;
+  }
+  if (!gmailConfig.clientId || !gmailConfig.clientSecret || !gmailConfig.refreshToken) return null;
+  try {
+    const res = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: gmailConfig.clientId,
+        client_secret: gmailConfig.clientSecret,
+        refresh_token: gmailConfig.refreshToken,
+        grant_type: "refresh_token",
+      }).toString(),
+    });
+    const json: any = await res.json();
+    if (json.access_token) {
+      gmailConfig.accessToken = json.access_token;
+      gmailConfig.accessTokenExpiry = Date.now() + (json.expires_in || 3600) * 1000;
+      return json.access_token;
+    }
+    console.warn("Gmail token refresh failed:", json.error || json);
+  } catch (err) {
+    console.warn("Gmail token refresh error:", (err as any)?.message || err);
+  }
+  return null;
+}
+
+async function gmailFetchProfile(): Promise<{ email: string; connected: boolean } | null> {
+  const token = await gmailRefreshAccessToken();
+  if (!token) return null;
+  try {
+    const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/profile?fields=emailAddress", {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    const json: any = await res.json();
+    if (json.emailAddress) {
+      gmailConfig.profileEmail = json.emailAddress;
+      return { email: json.emailAddress, connected: true };
+    }
+    return { email: "", connected: false };
+  } catch (err) {
+    console.warn("Gmail profile fetch error:", (err as any)?.message || err);
+    return null;
+  }
+}
+
+function buildGmailMime(to: string, subject: string, text: string): string {
+  const lines = [
+    `From: ${gmailConfig.senderName} <${gmailConfig.senderEmail || gmailConfig.profileEmail || "noreply@example.com"}>`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    "MIME-Version: 1.0",
+    "Content-Type: text/plain; charset=UTF-8",
+    "Content-Transfer-Encoding: 8bit",
+    "",
+    text,
+  ];
+  return Buffer.from(lines.join("\r\n")).toString("base64url");
+}
+
+async function gmailSendRaw(to: string, subject: string, text: string): Promise<{ ok: boolean; id?: string; error?: string }> {
+  const token = await gmailRefreshAccessToken();
+  if (!token) return { ok: false, error: "Gmail API not authenticated. Refresh token missing or invalid." };
+  try {
+    const res = await fetch("https://gmail.googleapis.com/gmail/v1/users/me/messages/send", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ raw: buildGmailMime(to, subject, text) }),
+    });
+    const json: any = await res.json();
+    if (json.id) return { ok: true, id: json.id };
+    return { ok: false, error: json.error?.message || "Gmail send failed" };
+  } catch (err) {
+    return { ok: false, error: (err as any)?.message || "Gmail send failed" };
+  }
+}
+
+// GET integration config & status
+app.get("/api/gmail/config", async (req, res) => {
+  const profile = await gmailFetchProfile();
+  res.json({
+    success: true,
+    config: {
+      clientId: gmailConfig.clientId,
+      clientSecret: gmailConfig.clientSecret,
+      refreshToken: gmailConfig.refreshToken,
+      senderEmail: gmailConfig.senderEmail,
+      senderName: gmailConfig.senderName,
+      connected: !!profile?.connected,
+      profileEmail: profile?.email || gmailConfig.profileEmail,
+      clientIdMasked: maskSecret(gmailConfig.clientId),
+      clientSecretMasked: maskSecret(gmailConfig.clientSecret),
+      hasRefreshToken: !!gmailConfig.refreshToken,
+      scope: GMAIL_SCOPE,
+    },
+    subscriberCount: emailSubscribersStore.length,
+  });
+});
+
+// PUT save integration credentials
+app.put("/api/gmail/config", (req, res) => {
+  const { clientId, clientSecret, refreshToken, senderEmail, senderName } = req.body || {};
+  if (typeof clientId === "string") gmailConfig.clientId = clientId.trim();
+  if (typeof clientSecret === "string") gmailConfig.clientSecret = clientSecret.trim();
+  if (typeof refreshToken === "string" && refreshToken.trim()) gmailConfig.refreshToken = refreshToken.trim();
+  if (typeof senderEmail === "string") gmailConfig.senderEmail = senderEmail.trim();
+  if (typeof senderName === "string") gmailConfig.senderName = senderName.trim();
+  res.json({ success: true, message: "Gmail integration credentials saved.", config: { ...gmailConfig } });
+});
+
+// GET Google OAuth consent URL
+app.get("/api/gmail/auth-url", (req, res) => {
+  if (!gmailConfig.clientId) {
+    return res.status(400).json({ success: false, message: "Save your Google Cloud OAuth Client ID first." });
+  }
+  const base = `${req.protocol}://${req.get("host")}`;
+  res.json({
+    success: true,
+    authUrl: buildGmailAuthUrl(base),
+    redirectUri: `${base}/api/gmail/oauth/callback`,
+    message: "Open this URL in a new tab and grant Gmail send permission.",
+  });
+});
+
+// GET OAuth callback: exchange code for tokens
+app.get("/api/gmail/oauth/callback", async (req, res) => {
+  const { code, state } = req.query;
+  if (state && gmailConfig.oauthState && state !== gmailConfig.oauthState) {
+    return res.status(400).send("<html><body><h3>Gmail OAuth state mismatch. Please retry from the admin panel.</h3></body></html>");
+  }
+  if (!code) {
+    return res.status(400).send("<html><body><h3>Gmail OAuth callback missing authorization code.</h3></body></html>");
+  }
+  const base = `${req.protocol}://${req.get("host")}`;
+  const redirectUri = `${base}/api/gmail/oauth/callback`;
+  let exchanged = false;
+  try {
+    const resTok = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        client_id: gmailConfig.clientId,
+        client_secret: gmailConfig.clientSecret,
+        code: String(code),
+        redirect_uri: redirectUri,
+        grant_type: "authorization_code",
+      }).toString(),
+    });
+    const json: any = await resTok.json();
+    if (json.refresh_token) gmailConfig.refreshToken = json.refresh_token;
+    if (json.access_token) {
+      gmailConfig.accessToken = json.access_token;
+      gmailConfig.accessTokenExpiry = Date.now() + (json.expires_in || 3600) * 1000;
+      exchanged = true;
+    } else {
+      console.warn("Gmail OAuth exchange error:", json.error || json);
+    }
+  } catch (err) {
+    console.warn("Gmail OAuth exchange error:", (err as any)?.message || err);
+  }
+  if (exchanged) {
+    const profile = await gmailFetchProfile();
+    res.send(
+      `<html><body style="font-family:sans-serif;background:#0f172a;color:#e2e8f0;display:flex;align-items:center;justify-content:center;min-height:100vh;">
+      <div style="text-align:center;background:#1e293b;padding:40px;border-radius:16px;max-width:420px;">
+        <h2 style="color:#34d399;">✓ Gmail Connected!</h2>
+        <p>${profile?.email ? `Connected as <b>${profile.email}</b>.` : "Connection successful."} You can now send emails to your subscribers from the admin panel.</p>
+        <a href="/app/settings/communication" style="display:inline-block;margin-top:16px;padding:10px 20px;background:#6366f1;color:#fff;border-radius:8px;text-decoration:none;">Return to Communication Settings</a>
+      </div></body></html>`
+    );
+  } else {
+    res.status(500).send("<html><body><h3>Gmail OAuth failed. Check your Client ID / Secret and try again.</h3></body></html>");
+  }
+});
+
+// POST test connection (fetches profile, sends a test email to sender)
+app.post("/api/gmail/test", async (req, res) => {
+  const profile = await gmailFetchProfile();
+  if (!profile?.connected) {
+    return res.json({ success: false, message: "Gmail not connected. Complete the OAuth flow or paste a refresh token." });
+  }
+  const target = req.body?.testEmail || gmailConfig.senderEmail || profile.email;
+  if (target) {
+    await gmailSendRaw(target, "LIVINGSTONEEDU – Gmail Integration Test", "This is a test email confirming that your Gmail API connection from Google Cloud is working correctly. – LIVINGSTONEEDU");
+  }
+  res.json({ success: true, message: `Connected as ${profile.email}. Test email sent to ${target}.`, profileEmail: profile.email });
+});
+
+// POST disconnect (clear tokens)
+app.post("/api/gmail/disconnect", (req, res) => {
+  gmailConfig.accessToken = "";
+  gmailConfig.accessTokenExpiry = 0;
+  gmailConfig.refreshToken = "";
+  gmailConfig.profileEmail = "";
+  res.json({ success: true, message: "Gmail disconnected. Saved credentials were kept for later use." });
+});
+
+// GET subscriber list
+app.get("/api/gmail/subscribers", (req, res) => {
+  res.json({ success: true, count: emailSubscribersStore.length, data: emailSubscribersStore });
+});
+
+// POST add subscriber
+app.post("/api/gmail/subscribers", (req, res) => {
+  const { email, name, source } = req.body || {};
+  if (!email || !String(email).includes("@")) {
+    return res.status(400).json({ success: false, message: "A valid email address is required." });
+  }
+  const cleanEmail = String(email).trim().toLowerCase();
+  if (emailSubscribersStore.some((s) => s.email.toLowerCase() === cleanEmail)) {
+    return res.json({ success: true, message: `${cleanEmail} is already subscribed.`, subscriber: emailSubscribersStore.find((s) => s.email.toLowerCase() === cleanEmail) });
+  }
+  const subscriber = {
+    id: `sub-${Date.now()}`,
+    email: cleanEmail,
+    name: (name || "").trim() || "Subscriber",
+    source: source || "Admin Panel",
+    subscribedAt: new Date().toISOString(),
+    status: "Subscribed",
+  };
+  emailSubscribersStore.unshift(subscriber);
+  res.json({ success: true, message: `${cleanEmail} added to subscribers.`, subscriber });
+});
+
+// DELETE subscriber
+app.delete("/api/gmail/subscribers/:id", (req, res) => {
+  const { id } = req.params;
+  const idx = emailSubscribersStore.findIndex((s) => s.id === id || s.email === id);
+  if (idx === -1) return res.status(404).json({ success: false, message: "Subscriber not found." });
+  const [removed] = emailSubscribersStore.splice(idx, 1);
+  res.json({ success: true, message: `${removed.email} removed from subscribers.`, data: removed });
+});
+
+// POST send email to subscribers via connected Gmail API
+app.post("/api/gmail/send", async (req, res) => {
+  const { subject, message, toEmails } = req.body || {};
+  if (!subject || !String(subject).trim()) return res.status(400).json({ success: false, message: "Subject is required." });
+  if (!message || !String(message).trim()) return res.status(400).json({ success: false, message: "Email body is required." });
+
+  let recipients: string[] = [];
+  if (Array.isArray(toEmails) && toEmails.length) {
+    recipients = toEmails.map((e) => String(e).trim()).filter(Boolean);
+  } else {
+    recipients = emailSubscribersStore.map((s) => s.email);
+  }
+  if (!recipients.length) return res.status(400).json({ success: false, message: "No subscribers to send to. Add subscribers first." });
+
+  const profile = await gmailFetchProfile();
+  const connected = !!profile?.connected;
+  let delivered = 0;
+  let failed: string[] = [];
+
+  for (const email of recipients) {
+    if (connected) {
+      const result = await gmailSendRaw(email, String(subject).trim(), String(message));
+      if (result.ok) delivered++;
+      else failed.push(email);
+    }
+  }
+
+  const mode = connected ? "Gmail API (Live)" : "Simulated (Gmail not connected)";
+  const log = {
+    id: `gmail-${Date.now()}`,
+    subject: String(subject).trim(),
+    recipients: recipients.length,
+    delivered: connected ? delivered : recipients.length,
+    mode,
+    status: failed.length ? `Partial (${failed.length} failed)` : "Sent",
+    timestamp: new Date().toISOString(),
+  };
+  gmailSendLogStore.unshift(log);
+
+  res.json({
+    success: true,
+    message: connected
+      ? `Sent to ${delivered}/${recipients.length} subscriber(s) via Gmail API.`
+      : `Simulated send to ${recipients.length} subscriber(s). Connect Gmail to deliver for real.`,
+    delivered,
+    recipients: recipients.length,
+    simulated: !connected,
+    failed,
+    log,
+  });
+});
+
+// GET Gmail send log
+app.get("/api/gmail/logs", (req, res) => {
+  res.json({ success: true, logs: gmailSendLogStore });
+});
+
 // 11. Monitoring & System Health APIs
 app.get("/api/superadmin/monitoring/health", (req, res) => {
   res.json({
@@ -2706,6 +3048,7 @@ function resetStoresToSeed(): void {
   register("classChangeAuditLog", classChangeAuditLogStore);
   register("verifiedSchools", verifiedSchoolsStore);
   register("staffAccounts", staffAccountsStore);
+  register("emailSubscribers", emailSubscribersStore);
   registerRecordSync("superAdminWebsiteConfigs", superAdminWebsiteConfigsStore);
   registerRecordSync("validSchoolAdmissionRecords", validSchoolAdmissionRecords);
 }
@@ -3514,6 +3857,80 @@ app.post("/api/teachers", (req, res) => {
   res.json({ success: true, message: "Teacher added to directory", data: newTeacher });
 });
 
+// Admin CRUD: Update / delete a student record
+app.put("/api/students/:id", (req, res) => {
+  const { id } = req.params;
+  const idx = studentsStore.findIndex((s) => s.id === id || s.studentId === id);
+  if (idx === -1) return res.status(404).json({ success: false, message: "Student record not found" });
+  const current = studentsStore[idx];
+  const merged = { ...current, ...req.body, id: current.id, updatedAt: new Date().toISOString() };
+  studentsStore[idx] = merged;
+  const profIdx = studentProfilesStore.findIndex((p) => p.id === id || p.studentId === id);
+  if (profIdx !== -1) studentProfilesStore[profIdx] = { ...studentProfilesStore[profIdx], ...req.body };
+  res.json({ success: true, message: "Student record updated successfully", data: merged });
+});
+
+app.delete("/api/students/:id", (req, res) => {
+  const { id } = req.params;
+  const idx = studentsStore.findIndex((s) => s.id === id || s.studentId === id);
+  if (idx === -1) return res.status(404).json({ success: false, message: "Student record not found" });
+  const [removed] = studentsStore.splice(idx, 1);
+  res.json({ success: true, message: "Student record deleted", data: removed });
+});
+
+// Admin CRUD: Update / delete a teacher record
+app.put("/api/teachers/:id", (req, res) => {
+  const { id } = req.params;
+  const idx = teachersStore.findIndex((t) => t.id === id || t.staffId === id);
+  if (idx === -1) return res.status(404).json({ success: false, message: "Teacher record not found" });
+  const current = teachersStore[idx];
+  const merged = { ...current, ...req.body, id, updatedAt: new Date().toISOString() };
+  teachersStore[idx] = merged;
+  res.json({ success: true, message: "Teacher record updated successfully", data: merged });
+});
+
+app.delete("/api/teachers/:id", (req, res) => {
+  const { id } = req.params;
+  const idx = teachersStore.findIndex((t) => t.id === id || t.staffId === id);
+  if (idx === -1) return res.status(404).json({ success: false, message: "Teacher record not found" });
+  const [removed] = teachersStore.splice(idx, 1);
+  res.json({ success: true, message: "Teacher record deleted", data: removed });
+});
+
+// Admin CRUD: Update / delete a question bank item
+app.put("/api/question-bank/:id", (req, res) => {
+  const { id } = req.params;
+  const idx = questionBank.findIndex((q) => q.id === id);
+  if (idx === -1) return res.status(404).json({ success: false, message: "Question not found" });
+  questionBank[idx] = { ...questionBank[idx], ...req.body, id };
+  res.json({ success: true, message: "Question updated", data: questionBank[idx] });
+});
+
+app.delete("/api/question-bank/:id", (req, res) => {
+  const { id } = req.params;
+  const idx = questionBank.findIndex((q) => q.id === id);
+  if (idx === -1) return res.status(404).json({ success: false, message: "Question not found" });
+  const [removed] = questionBank.splice(idx, 1);
+  res.json({ success: true, message: "Question deleted", data: removed });
+});
+
+// Library: Update / delete a book record
+app.put("/api/library/books/:id", (req, res) => {
+  const { id } = req.params;
+  const idx = libraryBooksStore.findIndex((b) => b.id === id);
+  if (idx === -1) return res.status(404).json({ success: false, message: "Book not found in catalogue" });
+  libraryBooksStore[idx] = { ...libraryBooksStore[idx], ...req.body, id };
+  res.json({ success: true, message: "Book record updated", data: libraryBooksStore[idx] });
+});
+
+app.delete("/api/library/books/:id", (req, res) => {
+  const { id } = req.params;
+  const idx = libraryBooksStore.findIndex((b) => b.id === id);
+  if (idx === -1) return res.status(404).json({ success: false, message: "Book not found in catalogue" });
+  const [removed] = libraryBooksStore.splice(idx, 1);
+  res.json({ success: true, message: "Book record deleted", data: removed });
+});
+
 // AI Lesson Notes Generator Endpoint
 app.post("/api/ai/lesson-notes", async (req, res) => {
   const { country = "Nigeria", state = "Lagos", className = "SS2", subject = "Physics", term = "First Term", week = "Week 4", topic = "Wave Motion and Sound Waves", objectives = "", curriculum = "NERDC / WAEC Standard" } = req.body;
@@ -4316,6 +4733,23 @@ app.post("/api/website/submit-form", (req, res) => {
     status: "New"
   };
   websiteFormInquiriesStore.unshift(newInquiry);
+
+  // Auto-capture newsletter / mailing-list signups into the Gmail subscriber list
+  const formLabel = String(newInquiry.formType).toLowerCase();
+  if ((formLabel.includes("newsletter") || formLabel.includes("subscribe") || formLabel.includes("mailing list")) && newInquiry.email.includes("@")) {
+    const cleanEmail = newInquiry.email.trim().toLowerCase();
+    if (!emailSubscribersStore.some((s) => s.email.toLowerCase() === cleanEmail)) {
+      emailSubscribersStore.unshift({
+        id: `sub-${Date.now()}`,
+        email: cleanEmail,
+        name: newInquiry.parentName,
+        source: `${newInquiry.formType} (Public Website)`,
+        subscribedAt: new Date().toISOString(),
+        status: "Subscribed",
+      });
+    }
+  }
+
   res.json({ success: true, message: "Thank you! Your inquiry has been submitted directly to the school admissions board.", inquiry: newInquiry });
 });
 

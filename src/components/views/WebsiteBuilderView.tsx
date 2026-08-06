@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useGlobalRefresh } from "../../lib/liveStore";
 import {
   Globe,
   Palette,
@@ -374,6 +375,11 @@ export const WebsiteBuilderView: React.FC<WebsiteBuilderViewProps> = ({ currentR
   useEffect(() => {
     fetchWebsiteData();
   }, []);
+
+  // Refresh website data when admin panel changes are broadcast
+  useGlobalRefresh(() => {
+    fetchWebsiteData();
+  });
 
   const fetchWebsiteData = async () => {
     try {

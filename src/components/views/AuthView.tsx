@@ -1665,9 +1665,103 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
         {currentPage === "privacy" && (
           <div className="max-w-3xl mx-auto space-y-6 animate-fadeIn bg-white p-8 rounded-3xl border border-slate-200 text-xs text-slate-600 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300 leading-relaxed">
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Privacy Policy</h2>
-            <p>LIVINGSTONEEDU protects student, teacher, and institutional data according to international NDPR and GDPR regulations.</p>
-            <h3 className="font-bold text-slate-900 dark:text-white text-sm">Data Collection & Protection</h3>
-            <p>Student academic records, CBT examination scores, report cards, and payment logs stored on Cloud Firestore are encrypted in transit and at rest.</p>
+            <p>
+              <strong className="text-slate-900 dark:text-white">Effective Date:</strong> 1st August 2026
+            </p>
+            <p>
+              LIVINGSTONEEDU ("we", "our", "us") operates an Education Management System (EMS)
+              and Learning Management System (LMS) that serves schools across Nigeria and beyond.
+              This Privacy Policy explains how we collect, use, disclose, and safeguard student,
+              teacher, parent, and institutional data when you use our platform, in line with the
+              Nigeria Data Protection Regulation (NDPR) and the EU General Data Protection
+              Regulation (GDPR) standards.
+            </p>
+
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">1. Information We Collect</h3>
+            <p>We collect the following categories of data:</p>
+            <p>
+              <strong className="text-slate-900 dark:text-white">Account & Profile Data:</strong>{" "}
+              Full name, email address, phone number, role (Student, Parent, Teacher, Administrator),
+              staff ID, admission number, and login credentials.
+            </p>
+            <p>
+              <strong className="text-slate-900 dark:text-white">Academic Data:</strong> Class
+              enrolment, attendance records, continuous assessment (CA) scores, examination results,
+              CBT attempts, lesson notes, report cards, and curriculum progress.
+            </p>
+            <p>
+              <strong className="text-slate-900 dark:text-white">Financial Data:</strong> Fee
+              invoices, payment receipts, and transaction logs. Payment card details are never
+              stored on our servers; they are processed by licensed third-party payment gateways.
+            </p>
+            <p>
+              <strong className="text-slate-900 dark:text-white">Usage Data:</strong> Device type,
+              browser information, IP address, pages visited, and feature usage patterns for
+              improving performance and security.
+            </p>
+
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">2. How We Use Your Data</h3>
+            <p>Your data is used solely to operate and improve the platform, including to:</p>
+            <p>• Provide core academic services: lesson notes, exam generation, grading, report cards, and CBT delivery.</p>
+            <p>• Manage student and staff records, attendance, and fee invoicing.</p>
+            <p>• Communicate important announcements, results, and school circulars to the relevant roles.</p>
+            <p>• Personalise AI-powered tools (e.g., Gemini-generated lesson notes and exams) for your school&apos;s curriculum.</p>
+            <p>• Maintain platform security, prevent fraud, and comply with legal obligations.</p>
+
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">3. Data Storage & Security</h3>
+            <p>
+              Student academic records, CBT scores, report cards, and payment logs stored on Google
+              Cloud Firestore and Realtime Database are encrypted in transit (TLS 1.2+) and at rest
+              (AES-256). Access is restricted to authorised users through role-based permissions,
+              and all administrative actions are recorded in an audit trail.
+            </p>
+
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">4. Data Sharing & Disclosure</h3>
+            <p>We do not sell, rent, or trade your personal data. We only share data:</p>
+            <p>• With your school&apos;s administrators, teachers, and authorised staff for academic and administrative purposes.</p>
+            <p>• With service providers (hosting, payment processing, analytics) under strict data-processing agreements.</p>
+            <p>• When required by Nigerian law, court order, or regulatory authority.</p>
+
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">5. Your Rights</h3>
+            <p>
+              Under the NDPR/GDPR, you have the right to access, correct, export, restrict, and
+              request deletion of your personal data. Parents/guardians may exercise these rights on
+              behalf of their children. To make a request, contact your school administrator or our
+              Data Protection Officer at privacy@livingstoneedu.ng.
+            </p>
+
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">6. Children&apos;s Privacy</h3>
+            <p>
+              Where minors use the platform, their data is collected with the consent of their
+              parent or legal guardian, and access to student-facing features is limited to
+              age-appropriate academic content.
+            </p>
+
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">7. Data Retention</h3>
+            <p>
+              Academic records are retained for as long as the school maintains an active account,
+              and up to seven (7) years after account closure where required for statutory or
+              audit purposes. Users may contact us to request earlier erasure where legally permitted.
+            </p>
+
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">8. Cookies & Tracking</h3>
+            <p>
+              We use essential cookies to maintain secure sessions and optional analytics to improve
+              the platform. You may disable non-essential cookies in your browser settings without
+              losing core functionality.
+            </p>
+
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">9. Changes to This Policy</h3>
+            <p>
+              We may update this Privacy Policy from time to time. Material changes will be notified
+              via in-app announcements or the email address associated with your account.
+            </p>
+
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">10. Contact Us</h3>
+            <p>
+              For privacy questions or complaints, contact us at privacy@livingstoneedu.ng or write
+              to LIVINGSTONEEDU, Plot 12, Educational Zone, Victoria Island Annex, Lagos, Nigeria.
+            </p>
           </div>
         )}
 
@@ -1675,7 +1769,103 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
         {currentPage === "terms" && (
           <div className="max-w-3xl mx-auto space-y-6 animate-fadeIn bg-white p-8 rounded-3xl border border-slate-200 text-xs text-slate-600 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-300 leading-relaxed">
             <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Terms of Service</h2>
-            <p>By using LIVINGSTONEEDU SaaS infrastructure, educational institutions agree to manage user access responsibly.</p>
+            <p>
+              <strong className="text-slate-900 dark:text-white">Effective Date:</strong> 1st August 2026
+            </p>
+            <p>
+              These Terms of Service ("Terms") govern the use of the LIVINGSTONEEDU SaaS platform
+              by educational institutions, their administrators, teachers, students, parents, and
+              guardians. By accessing or using the platform, you agree to be bound by these Terms.
+            </p>
+
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">1. Acceptance of Terms</h3>
+            <p>
+              By using LIVINGSTONEEDU SaaS infrastructure, educational institutions agree to manage
+              user access responsibly, ensure the accuracy of submitted data, and comply with all
+              applicable Nigerian laws and regulations.
+            </p>
+
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">2. Account Registration & Responsibilities</h3>
+            <p>
+              Schools are responsible for creating and managing accounts for their staff, students,
+              and parents. Account holders must keep login credentials confidential and notify their
+              school administrator immediately of any unauthorised use. Institutions are responsible
+              for all activity that occurs under their account.
+            </p>
+
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">3. Permitted Use</h3>
+            <p>You agree to use the platform only for legitimate educational and administrative purposes, and not to:</p>
+            <p>• Upload or transmit unlawful, defamatory, or malicious content.</p>
+            <p>• Attempt to access, modify, or tamper with another school&apos;s data or system infrastructure.</p>
+            <p>• Reverse-engineer, copy, or resell the platform, its AI-generated content, or its intellectual property.</p>
+            <p>• Use automated tools to scrape, harvest, or mine data from the platform without written permission.</p>
+
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">4. AI-Generated Content</h3>
+            <p>
+              Lesson notes, examinations, and other content generated by our AI tools (e.g., Gemini)
+              are provided for educational assistance. Schools and teachers remain responsible for
+              reviewing, verifying, and customising such content before use in official academic
+              assessments. We make no warranty as to the completeness or accuracy of AI outputs.
+            </p>
+
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">5. Subscriptions, Fees & Payments</h3>
+            <p>
+              Access to certain features requires an active subscription plan. Subscription fees are
+              payable in advance and are non-refundable except where required by law. Schools may
+              upgrade, downgrade, or cancel their plan subject to the billing cycle selected. Failure
+              to pay may result in suspension of access until payment is settled.
+            </p>
+
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">6. Intellectual Property</h3>
+            <p>
+              LIVINGSTONEEDU owns all rights to the platform, its design, source code, branding, and
+              standardised content. Schools retain ownership of the academic data they upload, and
+              grant us a limited licence to store, process, and display that data solely to provide
+              the service.
+            </p>
+
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">7. Data Protection</h3>
+            <p>
+              Both parties will handle personal data in compliance with the NDPR and applicable data
+              protection laws. Each school acts as a Data Controller for its own records, while
+              LIVINGSTONEEDU acts as a Data Processor. Details of data handling are set out in our
+              Privacy Policy.
+            </p>
+
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">8. Service Availability & Support</h3>
+            <p>
+              We aim to provide a reliable, secure service with scheduled maintenance windows
+              communicated in advance. We are not liable for interruptions caused by internet
+              outages, third-party services, or force majeure events.
+            </p>
+
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">9. Limitation of Liability</h3>
+            <p>
+              To the maximum extent permitted by law, LIVINGSTONEEDU shall not be liable for any
+              indirect, incidental, special, or consequential damages arising from the use or
+              inability to use the platform. Our total liability in any claim shall not exceed the
+              subscription fees paid by the school in the preceding twelve (12) months.
+            </p>
+
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">10. Termination</h3>
+            <p>
+              A school may terminate its account at any time by contacting support. We may suspend or
+              terminate access where these Terms are breached, where payment is overdue, or where
+              required by law. Upon termination, school data will be exported and deleted in line
+              with the retention policy.
+            </p>
+
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">11. Governing Law</h3>
+            <p>
+              These Terms are governed by the laws of the Federal Republic of Nigeria. Any disputes
+              shall be subject to the exclusive jurisdiction of the courts of Lagos State, Nigeria.
+            </p>
+
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">12. Contact</h3>
+            <p>
+              For questions about these Terms, contact legal@livingstoneedu.ng or write to
+              LIVINGSTONEEDU, Plot 12, Educational Zone, Victoria Island Annex, Lagos, Nigeria.
+            </p>
           </div>
         )}
       </main>

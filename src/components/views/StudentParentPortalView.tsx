@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useGlobalRefresh } from "../../lib/liveStore";
 import {
   User,
   GraduationCap,
@@ -384,6 +385,11 @@ export function StudentParentPortalView({ currentRole, userSession, onLogout, is
   useEffect(() => {
     fetchPortalData();
   }, [selectedChildId]);
+
+  // Refresh portal data whenever admin panel changes are broadcast
+  useGlobalRefresh(() => {
+    fetchPortalData();
+  });
 
   // Sync state when profile loads
   useEffect(() => {

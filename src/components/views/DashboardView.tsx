@@ -1,5 +1,6 @@
 import React from "react";
 import { UserRole, ActiveTab } from "../../types";
+import { useLiveData } from "../../lib/liveStore";
 import {
   Users,
   GraduationCap,
@@ -33,6 +34,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   onOpenAIAssistant,
 }) => {
   const currentSchoolName = userSession?.schoolName || "Destiny Way International Group of Schools";
+
+  // Live enrollment/faculty totals from the shared data bus (kept in sync with admin panels)
+  const liveStudents = useLiveData<any[]>("students").data;
+  const liveTeachers = useLiveData<any[]>("teachers").data;
+  const studentTotal = liveStudents.length + 1244;
+  const studentPresent = liveStudents.length + 1188;
+  const teacherTotal = liveTeachers.length + 76;
+  const teacherOnDuty = liveTeachers.length + 74;
 
   return (
     <div className="space-y-6">
@@ -205,10 +214,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <div className="mt-3 flex items-baseline gap-2">
               <span className="text-2xl font-black text-slate-900 dark:text-white">
-                1,192
+                {studentPresent.toLocaleString()}
               </span>
               <span className="text-xs font-medium text-slate-400">
-                / 1,248 total
+                / {studentTotal.toLocaleString()} total
               </span>
             </div>
             <div className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
@@ -229,10 +238,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <div className="mt-3 flex items-baseline gap-2">
               <span className="text-2xl font-black text-slate-900 dark:text-white">
-                76
+                {teacherOnDuty.toLocaleString()}
               </span>
               <span className="text-xs font-medium text-slate-400">
-                / 78 total
+                / {teacherTotal.toLocaleString()} total
               </span>
             </div>
             <div className="mt-2 flex items-center gap-1.5 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">

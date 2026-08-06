@@ -1,14 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Library, Search, Barcode, Check, BookOpen, Clock, AlertCircle } from "lucide-react";
 import { initialBooks } from "../../data/initialData";
 import { LibraryBook } from "../../types";
+import { useLiveData, notifyDataChanged } from "../../lib/liveStore";
 
 export const LibraryView: React.FC = () => {
+  const live = useLiveData<LibraryBook>("libraryBooks");
   const [books, setBooks] = useState<LibraryBook[]>(initialBooks);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState("All");
   const [barcodeInput, setBarcodeInput] = useState("");
   const [actionMsg, setActionMsg] = useState("");
+
+  // Sync the catalogue to the live server store.
+  useEffect(() => {
+    if (live.data && live.data.length) setBooks(live.data);
+  }, [live.data]);
 
   const filtered = books.filter((b) => {
     const matchesSearch =
@@ -42,6 +49,20 @@ export const LibraryView: React.FC = () => {
           : b
       )
     );
+    const target = books.find((b) => b.id === id);
+    if (!target) return;
+    const updated = {
+      ...target,
+      copies: target.status === "Available" ? target.copies - 1 : target.copies + 1,
+      status: target.copies <= 1 && target.status === "Available" ? "Borrowed" : "Available",
+    };
+    fetch(`/api/library/books/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updated),
+    })
+      .then(() => notifyDataChanged(["libraryBooks"]))
+      .catch(() => {});
   };
 
   return (

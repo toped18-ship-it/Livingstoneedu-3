@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useGlobalRefresh } from "../../lib/liveStore";
 import {
   Building2,
   Users,
@@ -404,6 +405,9 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
   useEffect(() => {
     fetchSuperAdminData();
   }, []);
+
+  // Re-pull dashboard/admin metrics in real time whenever any app store changes.
+  useGlobalRefresh(fetchSuperAdminData);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);

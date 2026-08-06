@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { GraduationCap, Search, Plus, Filter, Mail, Phone, MoreVertical, ShieldCheck, Check, UserCheck, X, Trash2, AlertTriangle, CheckSquare, Square, Pencil } from "lucide-react";
 import { initialStudents } from "../../data/initialData";
 import { StudentRecord } from "../../types";
+import { useLiveData, notifyDataChanged } from "../../lib/liveStore";
 
 export const StudentsView: React.FC = () => {
+  const live = useLiveData<StudentRecord>("students");
   const [students, setStudents] = useState<StudentRecord[]>(initialStudents);
   const [search, setSearch] = useState("");
   const [selectedClass, setSelectedClass] = useState("All");
@@ -50,6 +52,13 @@ export const StudentsView: React.FC = () => {
     setSelectedStudentDetail(updated);
     setSuccessMsg(`✓ Saved updated student profile for ${editStudentName}`);
     setTimeout(() => setSuccessMsg(""), 3500);
+    fetch(`/api/students/${selectedStudentDetail.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updated)
+    })
+      .then(() => notifyDataChanged(["students"]))
+      .catch(() => {});
   };
 
   // Multi-select & Bulk Delete State
@@ -69,6 +78,11 @@ export const StudentsView: React.FC = () => {
   const [newParentName, setNewParentName] = useState("");
   const [newParentPhone, setNewParentPhone] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
+
+  // Sync the directory to the live server store; every admin edit elsewhere updates this view.
+  useEffect(() => {
+    if (live.data && live.data.length) setStudents(live.data);
+  }, [live.data]);
 
   const toggleSelectStudent = (id: string) => {
     setSelectedIds((prev) =>
@@ -97,6 +111,11 @@ export const StudentsView: React.FC = () => {
     setDeleteModalOpen(false);
     setDeleteTargetIds([]);
     setTimeout(() => setSuccessMsg(""), 3500);
+    Promise.all(
+      deleteTargetIds.map((id) =>
+        fetch(`/api/students/${id}`, { method: "DELETE" }).catch(() => {})
+      )
+    ).then(() => notifyDataChanged(["students"]));
   };
 
   const handlePromoteClass = async () => {
@@ -111,6 +130,7 @@ export const StudentsView: React.FC = () => {
           reason: promotionReason
         })
       });
+      notifyDataChanged(["students"]);
     } catch (e) {}
 
     setStudents(prev =>
@@ -154,6 +174,17 @@ export const StudentsView: React.FC = () => {
     setNewParentPhone("");
     setEnrollModalOpen(false);
     setTimeout(() => setSuccessMsg(""), 3500);
+    fetch("/api/students", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(newStudent)
+    })
+      .then((res) => res.json())
+      .then((json) => {
+        if (json?.data) setStudents((prev) => prev.map((s) => (s.id === newStudent.id ? json.data : s)));
+        notifyDataChanged(["students"]);
+      })
+      .catch(() => notifyDataChanged(["students"]));
   };
 
   return (
