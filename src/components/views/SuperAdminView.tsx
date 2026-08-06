@@ -39,6 +39,7 @@ import {
   Check,
   Eye,
   ChevronRight,
+  ChevronDown,
   Layers,
   FileText,
   Filter,
@@ -87,6 +88,14 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
 
   // Sub-item selected within the current section
   const [activeSubItem, setActiveSubItem] = useState<string>("all");
+
+  // Accordion dropdown state: which nav sections are expanded (like the school sidebar)
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    overview: true,
+  });
+
+  const toggleSection = (id: string) =>
+    setOpenSections((prev) => ({ ...prev, [id]: !prev[id] }));
 
   // Initial fallback data for instant rendering & full functionality
   const DEFAULT_METRICS = {
@@ -1019,14 +1028,26 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
             {navSections.map((sec) => {
               const Icon = sec.icon;
               const isSelected = activeMainSection === sec.id;
+              const hasSubmenu = sec.subItems.length > 1;
+              const isOpen = openSections[sec.id] === true;
               return (
                 <div key={sec.id} className="space-y-1">
                   <button
                     onClick={() => {
-                      setActiveMainSection(sec.id as any);
                       if (sec.id === "schools" && activeSubItem === "create") {
                         setIsCreateSchoolOpen(true);
+                        return;
+                      }
+                      if (hasSubmenu) {
+                        if (isSelected) {
+                          toggleSection(sec.id);
+                        } else {
+                          setActiveMainSection(sec.id as any);
+                          setActiveSubItem(sec.subItems[0]?.id || "all");
+                          setOpenSections((prev) => ({ ...prev, [sec.id]: true }));
+                        }
                       } else {
+                        setActiveMainSection(sec.id as any);
                         setActiveSubItem(sec.subItems[0]?.id || "all");
                       }
                     }}
@@ -1040,17 +1061,21 @@ export const SuperAdminView: React.FC<SuperAdminViewProps> = ({
                       <Icon className={`w-4 h-4 ${isSelected ? "text-white" : "text-purple-600 dark:text-purple-400"}`} />
                       <span>{sec.label}</span>
                     </div>
-                    {isSelected ? (
-                      <ChevronRight className="w-4 h-4 text-white" />
+                    {hasSubmenu ? (
+                      isOpen ? (
+                        <ChevronDown className={`w-4 h-4 ${isSelected ? "text-white" : "text-slate-400"}`} />
+                      ) : (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
+                          {sec.subItems.length}
+                        </span>
+                      )
                     ) : (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-500 dark:text-slate-400">
-                        {sec.subItems.length}
-                      </span>
+                      isSelected && <ChevronRight className="w-4 h-4 text-white" />
                     )}
                   </button>
 
-                  {/* Render Sub-Items under active main section */}
-                  {isSelected && sec.subItems.length > 1 && (
+                  {/* Accordion dropdown: render sub-items whenever the section is expanded */}
+                  {hasSubmenu && isOpen && (
                     <div className="ml-5 border-l-2 border-purple-800/60 pl-2.5 space-y-1 my-1">
                       {sec.subItems.map((sub) => {
                         const isSubActive = activeSubItem === sub.id;
