@@ -36,7 +36,23 @@ import {
   Clock,
   Award,
   Sun,
-  Moon
+  Moon,
+  BarChart3,
+  MessageSquare,
+  Send,
+  Bell,
+  Smartphone,
+  Heart,
+  Video,
+  Users2,
+  Trophy,
+  Target,
+  FileBadge,
+  Download,
+  Quote,
+  BrainCircuit,
+  Calendar,
+  Cloud,
 } from "lucide-react";
 import { UserRole } from "../../types";
 
@@ -679,64 +695,386 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
         {currentPage === "landing" && (
           <div className="space-y-12 animate-fadeIn">
             {/* Hero Section */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-indigo-50 to-white p-8 md:p-14 border border-slate-200 dark:from-slate-900 dark:via-indigo-950 dark:to-slate-900 dark:border-slate-800 shadow-2xl space-y-8 text-center md:text-left">
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-300 dark:border-indigo-500/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-wide">
-                <Sparkles className="w-4 h-4 text-amber-400" /> Next-Gen School Management Infrastructure
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-white via-indigo-50 to-white dark:from-slate-900 dark:via-indigo-950 dark:to-slate-900 p-8 md:p-14 border border-slate-200 dark:border-slate-800 shadow-2xl">
+              <div className="absolute inset-0 pointer-events-none opacity-30 dark:opacity-15">
+                <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-indigo-300 to-purple-300 dark:from-indigo-700 dark:to-purple-700 rounded-full blur-3xl" />
+                <div className="absolute -bottom-32 -left-32 w-72 h-72 bg-gradient-to-tr from-amber-300 to-pink-300 dark:from-amber-800 dark:to-pink-800 rounded-full blur-3xl" />
               </div>
-              <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight max-w-3xl">
-                AI-Powered Operating System for Modern Schools & Institutions
+              <div className="relative inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-300 dark:border-indigo-500/40 text-indigo-700 dark:text-indigo-300 text-xs font-bold uppercase tracking-wide">
+                <Sparkles className="w-4 h-4 text-amber-400" /> All-in-One School Management Platform
+              </div>
+              <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight leading-tight max-w-3xl mt-5">
+                Nigeria's Most Advanced AI-Powered School Management System
               </h2>
-              <p className="text-sm md:text-base text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed">
-                Streamline academic governance, student management, automated CBT exams, report card compilation, fee payments, and AI-assisted teaching from one secure platform.
+              <p className="text-sm md:text-base text-slate-600 dark:text-slate-300 max-w-2xl leading-relaxed mt-4">
+                Generate report cards, AI lesson notes, run CBT exams, track attendance, manage fee payments, and communicate with parents — all from one intelligent platform built for Nigerian schools.
               </p>
-              <div className="flex flex-wrap items-center gap-4 pt-2 justify-center md:justify-start">
-                <button
-                  onClick={() => setCurrentPage("login")}
-                  className="px-6 py-3.5 rounded-xl font-bold text-xs text-white bg-indigo-600 hover:bg-indigo-500 shadow-xl shadow-indigo-600/40 transition-all flex items-center gap-2"
-                >
-                  Access School Portals <ArrowRight className="w-4 h-4" />
-                </button>
+              <div className="flex flex-wrap items-center gap-4 pt-6 justify-center md:justify-start">
                 <button
                   onClick={() => setCurrentPage("register-teacher")}
-                  className="px-6 py-3.5 rounded-xl font-bold text-xs text-slate-800 bg-slate-200 hover:bg-slate-300 border border-slate-300 dark:text-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 dark:border-slate-700 transition-all"
+                  className="px-7 py-3.5 rounded-2xl font-bold text-sm text-white bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 hover:brightness-110 shadow-2xl shadow-indigo-600/40 transition-all flex items-center gap-2"
                 >
-                  Register School Teacher Account
+                  Get Started Free <ArrowRight className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setCurrentPage("login")}
+                  className="px-6 py-3.5 rounded-2xl font-bold text-sm text-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700 transition-all flex items-center gap-2 shadow-sm"
+                >
+                  <Video className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> Watch Demo
                 </button>
               </div>
             </div>
 
-            {/* Quick Stats Grid */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-2 text-center">
-                <p className="text-3xl font-black text-indigo-600 dark:text-indigo-400">1,200+</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Schools Operating</p>
+            {/* Quick Stats Bar */}
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+              <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 text-center space-y-1">
+                <p className="text-3xl font-black text-indigo-600 dark:text-indigo-400">100+</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Schools Using</p>
               </div>
-              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-2 text-center">
-                <p className="text-3xl font-black text-teal-600 dark:text-teal-400">450,000+</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Enrolled Students</p>
+              <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 text-center space-y-1">
+                <p className="text-3xl font-black text-sky-600 dark:text-sky-400">10K+</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Students Managed</p>
               </div>
-              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-2 text-center">
-                <p className="text-3xl font-black text-purple-600 dark:text-purple-400">99.9%</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">System Uptime</p>
+              <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 text-center space-y-1">
+                <p className="text-3xl font-black text-amber-600 dark:text-amber-400">4.9</p>
+                <div className="flex items-center justify-center gap-0.5">
+                  <Star className="w-3 h-3 text-amber-400 fill-current" />
+                  <Star className="w-3 h-3 text-amber-400 fill-current" />
+                  <Star className="w-3 h-3 text-amber-400 fill-current" />
+                  <Star className="w-3 h-3 text-amber-400 fill-current" />
+                  <Star className="w-3 h-3 text-amber-400 fill-current" />
+                </div>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">User Rating</p>
               </div>
-              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-2 text-center">
-                <p className="text-3xl font-black text-amber-600 dark:text-amber-400">85,000+</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">AI Notes Generated</p>
+              <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 text-center space-y-1">
+                <p className="text-3xl font-black text-emerald-600 dark:text-emerald-400">98%</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Success Rate</p>
+              </div>
+              <div className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 text-center space-y-1">
+                <p className="text-3xl font-black text-purple-600 dark:text-purple-400">20K+</p>
+                <p className="text-[11px] text-slate-500 dark:text-slate-400">Report Cards</p>
               </div>
             </div>
+          </div>
+        )}
 
-            {/* Direct Portal Access Link */}
-            <div className="p-6 rounded-2xl bg-indigo-50 border border-indigo-200 dark:bg-indigo-950/60 dark:border-indigo-800/80 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div>
-                <h3 className="font-bold text-base text-slate-900 dark:text-white">Ready to log into your portal?</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">Select Student Portal or Teacher Portal to sign in.</p>
+        {/* 1b. PARENT MOBILE APP SECTION */}
+        {currentPage === "landing" && (
+          <div className="p-6 md:p-10 rounded-3xl bg-gradient-to-br from-indigo-50 via-white to-teal-50 dark:from-indigo-950/40 dark:via-slate-900 dark:to-teal-950/40 border border-slate-200 dark:border-slate-800">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
+              <div className="space-y-5">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider">Parent App</span>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-300 font-bold">iOS + Android</span>
+                </div>
+                <h3 className="text-3xl font-black text-slate-900 dark:text-white leading-tight">Keep Parents Engaged & Informed</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                  Parents get real-time access to their children's academic progress, attendance, report cards, and fee balances right on their phone.
+                </p>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-emerald-500" /> View grades, report cards, and performance analytics</li>
+                  <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-emerald-500" /> Monitor attendance with real-time push alerts</li>
+                  <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-emerald-500" /> Pay school fees securely from the app</li>
+                  <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-emerald-500" /> Real-time chat & announcements with push notifications</li>
+                  <li className="flex items-center gap-2"><CheckCircle className="w-4 h-4 text-emerald-500" /> Download report cards and certificates anytime</li>
+                </ul>
+                <div className="flex items-center gap-3 pt-2">
+                  <button onClick={() => setCurrentPage("features")} className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-xs shadow-md flex items-center gap-1.5">
+                    <Smartphone className="w-4 h-4" /> Get the App
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={() => setCurrentPage("login")}
-                className="px-5 py-2.5 rounded-xl text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-500 shadow-md transition-all flex items-center gap-2"
-              >
-                Go to Portals <ArrowRight className="w-4 h-4" />
-              </button>
+              <div className="flex justify-center lg:justify-end">
+                <div className="relative flex items-center gap-4">
+                  <div className="w-64 h-80 md:w-72 md:h-96 bg-gradient-to-br from-slate-900 to-slate-800 rounded-[2.5rem] p-2 shadow-2xl border-8 border-slate-900">
+                    <div className="w-full h-full bg-slate-900 rounded-[1.75rem] flex items-center justify-center">
+                      <Award className="w-16 h-16 text-indigo-400" />
+                    </div>
+                  </div>
+                  <div className="w-56 h-72 md:w-64 md:h-80 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-950/50 dark:to-purple-950/50 rounded-[2.25rem] p-2 shadow-xl -mt-8">
+                    <div className="w-full h-full bg-white dark:bg-slate-900 rounded-[1.5rem] flex items-center justify-center">
+                      <GraduationCap className="w-14 h-14 text-sky-400" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 1c. FEATURE GRID */}
+        {currentPage === "landing" && (
+          <div className="space-y-8">
+            <div className="text-center space-y-3 max-w-2xl mx-auto">
+              <h3 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white">Everything Your School Needs in One Platform</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Comprehensive school management features designed to streamline every aspect of your institution</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-3 transition-transform hover:-translate-y-0.5">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400">
+                  <FileText className="w-6 h-6" />
+                </div>
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Report Card Generator</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Create beautiful, professional report cards in minutes with automatic grading and calculations. Customizable templates with school branding.</p>
+              </div>
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-3 transition-transform hover:-translate-y-0.5">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400">
+                  <BookOpen className="w-6 h-6" />
+                </div>
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Student Management</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Centralized database for unlimited students. Manage profiles, enrollment, academic records, and track student progress effortlessly.</p>
+              </div>
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-3 transition-transform hover:-translate-y-0.5">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400">
+                  <BarChart3 className="w-6 h-6" />
+                </div>
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Performance Analytics</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Real-time dashboard with comprehensive analytics. Track academic trends, identify patterns, and make data-driven decisions.</p>
+              </div>
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-3 transition-transform hover:-translate-y-0.5">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-teal-50 dark:bg-teal-950/30 text-teal-600 dark:text-teal-400">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Smart Attendance System</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Biometric and digital attendance tracking with real-time updates, automated reports, notifications, and detailed analytics.</p>
+              </div>
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-3 transition-transform hover:-translate-y-0.5">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400">
+                  <Users2 className="w-6 h-6" />
+                </div>
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Computer-Based Testing</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Create and manage online exams, question banks, and automatic grading. Students take exams digitally with instant results.</p>
+              </div>
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-3 transition-transform hover:-translate-y-0.5">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400">
+                  <Users className="w-6 h-6" />
+                </div>
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Teacher Management</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Unlimited teacher accounts with role-based permissions. Teachers can manage classes, mark attendance, and create reports.</p>
+              </div>
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-3 transition-transform hover:-translate-y-0.5">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-sky-50 dark:bg-sky-950/30 text-sky-600 dark:text-sky-400">
+                  <Globe className="w-6 h-6" />
+                </div>
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Guardian/Parent Portal</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Parents can track their children's academic progress, view report cards, check attendance, and stay connected with the school.</p>
+              </div>
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-3 transition-transform hover:-translate-y-0.5">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400">
+                  <Calendar className="w-6 h-6" />
+                </div>
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Class Management</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Organize students into classes and grade levels. Manage class schedules, subjects, and teacher assignments seamlessly.</p>
+              </div>
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-3 transition-transform hover:-translate-y-0.5">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400">
+                  <ShieldCheck className="w-6 h-6" />
+                </div>
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Secure &amp; Reliable</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Bank-level 256-bit SSL encryption, daily automatic backups, and cloud storage. Your data is always safe and accessible.</p>
+              </div>
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-3 transition-transform hover:-translate-y-0.5">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-fuchsia-50 dark:bg-fuchsia-950/30 text-fuchsia-600 dark:text-fuchsia-400">
+                  <BrainCircuit className="w-6 h-6" />
+                </div>
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">AI-Powered Tools</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Leverage AI for predictive analytics, personalized learning, automated grading insights, and smart student performance forecasting.</p>
+              </div>
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-3 transition-transform hover:-translate-y-0.5">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-cyan-50 dark:bg-cyan-950/30 text-cyan-600 dark:text-cyan-400">
+                  <FileBadge className="w-6 h-6" />
+                </div>
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Entrance Examination</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Complete entrance exam management with online registration, CBT, automated scoring, merit lists, and admission processing.</p>
+              </div>
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-3 transition-transform hover:-translate-y-0.5">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-indigo-50 dark:bg-indigo-950/30 text-indigo-600 dark:text-indigo-400">
+                  <Award className="w-6 h-6" />
+                </div>
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Scheme of Work & Lesson Notes</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Curriculum management with pre-loaded schemes of work. Access NERDC-aligned lesson plans and learning objectives.</p>
+              </div>
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-3 transition-transform hover:-translate-y-0.5">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-purple-50 dark:bg-purple-950/30 text-purple-600 dark:text-purple-400">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">AI Lesson Note Generator</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Generate detailed, curriculum-aligned lesson notes instantly with AI. Create engaging lesson plans, activities, and assessments.</p>
+              </div>
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-3 transition-transform hover:-translate-y-0.5">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-teal-50 dark:bg-teal-950/30 text-teal-600 dark:text-teal-400">
+                  <MessageSquare className="w-6 h-6" />
+                </div>
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Real-Time Messaging</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Instant messaging between schools, teachers, and parents. Direct chats, group conversations, and broadcast announcements.</p>
+              </div>
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-3 transition-transform hover:-translate-y-0.5">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-amber-50 dark:bg-amber-950/30 text-amber-600 dark:text-amber-400">
+                  <Video className="w-6 h-6" />
+                </div>
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Virtual Classroom</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Live video classes, assignments, and interactive learning spaces. Conduct live sessions and share materials from one platform.</p>
+              </div>
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-3 transition-transform hover:-translate-y-0.5">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-rose-50 dark:bg-rose-950/30 text-rose-600 dark:text-rose-400">
+                  <Calendar className="w-6 h-6" />
+                </div>
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">Timetable Management</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Create and manage school timetables with automatic teacher assignments. Conflict detection and real-time notifications.</p>
+              </div>
+              <div className="p-6 rounded-2xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 space-y-3 transition-transform hover:-translate-y-0.5">
+                <div className="flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400">
+                  <CreditCard className="w-6 h-6" />
+                </div>
+                <h4 className="font-bold text-sm text-slate-900 dark:text-white">School Accounting &amp; Payroll</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">Complete financial management with fee collection, expense tracking, salary payments, and detailed financial reports.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 1d. GAMIFIED LEARNING BAND */}
+        {currentPage === "landing" && (
+          <div className="rounded-3xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-1 overflow-hidden">
+            <div className="rounded-3xl bg-gradient-to-br from-indigo-900 via-purple-900 to-pink-900 dark:from-indigo-950 dark:via-purple-950 dark:to-pink-950 p-8 md:p-12 text-center relative overflow-hidden">
+              <div className="absolute inset-0 pointer-events-none">
+                <div className="absolute -top-20 -right-20 w-40 h-40 bg-gradient-to-br from-white/10 to-transparent rounded-full blur-2xl" />
+                <div className="absolute -bottom-20 -left-20 w-44 h-44 bg-gradient-to-tr from-yellow-300/10 to-transparent rounded-full blur-2xl" />
+              </div>
+              <div className="relative">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-yellow-400/20 border border-yellow-300/40 text-yellow-300 text-[10px] font-bold uppercase tracking-wider mb-4">
+                  <span className="w-1.5 h-1.5 bg-yellow-400 rounded-full animate-pulse" /> New Feature
+                </div>
+                <h3 className="text-2xl md:text-3xl font-black text-white mb-3">Gamified Learning for Students</h3>
+                <p className="text-sm text-indigo-200 max-w-2xl mx-auto mb-6">
+                  Competitive educational games where students learn by playing. Multiplayer battles, rewards, leaderboards, and fun challenges across multiple subjects.
+                </p>
+                <div className="flex flex-wrap justify-center gap-3">
+                  <span className="text-[10px] px-2.5 py-1 rounded-full bg-white/10 text-white font-medium">Multiplayer Online</span>
+                  <span className="text-[10px] px-2.5 py-1 rounded-full bg-white/10 text-white font-medium">Math • Science • English</span>
+                  <span className="text-[10px] px-2.5 py-1 rounded-full bg-white/10 text-white font-medium">Rewards & Leaderboards</span>
+                  <span className="text-[10px] px-2.5 py-1 rounded-full bg-white/10 text-white font-medium">Solo & Bot Play</span>
+                </div>
+                <div className="mt-6">
+                  <button
+                    onClick={() => setCurrentPage("subscription")}
+                    className="px-6 py-2.5 rounded-xl bg-white text-indigo-700 font-black text-sm shadow-lg hover:shadow-xl transition-all"
+                  >
+                    Explore Games
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 1e. 3-STEP QUICK SETUP */}
+        {currentPage === "landing" && (
+          <div className="space-y-10">
+            <div className="text-center space-y-3 max-w-2xl mx-auto">
+              <h3 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white">Get Started in 3 Simple Steps</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Start managing your school efficiently in minutes, not hours</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="relative p-6 rounded-3xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 text-center">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-lg">1</div>
+                <div className="mt-3 space-y-2">
+                  <h4 className="font-bold text-slate-900 dark:text-white">Create Your Account</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Sign up with your school email and basic information. No credit card required.</p>
+                </div>
+              </div>
+              <div className="relative p-6 rounded-3xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 text-center">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-lg">2</div>
+                <div className="mt-3 space-y-2">
+                  <h4 className="font-bold text-slate-900 dark:text-white">Set Up Your School</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Import student records via CSV or add manually. Configure classes, subjects, and branding.</p>
+                </div>
+              </div>
+              <div className="relative p-6 rounded-3xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800 text-center">
+                <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-black text-sm shadow-lg">3</div>
+                <div className="mt-3 space-y-2">
+                  <h4 className="font-bold text-slate-900 dark:text-white">Start Managing</h4>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Generate report cards, track attendance, run exams, and manage everything from one dashboard.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 1f. TESTIMONIAL */}
+        {currentPage === "landing" && (
+          <div className="p-8 md:p-10 rounded-3xl bg-white border border-slate-200 shadow-sm dark:bg-slate-900 dark:border-slate-800">
+            <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-center gap-8">
+              <div className="relative w-24 h-24 rounded-full overflow-hidden border-4 border-slate-100 dark:border-slate-800 flex-shrink-0">
+                <img
+                  src="https://images.pexels.com/photos/3762800/pexels-photo-3762800.jpeg?w=200&h=200&fit=crop&auto=compress&cs=tinysrgb"
+                  alt="Mrs. Adebayo, Principal"
+                  className="w-full h-full object-cover object-center"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+              </div>
+              <div className="space-y-3 text-center md:text-left">
+                <Quote className="w-6 h-6 text-indigo-400" />
+                <p className="text-sm text-slate-600 dark:text-slate-300 italic leading-relaxed">
+                  "LIVINGSTONEEDU has transformed how we manage our school. What used to take days now takes minutes. The AI lesson notes and automated report card generator are simply magic!"
+                </p>
+                <div className="flex items-center justify-center md:justify-start gap-2">
+                  <Star className="w-3 h-3 text-amber-400 fill-current" />
+                  <Star className="w-3 h-3 text-amber-400 fill-current" />
+                  <Star className="w-3 h-3 text-amber-400 fill-current" />
+                  <Star className="w-3 h-3 text-amber-400 fill-current" />
+                  <Star className="w-3 h-3 text-amber-400 fill-current" />
+                </div>
+                <p className="text-xs font-bold text-slate-900 dark:text-white">Mrs. Adebayo, Principal — Excellence Academy</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* 1g. LIMITED TIME OFFER */}
+        {currentPage === "landing" && (
+          <div className="rounded-3xl bg-gradient-to-r from-rose-500 via-pink-500 to-red-500 p-1">
+            <div className="rounded-3xl bg-gradient-to-br from-rose-900 via-pink-900 to-red-900 p-8 md:p-10 text-center text-white">
+              <h3 className="text-xl md:text-2xl font-black mb-2">Ready to Transform Your School?</h3>
+              <p className="text-sm text-rose-100 mb-6 max-w-2xl mx-auto">
+                Join 100+ schools already using LIVINGSTONEEDU to streamline operations and improve student outcomes.
+              </p>
+              <div className="flex flex-wrap justify-center gap-3">
+                <button
+                  onClick={() => setCurrentPage("register-teacher")}
+                  className="px-7 py-3 rounded-2xl bg-white text-rose-700 font-black text-sm shadow-xl hover:shadow-2xl transition-all flex items-center gap-2"
+                >
+                  Get Started Free <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+              <p className="text-[10px] text-rose-200 mt-3">No credit card required. Free plan available. Cancel anytime.</p>
+            </div>
+          </div>
+        )}
+
+        {/* 1h. SECURITY / TRUST FOOTER */}
+        {currentPage === "landing" && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-4 justify-center md:justify-start">
+              <Cloud className="w-8 h-8 text-indigo-500 dark:text-indigo-400" />
+              <div>
+                <p className="font-bold text-xs text-slate-900 dark:text-white">Google Cloud</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">Enterprise-grade cloud infrastructure</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 justify-center">
+              <ShieldCheck className="w-8 h-8 text-emerald-500 dark:text-emerald-400" />
+              <div>
+                <p className="font-bold text-xs text-slate-900 dark:text-white">256-bit SSL Encryption</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">Daily automatic backups</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 justify-center md:justify-end">
+              <CreditCard className="w-8 h-8 text-purple-500 dark:text-purple-400" />
+              <div>
+                <p className="font-bold text-xs text-slate-900 dark:text-white">Secure Payments</p>
+                <p className="text-[10px] text-slate-500 dark:text-slate-400">Paystack PCI-DSS compliant</p>
+              </div>
             </div>
           </div>
         )}
@@ -1871,86 +2209,50 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
       </main>
 
       {/* FOOTER */}
-      <footer className="bg-white border-t border-slate-200 dark:bg-slate-900 dark:border-slate-800 py-6 px-4 md:px-8 mt-12 text-xs text-slate-500 dark:text-slate-400">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-slate-900 dark:text-white">LIVINGSTONEEDU</span>
-            <span>© {new Date().getFullYear()} {isAdminMode ? "Super Admin Governance Portal" : "Enterprise LMS & ERP"}. All rights reserved.</span>
-          </div>
-          {!isAdminMode && (
-            <div className="flex flex-wrap items-center gap-4">
-              <a
-                href="/"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setCurrentPage("landing");
-                }}
-                className="hover:text-slate-900 dark:hover:text-white"
-              >
-                Home
-              </a>
-              <a
-                href="/about"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setCurrentPage("about");
-                }}
-                className="hover:text-slate-900 dark:hover:text-white"
-              >
-                About
-              </a>
-              <a
-                href="/features"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setCurrentPage("features");
-                }}
-                className="hover:text-slate-900 dark:hover:text-white"
-              >
-                Features
-              </a>
-              <a
-                href="/pricing"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setCurrentPage("pricing");
-                }}
-                className="hover:text-slate-900 dark:hover:text-white"
-              >
-                Pricing
-              </a>
-              <a
-                href="/contact"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setCurrentPage("contact");
-                }}
-                className="hover:text-slate-900 dark:hover:text-white"
-              >
-                Contact
-              </a>
-              <a
-                href="/privacy"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setCurrentPage("privacy");
-                }}
-                className="hover:text-slate-900 dark:hover:text-white"
-              >
-                Privacy Policy
-              </a>
-              <a
-                href="/terms"
-                onClick={(e) => {
-                  e.preventDefault();
-                  setCurrentPage("terms");
-                }}
-                className="hover:text-slate-900 dark:hover:text-white"
-              >
-                Terms of Service
-              </a>
+      <footer className="bg-white border-t border-slate-200 dark:bg-slate-900 dark:border-slate-800 py-10 px-4 md:px-8 mt-16 text-xs text-slate-500 dark:text-slate-400">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-4">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-slate-900 dark:text-white">LIVINGSTONEEDU</span>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400">
+                Nigeria's Most Advanced AI-Powered School Management System.
+              </p>
+              <p className="text-xs">
+                © {new Date().getFullYear()} {isAdminMode ? "Super Admin Governance Portal" : "Enterprise LMS & ERP"}. All rights reserved.
+              </p>
             </div>
-          )}
+            {!isAdminMode && (
+              <>
+                <div className="space-y-3">
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">Explore</h4>
+                  <div className="flex flex-col gap-2.5">
+                    <a href="/" onClick={(e) => { e.preventDefault(); setCurrentPage("landing"); }} className="hover:text-slate-900 dark:hover:text-white">Home</a>
+                    <a href="/features" onClick={(e) => { e.preventDefault(); setCurrentPage("features"); }} className="hover:text-slate-900 dark:hover:text-white">Features</a>
+                    <a href="/pricing" onClick={(e) => { e.preventDefault(); setCurrentPage("pricing"); }} className="hover:text-slate-900 dark:hover:text-white">Pricing</a>
+                    <a href="/about" onClick={(e) => { e.preventDefault(); setCurrentPage("about"); }} className="hover:text-slate-900 dark:hover:text-white">About</a>
+                    <a href="/contact" onClick={(e) => { e.preventDefault(); setCurrentPage("contact"); }} className="hover:text-slate-900 dark:hover:text-white">Contact</a>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">Portals</h4>
+                  <div className="flex flex-col gap-2.5">
+                    <a href="/login" onClick={(e) => { e.preventDefault(); setCurrentPage("login"); }} className="hover:text-slate-900 dark:hover:text-white">Student Portal</a>
+                    <a href="/register-teacher" onClick={(e) => { e.preventDefault(); setCurrentPage("register-teacher"); }} className="hover:text-slate-900 dark:hover:text-white">Teacher Portal</a>
+                    <a href="/admin" onClick={(e) => { e.preventDefault(); setCurrentPage("login"); }} className="hover:text-slate-900 dark:hover:text-white">Admin Portal</a>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white">Legal</h4>
+                  <div className="flex flex-col gap-2.5">
+                    <a href="/privacy" onClick={(e) => { e.preventDefault(); setCurrentPage("privacy"); }} className="hover:text-slate-900 dark:hover:text-white">Privacy Policy</a>
+                    <a href="/terms" onClick={(e) => { e.preventDefault(); setCurrentPage("terms"); }} className="hover:text-slate-900 dark:hover:text-white">Terms of Service</a>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </footer>
     </div>
