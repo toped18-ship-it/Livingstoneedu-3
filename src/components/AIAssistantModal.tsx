@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Sparkles, X, Send, Bot, User, Copy, Check, FileText, Calendar, BookOpen, GraduationCap } from "lucide-react";
 import { UserRole } from "../types";
 
@@ -26,6 +26,21 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({ isOpen, onCl
   const [loading, setLoading] = useState(false);
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
+  // Update the intro greeting when the active role changes.
+  useEffect(() => {
+    if (!isOpen) return;
+    setMessages((prev) =>
+      prev.length === 1 && prev[0].sender === "ai"
+        ? [
+            {
+              ...prev[0],
+              text: `Hello! I am your LIVINGSTONEEDU AI Copilot powered by Google Gemini. I am optimized for your active role as [${currentRole}].\n\nHow can I assist you today? You can ask me to generate NERDC/WAEC lesson plans, draft official circulars, solve math equations, or compose examination questions!`,
+            },
+          ]
+        : prev
+    );
+  }, [currentRole, isOpen]);
+
   if (!isOpen) return null;
 
   const handleSend = async (customText?: string) => {
@@ -52,7 +67,10 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({ isOpen, onCl
           context: "Floating Assistant Modal",
         }),
       });
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success === false) {
+        throw new Error(data.error || `Request failed (${res.status}).`);
+      }
       const aiReply = data.reply || "AI process complete.";
 
       setMessages((prev) => [
@@ -63,12 +81,16 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({ isOpen, onCl
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         },
       ]);
-    } catch (err) {
+    } catch (err: any) {
+      const msg =
+        err?.message === "Failed to fetch"
+          ? "I could not reach the AI engine. This build appears to be a frontend-only deployment (e.g. GitHub Pages) where the /api endpoints are not available. Please run the full app server to enable AI features."
+          : `I encountered a network issue while contacting the Gemini AI engine. Please verify system connection.`;
       setMessages((prev) => [
         ...prev,
         {
           sender: "ai",
-          text: "I encountered a network issue while contacting the Gemini AI engine. Please verify system connection.",
+          text: msg,
           timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
         },
       ]);
@@ -77,10 +99,15 @@ export const AIAssistantModal: React.FC<AIAssistantModalProps> = ({ isOpen, onCl
     }
   };
 
-  const copyToClipboard = (text: string, idx: number) => {
-    navigator.clipboard.writeText(text);
-    setCopiedIndex(idx);
-    setTimeout(() => setCopiedIndex(null), 2000);
+  const copyToClipboard = async (text: string, idx: number) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopiedIndex(idx);
+    } catch {
+      setCopiedIndex(idx);
+    } finally {
+      setTimeout(() => setCopiedIndex(null), 2000);
+    }
   };
 
   const quickPrompts = [

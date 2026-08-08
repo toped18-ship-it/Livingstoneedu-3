@@ -1,8 +1,18 @@
 export type UserRole =
   | "Super Admin"
-  | "School Administrator"
+  | "School Owner"
+  | "Proprietor"
+  | "Proprietress"
+  | "Head Teacher"
+  | "Assistant Head Teacher"
   | "Principal"
   | "Vice Principal"
+  | "School Administrator"
+  | "ICT Administrator"
+  | "Registrar"
+  | "Admission Officer"
+  | "Bursar"
+  | "Accountant"
   | "Teacher"
   | "Class Teacher"
   | "Subject Teacher"
@@ -17,6 +27,7 @@ export type ActiveTab =
   | "auth"
   | "dashboard"
   | "superadmin"
+  | "school-portal"
   | "teacher-portal"
   | "student-parent-portal"
   | "academic-curriculum"
@@ -29,6 +40,7 @@ export type ActiveTab =
   | "academic-question-bank"
   | "academic-report-cards"
   | "academic-attendance"
+  | "attendance"
   | "students"
   | "teachers"
   | "finance"
@@ -40,7 +52,14 @@ export type ActiveTab =
   | "settings"
   | "support"
   | "website-builder"
-  | "subscription";
+  | "subscription"
+  | "id-cards"
+  | "entrance-exams"
+  | "timetable"
+  | "payroll"
+  | "chat"
+  | "gamified-learning"
+  | "job-marketplace";
 
 export const ALL_CLASSES = [
   "Primary 1",

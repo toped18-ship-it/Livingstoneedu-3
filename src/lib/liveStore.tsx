@@ -66,6 +66,18 @@ const STORE_CONFIG: Record<string, StoreConfig> = {
     path: "/api/gmail/subscribers",
     decode: (payload: any) => payload?.data || [],
   },
+  attendanceRegister: {
+    path: "/api/attendance/registers",
+    decode: (payload: any) => payload?.data || [],
+  },
+  teacherLessons: {
+    path: "/api/teacher/lesson-notes",
+    decode: (payload: any) => payload?.data || [],
+  },
+  teacherExams: {
+    path: "/api/teacher/exams",
+    decode: (payload: any) => payload?.data || [],
+  },
 };
 
 /** Snapshot shape written by the server into RTDB `live/<store>` */

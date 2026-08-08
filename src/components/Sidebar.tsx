@@ -52,7 +52,17 @@ import {
   BarChart3,
   BookMarked,
   HardDriveDownload,
-  PhoneCall
+  PhoneCall,
+  Briefcase,
+  BadgeCheck,
+  Trophy,
+  UsersRound,
+   Building2,
+   School,
+   MapPin,
+  ClipboardList,
+  FileBadge,
+  Wallet,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -140,7 +150,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Active section highlights
   const isAcademicActive = activeTab.startsWith("academic-") || activeTab === "ai-lesson-notes" || activeTab === "ai-exam-generator" || activeTab === "question-bank" || activeTab === "report-cards";
   const isStudentsActive = activeTab === "students";
-  const isTeachersActive = activeTab === "teachers" || activeTab === "teacher-portal";
+  const isTeachersActive = activeTab === "teachers" || activeTab === "teacher-portal" || activeTab === "school-portal";
   const isFinanceActive = activeTab.startsWith("finance") || activeTab === "finance-fees" || activeTab === "finance-payments";
   const isLibraryActive = activeTab === "library";
   const isCommActive = activeTab.startsWith("communication") || activeTab === "communication-announcements";
@@ -413,6 +423,48 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <span>Attendance Log</span>
                 </button>
               )}
+
+              {matchesSearch("Attendance Tracker") && (
+                <button
+                  onClick={() => onSelectTab("attendance")}
+                  className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                    activeTab === "attendance"
+                      ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                      : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <ClipboardList className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Attendance Tracker</span>
+                </button>
+              )}
+
+              {matchesSearch("Entrance Exams") && (
+                <button
+                  onClick={() => onSelectTab("entrance-exams")}
+                  className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                    activeTab === "entrance-exams"
+                      ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                      : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <FileBadge className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>Entrance Exams</span>
+                </button>
+              )}
+
+              {matchesSearch("Gamified Learning") && (
+                <button
+                  onClick={() => onSelectTab("gamified-learning")}
+                  className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                    activeTab === "gamified-learning"
+                      ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                      : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Gamified Learning</span>
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -536,6 +588,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <span>Alumni Network</span>
                   </button>
                 )}
+
+                {matchesSearch("Student ID Cards") && (
+                  <button
+                    onClick={() => onSelectTab("id-cards")}
+                    className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                      activeTab === "id-cards"
+                        ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                        : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <BadgeCheck className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Student ID Cards</span>
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -590,19 +656,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </button>
                 )}
 
-                {matchesSearch("Teacher Workspace") && (
-                  <button
-                    onClick={() => onSelectTab("teacher-portal")}
-                    className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
-                      activeTab === "teacher-portal"
-                        ? "bg-indigo-600/30 text-indigo-300 font-bold"
-                        : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
-                    }`}
-                  >
-                    <UserCheck className="w-3.5 h-3.5 text-teal-400" />
-                    <span>Teacher Workspace</span>
-                  </button>
-                )}
+                 {matchesSearch("School Portal") && (
+                   <button
+                     onClick={() => onSelectTab("school-portal")}
+                     className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                       activeTab === "school-portal"
+                         ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                         : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                     }`}
+                   >
+                     <UserCheck className="w-3.5 h-3.5 text-teal-400" />
+                     <span>School Portal</span>
+                   </button>
+                 )}
+
+                 {matchesSearch("Teacher Portal") && (
+                   <button
+                     onClick={() => onSelectTab("teacher-portal")}
+                     className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                       activeTab === "teacher-portal"
+                         ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                         : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                     }`}
+                   >
+                     <School className="w-3.5 h-3.5 text-cyan-400" />
+                     <span>Teacher Portal</span>
+                   </button>
+                 )}
 
                 {matchesSearch("Website Builder") && (
                   <button
@@ -671,6 +751,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   >
                     <BarChart3 className="w-3.5 h-3.5 text-emerald-400" />
                     <span>Staff Performance</span>
+                  </button>
+                )}
+
+                {matchesSearch("Timetable Builder") && (
+                  <button
+                    onClick={() => onSelectTab("timetable")}
+                    className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                      activeTab === "timetable"
+                        ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                        : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <Calendar className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Timetable Builder</span>
+                  </button>
+                )}
+
+                {matchesSearch("Job Marketplace") && (
+                  <button
+                    onClick={() => onSelectTab("job-marketplace")}
+                    className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                      activeTab === "job-marketplace"
+                        ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                        : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    <Briefcase className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Job Marketplace</span>
                   </button>
                 )}
               </div>
@@ -794,6 +902,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 >
                   <FileText className="w-3.5 h-3.5 text-cyan-400" />
                   <span>Payroll & Financial Reports</span>
+                </button>
+              )}
+
+              {matchesSearch("Payroll") && (
+                <button
+                  onClick={() => onSelectTab("payroll")}
+                  className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                    activeTab === "payroll"
+                      ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                      : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <Wallet className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Payroll</span>
                 </button>
               )}
             </div>
@@ -1052,6 +1174,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 >
                   <PhoneCall className="w-3.5 h-3.5 text-emerald-500" />
                   <span>WhatsApp Integration</span>
+                </button>
+              )}
+
+              {matchesSearch("Real-Time Chat") && (
+                <button
+                  onClick={() => onSelectTab("chat")}
+                  className={`flex items-center gap-2.5 w-full px-2.5 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                    activeTab === "chat"
+                      ? "bg-indigo-600/30 text-indigo-300 font-bold"
+                      : "hover:bg-slate-800 text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  <MessageSquare className="w-3.5 h-3.5 text-rose-400" />
+                  <span>Real-Time Chat</span>
                 </button>
               )}
             </div>

@@ -1,5 +1,6 @@
 import React from "react";
-import { GraduationCap, Sparkles, ShieldCheck, BookOpen, CheckCircle2, School } from "lucide-react";
+import { Sparkles, ShieldCheck, BookOpen, CheckCircle2, School, Globe } from "lucide-react";
+import { Logo } from "./Logo";
 
 interface LoadingOverlayProps {
   show: boolean;
@@ -41,15 +42,15 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
         <div className="absolute inset-0 rounded-full bg-indigo-500/40 blur-2xl animate-pulse" />
         <div className="absolute inset-0 rounded-full border-2 border-dashed border-indigo-400/60 animate-spin-slow" />
         <div className="relative w-24 h-24 rounded-3xl bg-gradient-to-br from-indigo-500 via-indigo-600 to-purple-700 shadow-2xl shadow-indigo-600/50 flex items-center justify-center animate-float">
-          <GraduationCap className="w-12 h-12 text-white" />
+          <Logo variant="icon" size="md" />
           <Sparkles className="absolute -top-2 -right-2 w-5 h-5 text-amber-300 animate-twinkle" />
           <Sparkles className="absolute -bottom-2 -left-2 w-4 h-4 text-teal-300 animate-twinkle-delayed" />
         </div>
       </div>
 
-      <h1 className="text-2xl md:text-3xl font-black tracking-tight mb-1.5">
-        LIVINGSTONE<span className="text-indigo-400">EDU</span>
-      </h1>
+      <div className="mb-6">
+        <Logo variant="full" size="lg" textColor="text-white" />
+      </div>
       <p className="text-sm text-slate-300 mb-8 max-w-md text-center px-6">{message}</p>
 
       {/* Progress indicator bar */}

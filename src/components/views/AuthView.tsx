@@ -55,6 +55,7 @@ import {
   Cloud,
 } from "lucide-react";
 import { UserRole } from "../../types";
+import { Logo } from "../Logo";
 
 interface AuthViewProps {
   onLoginSuccess: (role: UserRole, targetTab: string, userData?: any) => void;
@@ -74,6 +75,7 @@ type PublicPage =
   | "login"
   | "register-student"
   | "register-teacher"
+  | "register-school"
   | "forgot-password"
   | "privacy"
   | "terms";
@@ -87,6 +89,7 @@ const PUBLIC_PAGE_TITLES: Record<PublicPage, string> = {
   login: "Portal Login | LIVINGSTONEEDU",
   "register-student": "Student Registration | LIVINGSTONEEDU",
   "register-teacher": "Teacher Registration | LIVINGSTONEEDU",
+  "register-school": "School Registration | LIVINGSTONEEDU",
   "forgot-password": "Password Reset | LIVINGSTONEEDU",
   privacy: "Privacy Policy | LIVINGSTONEEDU",
   terms: "Terms of Service | LIVINGSTONEEDU"
@@ -102,6 +105,7 @@ const PUBLIC_PAGE_PATHS: Record<string, PublicPage> = {
   "/contact": "contact",
   "/register-student": "register-student",
   "/register-teacher": "register-teacher",
+  "/register-school": "register-school",
   "/forgot-password": "forgot-password",
   "/privacy": "privacy",
   "/terms": "terms"
@@ -116,6 +120,7 @@ const PUBLIC_PAGE_PATH_FOR: Record<PublicPage, string> = {
   contact: "/contact",
   "register-student": "/register-student",
   "register-teacher": "/register-teacher",
+  "register-school": "/register-school",
   "forgot-password": "/forgot-password",
   privacy: "/privacy",
   terms: "/terms"
@@ -164,8 +169,8 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
     return () => window.removeEventListener("popstate", onPop);
   }, []);
 
-  // Portal tab selection within login: "student" | "teacher"
-  const [activePortalTab, setActivePortalTab] = useState<"student" | "teacher">("teacher");
+  // Portal tab selection within login: "student" | "teacher" | "school"
+  const [activePortalTab, setActivePortalTab] = useState<"student" | "teacher" | "school">("school");
 
   // Searchable School selection
   const [schools, setSchools] = useState<any[]>([
@@ -231,6 +236,15 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
   const [teacherEmail, setTeacherEmail] = useState("");
   const [teacherPassword, setTeacherPassword] = useState("");
   const [teacherConfirmPassword, setTeacherConfirmPassword] = useState("");
+
+  // School Registration Form Fields:
+  const [schoolName, setSchoolName] = useState("");
+  const [schoolAddress, setSchoolAddress] = useState("");
+  const [adminName, setAdminName] = useState("");
+  const [adminEmail, setAdminEmail] = useState("");
+  const [adminPhone, setAdminPhone] = useState("");
+  const [adminRole, setAdminRole] = useState("");
+  const [adminPassword, setAdminPassword] = useState("");
 
   // Forgot Password Modal state
   const [forgotEmail, setForgotEmail] = useState("");
@@ -391,10 +405,10 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
       }
     } catch (err) {
       setIsLoading(false);
-      // Seamless offline fallback
-      const fallbackRole = activePortalTab === "student" ? "Student" : "Teacher";
-      const fallbackTab = activePortalTab === "student" ? "student-parent-portal" : "teacher-portal";
-      onLoginSuccess(fallbackRole, fallbackTab);
+       // Seamless offline fallback
+      const fallbackRole = activePortalTab === "student" ? "Student" : activePortalTab === "school" ? "School Owner" : "Teacher";
+      const fallbackTab = activePortalTab === "student" ? "student-parent-portal" : activePortalTab === "school" ? "school-portal" : "teacher-portal";
+      onLoginSuccess(fallbackRole as UserRole, fallbackTab);
     }
   };
 
@@ -510,9 +524,71 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
     } catch (err) {
       setIsLoading(false);
       setSuccessMessage("Teacher registration successful! Logging into Teacher Dashboard...");
+       setTimeout(() => {
+          onLoginSuccess("Teacher", "teacher-portal", { schoolName: resolvedSchoolName });
+        }, 1000);
+    }
+  };
+
+  // School Registration Submission
+  const handleSchoolRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminRole) {
+      setErrorMessage("Please select an admin role.");
+      return;
+    }
+
+    setIsLoading(true);
+    setErrorMessage("");
+    setSuccessMessage("");
+
+    try {
+      const response = await fetch("/api/auth/register/school", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schoolName: schoolName,
+          schoolAddress: schoolAddress,
+          adminName: adminName,
+          adminEmail: adminEmail,
+          adminPhone: adminPhone,
+          adminRole: adminRole,
+          password: adminPassword
+        })
+      });
+
+      const data = await response.json();
+      setIsLoading(false);
+
+      if (data.success) {
+        setSuccessMessage(`✓ School "${schoolName}" registered! Redirecting to School Portal as ${adminRole}...`);
+        setTimeout(() => {
+           onLoginSuccess((adminRole || "School Owner") as UserRole, "school-portal", {
+            ...(data.school || {}),
+            schoolName: schoolName,
+            name: adminName,
+            fullName: adminName,
+            email: adminEmail,
+            role: adminRole,
+            assignedRole: adminRole
+          });
+        }, 1500);
+      } else {
+        setErrorMessage(data.message || "School registration failed.");
+      }
+    } catch (err) {
+      setIsLoading(false);
+      setSuccessMessage(`✓ School "${schoolName}" registered! Redirecting to School Portal...`);
       setTimeout(() => {
-        onLoginSuccess("Teacher", "teacher-portal", { schoolName: resolvedSchoolName });
-      }, 1000);
+         onLoginSuccess((adminRole || "School Owner") as UserRole, "school-portal", {
+          schoolName: schoolName,
+          name: adminName,
+          fullName: adminName,
+          email: adminEmail,
+          role: adminRole,
+          assignedRole: adminRole
+        });
+      }, 1500);
     }
   };
 
@@ -547,20 +623,7 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
             }}
             className="flex items-center gap-3 text-left group"
           >
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-teal-400 flex items-center justify-center text-white font-black text-xl shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
-              L
-            </div>
-            <div>
-              <h1 className="text-base font-black tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
-                LIVINGSTONEEDU
-                <span className="text-[9px] px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 font-bold uppercase tracking-wider border border-indigo-500/30">
-                  {isAdminMode ? "ADMIN PORTAL" : "AI LMS & ERP"}
-                </span>
-              </h1>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:block">
-                {isAdminMode ? "Super Admin Sign In" : "School Management System"}
-              </p>
-            </div>
+            <Logo variant="full" size="md" />
           </button>
 
           {/* Public Nav Items - Hidden in Admin Login Mode */}
@@ -1041,7 +1104,7 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
               </p>
               <div className="flex flex-wrap justify-center gap-3">
                 <button
-                  onClick={() => setCurrentPage("register-teacher")}
+                  onClick={() => setCurrentPage("register-school")}
                   className="px-7 py-3 rounded-2xl bg-white text-rose-700 font-black text-sm shadow-xl hover:shadow-2xl transition-all flex items-center gap-2"
                 >
                   Get Started Free <ArrowRight className="w-4 h-4" />
@@ -1483,28 +1546,28 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
                   </p>
                 </div>
 
-                {/* Portal Cards Selector (Student Portal & Teacher Portal) */}
-            <div className="grid grid-cols-2 gap-4">
+                {/* Portal Cards Selector (School Portal, Teacher Login & Student Login) */}
+            <div className="grid grid-cols-3 gap-3 mb-4">
               <button
                 type="button"
                 onClick={() => {
-                  setActivePortalTab("student");
+                  setActivePortalTab("school");
                   setErrorMessage("");
                   setSuccessMessage("");
                 }}
-                className={`p-5 rounded-2xl border transition-all text-left space-y-2 relative overflow-hidden ${
-                  activePortalTab === "student"
-                    ? "bg-gradient-to-br from-teal-100 via-white to-white border-teal-500 dark:from-teal-950/80 dark:via-slate-900 dark:to-slate-900 shadow-xl shadow-teal-500/10"
-                    : "bg-white/80 border-slate-200 hover:border-slate-300 opacity-70 hover:opacity-100 dark:bg-slate-900/80 dark:border-slate-800 dark:hover:border-slate-700"
+                className={`p-4 rounded-2xl border transition-all text-center space-y-2 relative overflow-hidden ${
+                  activePortalTab === "school"
+                    ? "bg-gradient-to-br from-purple-100 via-white to-white border-purple-500 dark:from-purple-950/80 dark:via-slate-900 dark:to-slate-900 shadow-xl shadow-purple-500/10"
+                    : "bg-white/80 border-slate-200 hover:border-slate-300 opacity-75 hover:opacity-100 dark:bg-slate-900/80 dark:border-slate-800 dark:hover:border-slate-700"
                 }`}
               >
-                {activePortalTab === "student" && (
-                  <div className="absolute top-3 right-3 w-2.5 h-2.5 rounded-full bg-teal-400 animate-pulse" />
+                {activePortalTab === "school" && (
+                  <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-purple-400 animate-pulse" />
                 )}
-                <GraduationCap className={`w-8 h-8 ${activePortalTab === "student" ? "text-teal-600 dark:text-teal-400" : "text-slate-500 dark:text-slate-400"}`} />
+                <Building2 className={`w-7 h-7 mx-auto ${activePortalTab === "school" ? "text-purple-600 dark:text-purple-400" : "text-slate-400"}`} />
                 <div>
-                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Student Portal</h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Access assignments, CBT exams, result cards & attendance</p>
+                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">School Login</h3>
+                  <p className="text-[9px] text-slate-500 dark:text-slate-400">Admin, Principal, Proprietor access</p>
                 </div>
               </button>
 
@@ -1515,20 +1578,54 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
                   setErrorMessage("");
                   setSuccessMessage("");
                 }}
-                className={`p-5 rounded-2xl border transition-all text-left space-y-2 relative overflow-hidden ${
+                className={`p-4 rounded-2xl border transition-all text-center space-y-2 relative overflow-hidden ${
                   activePortalTab === "teacher"
                     ? "bg-gradient-to-br from-indigo-100 via-white to-white border-indigo-500 dark:from-indigo-950/80 dark:via-slate-900 dark:to-slate-900 shadow-xl shadow-indigo-500/10"
-                    : "bg-white/80 border-slate-200 hover:border-slate-300 opacity-70 hover:opacity-100 dark:bg-slate-900/80 dark:border-slate-800 dark:hover:border-slate-700"
+                    : "bg-white/80 border-slate-200 hover:border-slate-300 opacity-75 hover:opacity-100 dark:bg-slate-900/80 dark:border-slate-800 dark:hover:border-slate-700"
                 }`}
               >
                 {activePortalTab === "teacher" && (
-                  <div className="absolute top-3 right-3 w-2.5 h-2.5 rounded-full bg-indigo-400 animate-pulse" />
+                  <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
                 )}
-                <Users className={`w-8 h-8 ${activePortalTab === "teacher" ? "text-indigo-600 dark:text-indigo-400" : "text-slate-500 dark:text-slate-400"}`} />
+                <Users className={`w-7 h-7 mx-auto ${activePortalTab === "teacher" ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"}`} />
                 <div>
-                  <h3 className="font-extrabold text-base text-slate-900 dark:text-white">Teacher Portal</h3>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400">Manage classes, AI lesson notes, CBT exam generator & school management</p>
+                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">Teacher Login</h3>
+                  <p className="text-[9px] text-slate-500 dark:text-slate-400">Classes, lesson notes, exams</p>
                 </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActivePortalTab("student");
+                  setErrorMessage("");
+                  setSuccessMessage("");
+                }}
+                className={`p-4 rounded-2xl border transition-all text-center space-y-2 relative overflow-hidden ${
+                  activePortalTab === "student"
+                    ? "bg-gradient-to-br from-teal-100 via-white to-white border-teal-500 dark:from-teal-950/80 dark:via-slate-900 dark:to-slate-900 shadow-xl shadow-teal-500/10"
+                    : "bg-white/80 border-slate-200 hover:border-slate-300 opacity-75 hover:opacity-100 dark:bg-slate-900/80 dark:border-slate-800 dark:hover:border-slate-700"
+                }`}
+              >
+                {activePortalTab === "student" && (
+                  <div className="absolute top-2 right-2 w-2 h-2 rounded-full bg-teal-400 animate-pulse" />
+                )}
+                <GraduationCap className={`w-7 h-7 mx-auto ${activePortalTab === "student" ? "text-teal-600 dark:text-teal-400" : "text-slate-400"}`} />
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-900 dark:text-white">Student Login</h3>
+                  <p className="text-[9px] text-slate-500 dark:text-slate-400">Assignments, exams & results</p>
+                </div>
+              </button>
+            </div>
+
+            {/* School Registration Button */}
+            <div className="text-center mb-4">
+              <button
+                type="button"
+                onClick={() => setCurrentPage("register-school")}
+                className="text-xs font-bold text-purple-600 hover:text-purple-700 dark:text-purple-400 hover:underline flex items-center gap-1.5 mx-auto"
+              >
+                <Shield className="w-3.5 h-3.5" /> School Registration
               </button>
             </div>
 
@@ -1619,6 +1716,8 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
                   className={`w-full py-3.5 px-4 rounded-xl font-bold text-xs text-white shadow-lg transition-all flex items-center justify-center gap-2 ${
                     activePortalTab === "student"
                       ? "bg-teal-600 hover:bg-teal-500 shadow-teal-600/30"
+                      : activePortalTab === "school"
+                      ? "bg-purple-600 hover:bg-purple-500 shadow-purple-600/30"
                       : "bg-indigo-600 hover:bg-indigo-500 shadow-indigo-600/30"
                   } disabled:opacity-50`}
                 >
@@ -1626,7 +1725,7 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
                     <RefreshCw className="w-4 h-4 animate-spin" />
                   ) : (
                     <>
-                      Login to {activePortalTab === "student" ? "Student Portal" : "Teacher Portal"} <ArrowRight className="w-4 h-4" />
+                      Login to {activePortalTab === "student" ? "Student Login" : activePortalTab === "school" ? "School Portal" : "Teacher Portal"} <ArrowRight className="w-4 h-4" />
                     </>
                   )}
                 </button>
@@ -1642,10 +1741,18 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
                     >
                       Go to Registration →
                     </button>
+                  ) : activePortalTab === "school" ? (
+                    <button
+                      type="button"
+                      onClick={() => setCurrentPage("register-school")}
+                      className="font-bold text-purple-600 dark:text-purple-400 hover:underline"
+                    >
+                      Register School →
+                    </button>
                   ) : (
                     <button
                       type="button"
-                      onClick={() => setCurrentPage("register-teacher")}
+                onClick={() => setCurrentPage("register-school")}
                       className="font-bold text-indigo-600 dark:text-indigo-400 hover:underline"
                     >
                       Register Teacher →
@@ -1948,6 +2055,181 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
           </div>
         )}
 
+        {/* 8b. SCHOOL REGISTRATION PAGE */}
+        {currentPage === "register-school" && (
+          <div className="max-w-xl mx-auto space-y-6 animate-fadeIn">
+            <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-200 shadow-2xl dark:bg-slate-900 dark:border-slate-800 space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <Building2 className="w-6 h-6 text-purple-600 dark:text-purple-400" /> School Registration
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Register your school and become the first administrator
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage("login")}
+                  className="text-xs text-purple-600 dark:text-purple-400 font-bold hover:underline"
+                >
+                  ← Back to Login
+                </button>
+              </div>
+
+              {errorMessage && (
+                <div className="p-3.5 rounded-xl bg-rose-950/80 border border-rose-900 text-rose-300 text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-rose-400" /> {errorMessage}
+                </div>
+              )}
+              {successMessage && (
+                <div className="p-3.5 rounded-xl bg-emerald-950/80 border border-emerald-900 text-emerald-300 text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" /> {successMessage}
+                </div>
+              )}
+
+              <form onSubmit={handleSchoolRegister} className="space-y-4">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">School Name *</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 dark:text-slate-400">
+                      <School className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Destiny Way International Schools"
+                      value={schoolName}
+                      onChange={(e) => setSchoolName(e.target.value)}
+                      className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl pl-10 pr-4 py-3 text-xs focus:ring-2 focus:ring-purple-500 outline-none text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">School Address *</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500 dark:text-slate-400">
+                      <MapPin className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. 123 Independence Avenue, Lagos"
+                      value={schoolAddress}
+                      onChange={(e) => setSchoolAddress(e.target.value)}
+                      className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl pl-10 pr-4 py-3 text-xs focus:ring-2 focus:ring-purple-500 outline-none text-slate-900 dark:text-white"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Your Full Name *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Mrs. Okonkwo Beatrice"
+                    value={adminName}
+                    onChange={(e) => setAdminName(e.target.value)}
+                    className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-xs focus:ring-2 focus:ring-purple-500 outline-none text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Email Address *</label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="e.g. okonkwo.b@livingstone.edu.ng"
+                    value={adminEmail}
+                    onChange={(e) => setAdminEmail(e.target.value)}
+                    className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-xs focus:ring-2 focus:ring-purple-500 outline-none text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Phone Number</label>
+                  <input
+                    type="tel"
+                    placeholder="e.g. +234 803 123 4567"
+                    value={adminPhone}
+                    onChange={(e) => setAdminPhone(e.target.value)}
+                    className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-xs focus:ring-2 focus:ring-purple-500 outline-none text-slate-900 dark:text-white"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Admin Role *</label>
+                  <select
+                    required
+                    value={adminRole}
+                    onChange={(e) => setAdminRole(e.target.value)}
+                    className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl px-4 py-3 text-xs focus:ring-2 focus:ring-purple-500 outline-none text-slate-900 dark:text-white"
+                  >
+                    <option value="">Select your role...</option>
+                    <option value="School Owner">School Owner / Proprietor</option>
+                    <option value="Proprietor">Proprietor</option>
+                    <option value="Proprietress">Proprietress</option>
+                    <option value="Principal">Principal</option>
+                    <option value="Vice Principal">Vice Principal</option>
+                    <option value="Head Teacher">Head Teacher</option>
+                    <option value="Assistant Head Teacher">Assistant Head Teacher</option>
+                    <option value="School Administrator">School Administrator</option>
+                    <option value="ICT Administrator">ICT Administrator</option>
+                    <option value="Registrar">Registrar</option>
+                    <option value="Admission Officer">Admission Officer</option>
+                    <option value="Bursar">Bursar</option>
+                    <option value="Accountant">Accountant</option>
+                  </select>
+                  <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                    This role becomes the first administrator. You can create additional admins later.
+                  </p>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-300">Password *</label>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    required
+                    value={adminPassword}
+                    onChange={(e) => setAdminPassword(e.target.value)}
+                    placeholder="Enter password"
+                    className="w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl pl-10 pr-10 py-3 text-xs focus:ring-2 focus:ring-purple-500 outline-none text-slate-900 dark:text-white"
+                  />
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full py-3.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-lg shadow-purple-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : "Complete School Registration"}
+                </button>
+
+                <div className="pt-2 text-center text-xs text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800/80">
+                  Already have a school account?{" "}
+                  <button
+                    type="button"
+                    onClick={() => setCurrentPage("login")}
+                    className="font-bold text-purple-600 dark:text-purple-400 hover:underline"
+                  >
+                    Go to School Login →
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* 9. FORGOT PASSWORD PAGE */}
         {currentPage === "forgot-password" && (
           <div className="max-w-md mx-auto space-y-6 animate-fadeIn">
@@ -2238,9 +2520,10 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
                 <div className="space-y-3">
                   <h4 className="text-sm font-bold text-slate-900 dark:text-white">Portals</h4>
                   <div className="flex flex-col gap-2.5">
-                    <a href="/login" onClick={(e) => { e.preventDefault(); setCurrentPage("login"); }} className="hover:text-slate-900 dark:hover:text-white">Student Portal</a>
-                    <a href="/register-teacher" onClick={(e) => { e.preventDefault(); setCurrentPage("register-teacher"); }} className="hover:text-slate-900 dark:hover:text-white">Teacher Portal</a>
-                    <a href="/admin" onClick={(e) => { e.preventDefault(); setCurrentPage("login"); }} className="hover:text-slate-900 dark:hover:text-white">Admin Portal</a>
+                    <a href="/login" onClick={(e) => { e.preventDefault(); setCurrentPage("login"); setActivePortalTab("student"); }} className="hover:text-slate-900 dark:hover:text-white">Student Login</a>
+                    <a href="/login" onClick={(e) => { e.preventDefault(); setCurrentPage("login"); setActivePortalTab("teacher"); }} className="hover:text-slate-900 dark:hover:text-white">Teacher Login</a>
+                    <a href="/login" onClick={(e) => { e.preventDefault(); setCurrentPage("login"); setActivePortalTab("school"); }} className="hover:text-slate-900 dark:hover:text-white">School Login</a>
+                    <a href="/register-school" onClick={(e) => { e.preventDefault(); setCurrentPage("register-school"); }} className="font-bold text-purple-600 dark:text-purple-400 hover:underline">School Registration</a>
                   </div>
                 </div>
                 <div className="space-y-3">

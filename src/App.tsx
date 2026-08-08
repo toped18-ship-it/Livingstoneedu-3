@@ -17,9 +17,19 @@ import { WebsiteBuilderView } from "./components/views/WebsiteBuilderView";
 import { SubscriptionView } from "./components/views/SubscriptionView";
 import { SuperAdminView } from "./components/views/SuperAdminView";
 import { TeacherPortalView } from "./components/views/TeacherPortalView";
+import { SchoolPortalView } from "./components/views/SchoolPortalView";
 import { StudentParentPortalView } from "./components/views/StudentParentPortalView";
 import { AuthView } from "./components/views/AuthView";
+import { AttendanceTrackerView } from "./components/views/AttendanceTrackerView";
+import { StudentIdCardView } from "./components/views/StudentIdCardView";
+import { EntranceExamView } from "./components/views/EntranceExamView";
+import { TimetableView } from "./components/views/TimetableView";
+import { PayrollView } from "./components/views/PayrollView";
+import { ChatView } from "./components/views/ChatView";
+import { GamifiedLearningView } from "./components/views/GamifiedLearningView";
+import { JobMarketplaceView } from "./components/views/JobMarketplaceView";
 import { LoadingOverlay } from "./components/LoadingOverlay";
+import { InstallPrompt } from "./components/InstallPrompt";
 import { UserRole } from "./types";
 
 export default function App() {
@@ -95,6 +105,7 @@ export default function App() {
 
   const APP_PAGE_TITLES: Record<string, string> = {
     dashboard: "Dashboard",
+    "school-portal": "School Portal",
     "teacher-portal": "Teacher Portal",
     "student-parent-portal": "Student & Parent Portal",
     superadmin: "Super Admin HQ",
@@ -251,7 +262,7 @@ export default function App() {
     ];
 
     if (isTeacher && forbiddenForTeacher.some((f) => tab === f || tab.startsWith(f))) {
-      setAccessDeniedMessage("Access denied. You do not have permission to access this page.");
+       setAccessDeniedMessage("Access denied. You do not have permission to access this page.");
       setTimeout(() => setAccessDeniedMessage(""), 4000);
       setActiveTab("teacher-portal");
       return;
@@ -284,6 +295,23 @@ export default function App() {
       handleSelectTab("teacher-portal", detectedRole);
     } else if (detectedRole === "Super Admin" || targetTab === "superadmin") {
       handleSelectTab("superadmin", detectedRole);
+    } else if (
+      detectedRole === "Principal" ||
+      detectedRole === "Vice Principal" ||
+      detectedRole === "School Owner" ||
+      detectedRole === "Proprietor" ||
+      detectedRole === "Proprietress" ||
+      detectedRole === "Head Teacher" ||
+      detectedRole === "Assistant Head Teacher" ||
+      detectedRole === "School Administrator" ||
+      detectedRole === "ICT Administrator" ||
+      detectedRole === "Registrar" ||
+      detectedRole === "Admission Officer" ||
+      detectedRole === "Bursar" ||
+      detectedRole === "Accountant"
+    ) {
+      setActiveTab("school-portal");
+      handleSelectTab("school-portal", detectedRole);
     } else if (window.location.pathname === "/admin" || window.location.hash === "#admin") {
       handleSelectTab("settings", detectedRole);
     } else {
@@ -328,8 +356,10 @@ export default function App() {
             onOpenAIAssistant={() => setIsAiModalOpen(true)}
           />
         );
+      case activeTab === "school-portal":
+        return <SchoolPortalView currentRole={currentRole} userSession={userSession} />;
       case activeTab === "teacher-portal":
-        return <TeacherPortalView currentRole={currentRole} userSession={userSession} />;
+        return <TeacherPortalView currentRole={currentRole} userSession={userSession} onSelectTab={handleSelectTab} />;
       case activeTab === "student-parent-portal" || activeTab === "parents":
         return <StudentParentPortalView currentRole={currentRole} userSession={userSession} />;
       case activeTab === "website-builder":
@@ -357,6 +387,22 @@ export default function App() {
         return <StudentsView />;
       case activeTab === "teachers":
         return <TeachersView />;
+      case activeTab === "attendance":
+        return <AttendanceTrackerView />;
+      case activeTab === "id-cards":
+        return <StudentIdCardView />;
+      case activeTab === "entrance-exams":
+        return <EntranceExamView />;
+      case activeTab === "timetable":
+        return <TimetableView />;
+      case activeTab === "payroll":
+        return <PayrollView />;
+      case activeTab === "chat":
+        return <ChatView />;
+      case activeTab === "gamified-learning":
+        return <GamifiedLearningView />;
+      case activeTab === "job-marketplace":
+        return <JobMarketplaceView />;
       case activeTab.startsWith("finance") || activeTab === "finance":
         return <FinanceView />;
       case activeTab === "library":
@@ -463,13 +509,13 @@ export default function App() {
           {/* Top Header */}
           <Header
             currentRole={currentRole}
-            onRoleChange={(role) => {
+             onRoleChange={(role) => {
               setCurrentRole(role);
               if (role === "Super Admin") {
                 handleSelectTab("superadmin");
               } else if (role === "Student" || role === "Parent") {
                 handleSelectTab("student-parent-portal");
-              } else if (role === "Teacher") {
+              } else if (role === "Teacher" || role === "Class Teacher" || role === "Subject Teacher") {
                 handleSelectTab("teacher-portal");
               } else {
                 handleSelectTab("dashboard");
@@ -503,6 +549,7 @@ export default function App() {
   return (
     <>
       {renderContent()}
+      <InstallPrompt />
       <LoadingOverlay
         show={startupLoading || transition.show}
         message={transition.show ? transition.message : "Initializing LIVINGSTONEEDU..."}

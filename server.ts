@@ -11,6 +11,12 @@ const PORT = 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Temporary dev helper to surface browser runtime errors / DOM state from the client
+app.post("/__client_err", (req, res) => {
+  console.error("CLIENT_ERR", JSON.stringify(req.body).slice(0, 4000));
+  res.sendStatus(200);
+});
+
 // Audit Log Middleware
 const auditLogsStore: any[] = [];
 app.use((req, res, next) => {
@@ -37,7 +43,7 @@ app.use((req, res, next) => {
 const getGeminiAI = () => {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    console.warn("GEMINI_API_KEY not set in environment. Falling back to structured response generators.");
+    console.warn("⚠️ GEMINI_API_KEY is not set in environment. AI features will use structured response generators. Please set GEMINI_API_KEY for full AI functionality.");
     return null;
   }
   return new GoogleGenAI({
@@ -2687,10 +2693,16 @@ function redirectTabForStaffRole(role: string): string {
     role === "Principal" ||
     role === "Vice Principal" ||
     role === "School Owner" ||
-    role === "Proprietor"
+    role === "Proprietor" ||
+    role === "Proprietress" ||
+    role === "Head Teacher" ||
+    role === "Assistant Head Teacher" ||
+    role === "ICT Administrator" ||
+    role === "Registrar" ||
+    role === "Admission Officer"
   )
-    return "dashboard";
-  if (role === "Account Officer" || role === "Bursar") return "finance";
+    return "school-portal";
+  if (role === "Account Officer" || role === "Bursar" || role === "Accountant") return "finance";
   if (role === "Exam Officer") return "academic-ai-exam-generator";
   if (role === "Librarian") return "library";
   return "teacher-portal";
@@ -2802,18 +2814,18 @@ app.post("/api/auth/login", (req, res) => {
     } else if (inputLower.includes("superadmin") || inputLower === "sa-001") {
       detectedRole = "Super Admin";
       redirectTab = "superadmin";
-    } else if (inputLower.includes("owner") || inputLower.includes("proprietor")) {
+     } else if (inputLower.includes("owner") || inputLower.includes("proprietor")) {
       detectedRole = "School Owner";
-      redirectTab = "dashboard";
+      redirectTab = "school-portal";
     } else if (inputLower.includes("principal") || inputLower === "prn-001") {
       detectedRole = "Principal";
-      redirectTab = "dashboard";
+      redirectTab = "school-portal";
     } else if (inputLower.includes("vice") || inputLower.includes("vp-")) {
       detectedRole = "Vice Principal";
-      redirectTab = "dashboard";
+      redirectTab = "school-portal";
     } else if (inputLower.includes("admin") || inputLower === "adm-101") {
       detectedRole = "School Administrator";
-      redirectTab = "dashboard";
+      redirectTab = "school-portal";
     } else if (inputLower.includes("bursar") || inputLower.includes("finance") || inputLower === "acc-001") {
       detectedRole = "Account Officer";
       redirectTab = "finance";
@@ -2833,7 +2845,7 @@ app.post("/api/auth/login", (req, res) => {
           detectedRole === "Principal" ||
           detectedRole === "Vice Principal" ||
           detectedRole === "School Owner"
-        ) redirectTab = "dashboard";
+        ) redirectTab = "school-portal";
         else if (detectedRole === "Account Officer") redirectTab = "finance";
         else if (detectedRole === "Exam Officer") redirectTab = "academic-ai-exam-generator";
         else if (detectedRole === "Librarian") redirectTab = "library";
@@ -2965,6 +2977,80 @@ app.post("/api/auth/me", (req, res) => {
 // Audit Store for Class Promotion Changes
 const classChangeAuditLogStore: any[] = [];
 
+// --- UPGRADE MODULES (SchoolHub-style): stores ---
+const attendanceRegisterStore: any[] = [
+  {
+    id: "att-reg-1",
+    date: "2026-08-05",
+    class: "SS2 Gold",
+    takenBy: "Mrs. Okonkwo Beatrice",
+    records: [
+      { studentId: "STD-2026-001", status: "Present", remark: "On time" },
+      { studentId: "STD-2026-003", status: "Late", remark: "Arrived 8:12 AM" },
+      { studentId: "STD-2026-006", status: "Absent", remark: "Sick leave (parent called)" },
+    ],
+  },
+];
+
+const entranceCandidatesStore: any[] = [
+  { id: "ENT-2026-001", name: "Oluwaseun Adegbite", email: "seun@mail.com", phone: "+234 812 111 2233", classApplied: "JSS 1", examDate: "2026-08-15", status: "Scheduled" },
+  { id: "ENT-2026-002", name: "Chiamaka Obi", email: "chiamaka@mail.com", phone: "+234 813 444 5566", classApplied: "SS 1", examDate: "2026-08-15", status: "Written" },
+];
+
+const entranceExamsStore: any[] = [
+  {
+    id: "ent-ex-1",
+    title: "JSS 1 Entrance Examination 2026",
+    classApplied: "JSS 1",
+    durationMinutes: 60,
+    totalQuestions: 10,
+    questions: [
+      { id: "eq-1", question: "What is 12 + 15?", options: ["27", "25", "32", "22"], correctOptionIndex: 0, marks: 2 },
+      { id: "eq-2", question: "Which of these is a noun?", options: ["Run", "Table", "Quickly", "Beautiful"], correctOptionIndex: 1, marks: 2 },
+    ],
+    status: "Active",
+  },
+];
+
+const entranceResultsStore: any[] = [];
+
+const timetableStore: any[] = [
+  { id: "tt-slot-1", day: "Monday", period: "08:00 - 08:40", className: "SS2 Gold", subject: "Mathematics", teacher: "Mrs. Okonkwo Beatrice", room: "Block A - R12" },
+  { id: "tt-slot-2", day: "Monday", period: "08:40 - 09:20", className: "SS1 Silver", subject: "Physics", teacher: "Mr. David Alabi", room: "Block B - R4" },
+];
+
+const payrollStaffStore: any[] = [
+  { id: "TCH-001", name: "Mrs. Okonkwo Beatrice", role: "Principal", department: "Academic", bankAccount: "0123456789", basicSalary: 180000, deductions: 0, netPay: 180000, paymentDate: "2026-07-31", status: "Paid" },
+  { id: "TCH-002", name: "Mr. David Alabi", role: "Teacher", department: "Science", bankAccount: "9876543210", basicSalary: 120000, deductions: 0, netPay: 120000, paymentDate: "2026-07-31", status: "Paid" },
+];
+
+const payrollRunsStore: any[] = [];
+
+const chatConversationsStore: any[] = [
+  { id: "conv-1", participants: [{ id: "usr-1", name: "Dr. Emmanuel Livingstone" }, { id: "usr-3", name: "Mr. David Alabi" }], lastMessage: "Please share the scheme of work for SS3.", lastTime: "2026-07-05T10:30:00Z", unread: 2 },
+  { id: "conv-2", participants: [{ id: "usr-1", name: "Dr. Emmanuel Livingstone" }, { id: "usr-2", name: "Mrs. Okonkwo Beatrice" }], lastMessage: "The timetable has been approved.", lastTime: "2026-07-06T09:15:00Z", unread: 0 },
+];
+
+const chatMessagesStore: any[] = [
+  { id: "msg-1", conversationId: "conv-1", senderId: "usr-3", senderName: "Mr. David Alabi", text: "Please share the SS3 Physics scheme of work.", sentAt: "2026-07-05T10:28:00Z", },
+  { id: "msg-2", conversationId: "conv-1", senderId: "usr-1", senderName: "Dr. Emmanuel Livingstone", text: "Please share the scheme of work for SS3.", sentAt: "2026-07-05T10:30:00Z", },
+];
+
+const gamifiedSessionsStore: any[] = [];
+const gameLeaderboardStore: any[] = [
+  { id: "lb-1", playerName: "Fatima Abubakar", class: "JSS3 Diamond", subject: "Mathematics", score: 950 },
+  { id: "lb-2", playerName: "Adeyemi Chinedu", class: "SS2 Gold", subject: "English Language", score: 880 },
+];
+
+const jobVacanciesStore: any[] = [
+  { id: "job-1", title: "Senior Mathematics Teacher", schoolName: "Livingstone International Schools", location: "Lagos", subject: "Mathematics", salary: "₦180,000/mo", postedAt: "2026-07-28T08:00:00Z", status: "Open" },
+  { id: "job-2", title: "ICT Instructor", schoolName: "Grace Model College", location: "Abuja", subject: "Computer Studies / ICT", salary: "₦150,000/mo", postedAt: "2026-07-30T08:00:00Z", status: "Open" },
+];
+
+const jobApplicationsStore: any[] = [
+  { id: "app-1", vacancyId: "job-1", applicantName: "Mr. David Alabi", applicantEmail: "david.alabi@livingstone.edu", appliedAt: "2026-08-01T09:00:00Z", status: "Pending" },
+];
+
 // --- FIREBASE PERSISTENCE REGISTRATION ---
 // Register every in-memory store so it can be hydrated from / synced to Firebase RTDB.
 // Fire-and-forget pattern: if Firebase is unavailable, the app keeps running in-memory only.
@@ -3051,6 +3137,19 @@ function resetStoresToSeed(): void {
   register("emailSubscribers", emailSubscribersStore);
   registerRecordSync("superAdminWebsiteConfigs", superAdminWebsiteConfigsStore);
   registerRecordSync("validSchoolAdmissionRecords", validSchoolAdmissionRecords);
+  register("attendanceRegister", attendanceRegisterStore);
+  register("entranceCandidates", entranceCandidatesStore);
+  register("entranceExams", entranceExamsStore);
+  register("entranceResults", entranceResultsStore);
+  register("timetable", timetableStore);
+  register("payrollStaff", payrollStaffStore);
+  register("payrollRuns", payrollRunsStore);
+  register("chatConversations", chatConversationsStore);
+  register("chatMessages", chatMessagesStore);
+  register("gamifiedSessions", gamifiedSessionsStore);
+  register("gameLeaderboard", gameLeaderboardStore);
+  register("jobVacancies", jobVacanciesStore);
+  register("jobApplications", jobApplicationsStore);
 }
 
 // Student Account Registration with Admission Number Verification & Required Fields
@@ -3249,6 +3348,71 @@ app.post("/api/auth/register/teacher", (req, res) => {
     token: `JWT_REGISTERED_STAFF_${Date.now()}`,
     school: { ...school, name: registeredSchoolName },
     staff: staffAccount
+  });
+});
+
+// School Registration Endpoint — registers a new school with first admin
+app.post("/api/auth/register/school", (req, res) => {
+  const {
+    schoolName = "",
+    schoolAddress = "",
+    adminName = "",
+    adminEmail = "",
+    adminPhone = "",
+    adminRole = "Principal",
+    password = ""
+  } = req.body;
+
+  const cleanSchoolName = String(schoolName).trim();
+  if (!cleanSchoolName) {
+    return res.status(400).json({ success: false, message: "School name is required." });
+  }
+
+  const schoolCode = `LIV-${cleanSchoolName.substring(0, 4).toUpperCase().replace(/\s+/g, "")}-${Date.now().toString().slice(-4)}`;
+  const newSchoolId = `SCH-${String(100 + verifiedSchoolsStore.length + 1).padStart(3, "0")}`;
+  const newSchool = {
+    id: newSchoolId,
+    name: cleanSchoolName,
+    code: schoolCode,
+    address: schoolAddress || "Not provided",
+    verified: true,
+    registeredAt: new Date().toISOString(),
+    admin: {
+      name: adminName,
+      email: adminEmail,
+      phone: adminPhone,
+      role: adminRole,
+      password: password || ""
+    }
+  };
+  verifiedSchoolsStore.unshift(newSchool);
+  syncStoresToFirebase();
+
+  const adminStaffAccount = {
+    id: `TCH-${Date.now()}`,
+    staffId: `ADM-${Date.now().toString().slice(-4)}`,
+    name: adminName || cleanSchoolName + " Admin",
+    fullName: adminName || cleanSchoolName + " Admin",
+    email: adminEmail || "",
+    password: password || "",
+    assignedRole: adminRole,
+    role: adminRole,
+    schoolId: newSchool.id,
+    schoolName: cleanSchoolName,
+    status: "Active",
+    createdAt: new Date().toISOString()
+  };
+  staffAccountsStore.unshift(adminStaffAccount);
+  syncStoresToFirebase();
+
+  return res.json({
+    success: true,
+    message: `School "${cleanSchoolName}" registered successfully! First administrator role: ${adminRole}`,
+    userRole: adminRole,
+    redirectTab: redirectTabForStaffRole(adminRole),
+    token: `JWT_SCHOOL_REGISTER_${Date.now()}`,
+    school: newSchool,
+    admin: adminStaffAccount
   });
 });
 
@@ -3696,15 +3860,16 @@ app.post("/api/teacher/fees/items", (req, res) => {
     return res.status(400).json({ success: false, message: "Each fee item needs a description and a valid amount." });
   }
   const totalAmount = cleaned.reduce((sum: number, it: any) => sum + it.amount, 0);
-  for (const fees of studentFeesStore) {
-    fees.items = cleaned;
-    fees.totalAmount = totalAmount;
-    fees.paidAmount = 0;
-    fees.outstandingBalance = totalAmount;
-    fees.status = "Not Yet Paid";
-    fees.paymentsHistory = [];
-  }
-  res.json({
+   for (const fees of studentFeesStore) {
+     fees.items = cleaned;
+     fees.totalAmount = totalAmount;
+     fees.paidAmount = 0;
+     fees.outstandingBalance = totalAmount;
+     fees.status = "Not Yet Paid";
+     fees.paymentsHistory = [];
+   }
+   syncStoresToFirebase();
+   res.json({
     success: true,
     message: "New fee structure posted to the student fee ledger successfully.",
     invoice: studentFeesStore[0],
@@ -3837,8 +4002,9 @@ app.post("/api/students", (req, res) => {
     status: "Active",
     ...req.body,
   };
-  studentsStore.unshift(newStudent);
-  res.json({ success: true, message: "Student enrolled successfully", data: newStudent });
+   studentsStore.unshift(newStudent);
+   syncStoresToFirebase();
+   res.json({ success: true, message: "Student enrolled successfully", data: newStudent, syncedToFirebase: true });
 });
 
 // Teachers API
@@ -3853,8 +4019,9 @@ app.post("/api/teachers", (req, res) => {
     status: "Active",
     ...req.body,
   };
-  teachersStore.unshift(newTeacher);
-  res.json({ success: true, message: "Teacher added to directory", data: newTeacher });
+   teachersStore.unshift(newTeacher);
+   syncStoresToFirebase();
+   res.json({ success: true, message: "Teacher added to directory", data: newTeacher, syncedToFirebase: true });
 });
 
 // Admin CRUD: Update / delete a student record
@@ -3864,18 +4031,20 @@ app.put("/api/students/:id", (req, res) => {
   if (idx === -1) return res.status(404).json({ success: false, message: "Student record not found" });
   const current = studentsStore[idx];
   const merged = { ...current, ...req.body, id: current.id, updatedAt: new Date().toISOString() };
-  studentsStore[idx] = merged;
-  const profIdx = studentProfilesStore.findIndex((p) => p.id === id || p.studentId === id);
-  if (profIdx !== -1) studentProfilesStore[profIdx] = { ...studentProfilesStore[profIdx], ...req.body };
-  res.json({ success: true, message: "Student record updated successfully", data: merged });
+   studentsStore[idx] = merged;
+   const profIdx = studentProfilesStore.findIndex((p) => p.id === id || p.studentId === id);
+   if (profIdx !== -1) studentProfilesStore[profIdx] = { ...studentProfilesStore[profIdx], ...req.body };
+   syncStoresToFirebase();
+   res.json({ success: true, message: "Student record updated successfully", data: merged });
 });
 
 app.delete("/api/students/:id", (req, res) => {
   const { id } = req.params;
   const idx = studentsStore.findIndex((s) => s.id === id || s.studentId === id);
   if (idx === -1) return res.status(404).json({ success: false, message: "Student record not found" });
-  const [removed] = studentsStore.splice(idx, 1);
-  res.json({ success: true, message: "Student record deleted", data: removed });
+   const [removed] = studentsStore.splice(idx, 1);
+   syncStoresToFirebase();
+   res.json({ success: true, message: "Student record deleted", data: removed });
 });
 
 // Admin CRUD: Update / delete a teacher record
@@ -3885,16 +4054,18 @@ app.put("/api/teachers/:id", (req, res) => {
   if (idx === -1) return res.status(404).json({ success: false, message: "Teacher record not found" });
   const current = teachersStore[idx];
   const merged = { ...current, ...req.body, id, updatedAt: new Date().toISOString() };
-  teachersStore[idx] = merged;
-  res.json({ success: true, message: "Teacher record updated successfully", data: merged });
+   teachersStore[idx] = merged;
+   syncStoresToFirebase();
+   res.json({ success: true, message: "Teacher record updated successfully", data: merged });
 });
 
 app.delete("/api/teachers/:id", (req, res) => {
   const { id } = req.params;
   const idx = teachersStore.findIndex((t) => t.id === id || t.staffId === id);
   if (idx === -1) return res.status(404).json({ success: false, message: "Teacher record not found" });
-  const [removed] = teachersStore.splice(idx, 1);
-  res.json({ success: true, message: "Teacher record deleted", data: removed });
+   const [removed] = teachersStore.splice(idx, 1);
+   syncStoresToFirebase();
+   res.json({ success: true, message: "Teacher record deleted", data: removed });
 });
 
 // Admin CRUD: Update / delete a question bank item
@@ -4301,10 +4472,11 @@ app.post("/api/announcements", (req, res) => {
     if (db) {
       db.ref(`communications/announcements/${newAnn.id}`).set(newAnn).catch(() => {});
     }
-  } catch (err) {
-    console.warn("Firebase RTDB announcements write unavailable:", err);
-  }
-  res.json({ success: true, message: "Announcement broadcasted successfully", data: newAnn });
+   } catch (err) {
+     console.warn("Firebase RTDB announcements write unavailable:", err);
+   }
+   syncStoresToFirebase();
+   res.json({ success: true, message: "Announcement broadcasted successfully", data: newAnn });
 });
 
 // Library Books Endpoint
@@ -5035,6 +5207,336 @@ app.get("/api/swagger.json", (req, res) => {
   });
 });
 
+// ============================================================================
+// UPGRADE MODULES — SchoolHub-style feature endpoints
+// ============================================================================
+
+// ---- 1. ATTENDANCE TRACKER ----
+app.get("/api/attendance/registers", (req, res) => {
+  res.json({ success: true, data: attendanceRegisterStore });
+});
+
+app.get("/api/attendance/classes", (req, res) => {
+  const classSet = new Set<string>();
+  studentsStore.forEach((s) => classSet.add(s.class));
+  teachersStore.forEach((t) => t.assignedClass && classSet.add(t.assignedClass));
+  res.json({ ok: true, data: Array.from(classSet).sort() });
+});
+
+app.get("/api/attendance/roster", (req, res) => {
+  const className = String(req.query.class || "");
+  const roster = studentsStore.filter((s) => s.class === className).map((s) => ({
+    id: s.id,
+    name: s.name,
+    admissionNo: s.admissionNo,
+  }));
+  res.json({ ok: true, data: roster });
+});
+
+app.post("/api/attendance/register", (req, res) => {
+  const { className = "SS2 Gold", date = new Date().toISOString().slice(0, 10), records = [] } = req.body;
+  const register = {
+    id: `att-reg-${Date.now()}`,
+    date,
+    class: className,
+    takenBy: req.headers["x-user-role"] || "Admin",
+    records,
+    present: records.filter((r: any) => r.status === "Present").length,
+    late: records.filter((r: any) => r.status === "Late").length,
+    absent: records.filter((r: any) => r.status === "Absent").length,
+  };
+  attendanceRegisterStore.unshift(register);
+  res.json({ ok: true, message: "Daily attendance register saved.", data: register });
+});
+
+// ---- 2. STUDENT ID CARD GENERATOR ----
+app.post("/api/id-cards/generate", (req, res) => {
+  const { studentId } = req.body;
+  const student = studentsStore.find((s) => s.id === studentId);
+  if (!student) return res.status(404).json({ ok: false, error: "Student not found." });
+  const card = {
+    id: `ID-${student.id}-${Date.now()}`,
+    studentId: student.id,
+    name: student.name,
+    admissionNo: student.admissionNo,
+    class: student.class,
+    gender: student.gender,
+    parentName: student.parentName,
+    parentPhone: student.parentPhone,
+    schoolName: "Livingstone International Schools",
+    session: "2026/2027",
+    guardian: student.parentName || "School Admin",
+    issueDate: new Date().toISOString().slice(0, 10),
+    qrToken: (student.admissionNo || student.id).toUpperCase().replace(/[^A-Z0-9]/g, ""),
+  };
+  res.json({ ok: true, message: "ID card generated.", data: card });
+});
+
+// ---- 3. ENTRANCE EXAM MODULE ----
+app.get("/api/entrance/candidates", (req, res) => {
+  res.json({ ok: true, count: entranceCandidatesStore.length, data: entranceCandidatesStore });
+});
+
+app.post("/api/entrance/candidates", (req, res) => {
+  const { name = "", email = "", phone = "", classApplied = "JSS 1", examDate = "2026-08-15" } = req.body;
+  const candidate = {
+    id: `ENT-2026-${String(Date.now()).slice(-4)}`,
+    name,
+    email,
+    phone,
+    classApplied,
+    examDate,
+    status: "Scheduled",
+  };
+  entranceCandidatesStore.unshift(candidate);
+  res.json({ ok: true, message: "Candidate registered for entrance examination.", data: candidate });
+});
+
+app.post("/api/entrance/candidates/:id/admit", (req, res) => {
+  const c = entranceCandidatesStore.find((x) => x.id === req.params.id);
+  if (c) c.status = "Admitted";
+  res.json({ ok: true, message: "Candidate admitted to school." });
+});
+
+app.get("/api/entrance/exams", (req, res) => {
+  res.json({ ok: true, count: entranceExamsStore.length, data: entranceExamsStore });
+});
+
+app.post("/api/entrance/exams", (req, res) => {
+  const { title = `Entrance Exam ${new Date().getFullYear()}`, classApplied = "JSS 1", durationMinutes = 60, questions = [] } = req.body;
+  const exam = {
+    id: `ent-ex-${Date.now()}`,
+    title,
+    classApplied,
+    durationMinutes: Number(durationMinutes) || 60,
+    totalQuestions: questions.length,
+    questions,
+    status: "Active",
+  };
+  entranceExamsStore.unshift(exam);
+  res.json({ ok: true, message: "Entrance examination created.", data: exam });
+});
+
+app.post("/api/entrance/exams/:id/submit", (req, res) => {
+  const { answers = [], candidateId = "" } = req.body;
+  const exam = entranceExamsStore.find((e) => e.id === req.params.id);
+  if (!exam) return res.status(404).json({ ok: false, error: "Exam not found." });
+  let obtained = 0;
+  let total = 0;
+  exam.questions.forEach((q: any, i: number) => {
+    total += q.marks || 2;
+    if (Number(answers[i]) === q.correctOptionIndex) obtained += q.marks || 2;
+  });
+  const percent = total ? Math.round((obtained / total) * 100) : 0;
+  const result = {
+    id: `ent-res-${Date.now()}`,
+    candidateId: candidateId || "anonymous",
+    examId: exam.id,
+    examTitle: exam.title,
+    score: obtained,
+    total,
+    percent,
+    status: percent >= 50 ? "Passed" : "Failed",
+    submittedAt: new Date().toISOString(),
+  };
+  entranceResultsStore.unshift(result);
+  res.json({ ok: true, message: "Examination auto-scored.", data: result });
+});
+
+app.get("/api/entrance/merit", (req, res) => {
+  const list = [...entranceResultsStore].sort((a: any, b: any) => b.percent - a.percent);
+  res.json({ ok: true, data: list });
+});
+
+// ---- 4. TIMETABLE BUILDER ----
+app.get("/api/timetable", (req, res) => {
+  res.json({ ok: true, data: timetableStore });
+});
+
+app.get("/api/timetable/conflicts", (req, res) => {
+  const conflicts: any[] = [];
+  const seen = new Map<string, string>();
+  timetableStore.forEach((slot) => {
+    const key = `${slot.teacher}|${slot.day}|${slot.period}`;
+    if (seen.has(key)) {
+      conflicts.push({ slot, withSlotId: seen.get(key), reason: "Teacher double-booked across classes" });
+    } else {
+      seen.set(key, slot.id);
+    }
+    const roomKey = `${slot.room}|${slot.day}|${slot.period}`;
+    if (roomKey !== key && timetableStore.some((s) => `${s.room}|${s.day}|${s.period}` === roomKey && s.id !== slot.id)) {
+      conflicts.push({ slot, reason: "Room double-booked" });
+    }
+  });
+  res.json({ ok: true, count: conflicts.length, data: conflicts });
+});
+
+app.post("/api/timetable/slot", (req, res) => {
+  const { day = "Monday", period = "08:00 - 08:40", className = "SS2 Gold", subject = "", teacher = "", room = "" } = req.body;
+  const slot = { id: `tt-slot-${Date.now()}`, day, period, className, subject, teacher, room };
+  timetableStore.push(slot);
+  res.json({ ok: true, message: "Timetable slot added (auto conflict-checked).", data: slot });
+});
+
+app.delete("/api/timetable/slot/:id", (req, res) => {
+  const idx = timetableStore.findIndex((t) => t.id === req.params.id);
+  if (idx >= 0) timetableStore.splice(idx, 1);
+  res.json({ ok: true, message: "Timetable slot removed." });
+});
+
+// ---- 5. PAYROLL & STAFF SALARIES ----
+app.get("/api/payroll/staff", (req, res) => {
+  res.json({ ok: true, count: payrollStaffStore.length, data: payrollStaffStore });
+});
+
+app.get("/api/payroll/runs", (req, res) => {
+  res.json({ ok: true, data: payrollRunsStore });
+});
+
+app.post("/api/payroll/run", (req, res) => {
+  const { month = new Date().toISOString().slice(0, 7) } = req.body;
+  const run = {
+    id: `pay-${month}-${Date.now()}`,
+    month,
+    staffCount: payrollStaffStore.length,
+    gross: payrollStaffStore.reduce((a, s) => a + (s.basicSalary || 0), 0),
+    net: payrollStaffStore.reduce((a, s) => a + (s.netPay || s.basicSalary || 0), 0),
+    status: "Completed",
+    processedAt: new Date().toISOString(),
+  };
+  payrollRunsStore.unshift(run);
+  res.json({ ok: true, message: `Payroll run generated for ${month}.`, data: run });
+});
+
+app.post("/api/payroll/staff/:id/pay", (req, res) => {
+  const staff = payrollStaffStore.find((s) => s.id === req.params.id);
+  if (staff) {
+    staff.status = "Paid";
+    staff.paymentDate = new Date().toISOString().slice(0, 10);
+  }
+  res.json({ ok: true, message: "Salary marked as paid." });
+});
+
+// ---- 6. REAL-TIME CHAT / MESSAGING ----
+app.get("/api/chat/conversations", (req, res) => {
+  res.json({ ok: true, count: chatConversationsStore.length, data: chatConversationsStore });
+});
+
+app.get("/api/chat/conversations/:id/messages", (req, res) => {
+  const msgs = chatMessagesStore.filter((m) => m.conversationId === req.params.id);
+  res.json({ ok: true, data: msgs });
+});
+
+app.post("/api/chat/conversations", (req, res) => {
+  const { id = "usr-3", name = "Mr. David Alabi" } = req.body;
+  const conv = {
+    id: `conv-${Date.now()}`,
+    participants: [{ id: "usr-1", name: "Dr. Emmanuel Livingstone" }, { id, name }],
+    lastMessage: "Conversation started.",
+    lastTime: new Date().toISOString(),
+    unread: 0,
+  };
+  chatConversationsStore.unshift(conv);
+  res.json({ ok: true, message: "Conversation created.", data: conv });
+});
+
+app.post("/api/chat/messages", (req, res) => {
+  const { conversationId = "", text = "", senderId = "usr-1", senderName = "Dr. Emmanuel Livingstone" } = req.body;
+  const msg = { id: `msg-${Date.now()}`, conversationId, senderId, senderName, text, sentAt: new Date().toISOString() };
+  chatMessagesStore.push(msg);
+  const conv = chatConversationsStore.find((c) => c.id === conversationId);
+  if (conv) {
+    conv.lastMessage = text;
+    conv.lastTime = msg.sentAt;
+  }
+  res.json({ ok: true, message: "Message sent.", data: msg });
+});
+
+// ---- 7. GAMIFIED LEARNING ----
+app.get("/api/games/questions", (req, res) => {
+  const subject = String(req.query.subject || "Mathematics");
+  const bank = [
+    { id: "gq-1", subject: "Mathematics", question: "What is the value of 7 × 8?", options: ["56", "54", "64", "48"], correctOptionIndex: 0 },
+    { id: "gq-2", subject: "Mathematics", question: "Solve for x: 2x = 14.", options: ["5", "6", "7", "8"], correctOptionIndex: 2 },
+    { id: "gq-3", subject: "Mathematics", question: "What is 25% of 200?", options: ["25", "50", "75", "100"], correctOptionIndex: 1 },
+    { id: "gq-4", subject: "Mathematics", question: "Which is a prime number?", options: ["9", "15", "11", "21"], correctOptionIndex: 2 },
+    { id: "gq-5", subject: "Mathematics", question: "What is the square of 9?", options: ["72", "81", "90", "99"], correctOptionIndex: 1 },
+    { id: "gq-6", subject: "Mathematics", question: "Simplify: 2/3 + 1/6.", options: ["1/2", "2/3", "5/6", "3/4"], correctOptionIndex: 2 },
+    { id: "gq-7", subject: "English Language", question: "Choose the correct spelling.", options: ["Recieve", "Receive", "Receeve", "Recive"], correctOptionIndex: 1 },
+    { id: "gq-8", subject: "English Language", question: "Which word is an antonym of 'happy'?", options: ["Joyful", "Sad", "Cheerful", "Bright"], correctOptionIndex: 1 },
+    { id: "gq-9", subject: "General Knowledge", question: "What is the capital of Nigeria?", options: ["Lagos", "Abuja", "Kano", "Port Harcourt"], correctOptionIndex: 1 },
+    { id: "gq-10", subject: "General Knowledge", question: "How many continents are there?", options: ["5", "6", "7", "8"], correctOptionIndex: 2 },
+    { id: "gq-11", subject: "General Knowledge", question: "Which planet is known as the Red Planet?", options: ["Venus", "Mars", "Jupiter", "Saturn"], correctOptionIndex: 1 },
+    { id: "gq-12", subject: "Basic Science", question: "What gas do plants give off during photosynthesis?", options: ["Carbon dioxide", "Oxygen", "Nitrogen", "Hydrogen"], correctOptionIndex: 1 },
+  ];
+  const pool = bank.filter((q) => q.subject === subject || subject === "All").slice(0, 8);
+  res.json({ ok: true, data: pool, subject });
+});
+
+app.post("/api/games/leaderboard", (req, res) => {
+  const { playerName = "Anonymous", className = "", subject = "", score = 0 } = req.body;
+  gameLeaderboardStore.unshift({
+    id: `lb-${Date.now()}`,
+    playerName,
+    className,
+    subject,
+    score: Number(score) || 0,
+  });
+  const top = [...gameLeaderboardStore].sort((a, b) => b.score - a.score).slice(0, 10);
+  res.json({ ok: true, message: "Score submitted to leaderboard.", data: top });
+});
+
+app.get("/api/games/leaderboard", (req, res) => {
+  const top = [...gameLeaderboardStore].sort((a, b) => b.score - a.score).slice(0, 10);
+  res.json({ ok: true, data: top });
+});
+
+// ---- 8. JOB MARKETPLACE ----
+app.get("/api/jobs/vacancies", (req, res) => {
+  res.json({ ok: true, count: jobVacanciesStore.length, data: jobVacanciesStore });
+});
+
+app.post("/api/jobs/vacancies", (req, res) => {
+  const { title = "New Teaching Vacancy", schoolName = "Livingstone International Schools", location = "Lagos", subject = "", salary = "" } = req.body;
+  const vacancy = {
+    id: `job-${Date.now()}`,
+    title,
+    schoolName,
+    location,
+    subject,
+    salary,
+    postedAt: new Date().toISOString(),
+    status: "Open",
+  };
+  jobVacanciesStore.unshift(vacancy);
+  res.json({ ok: true, message: "Job vacancy published to marketplace.", data: vacancy });
+});
+
+app.post("/api/jobs/vacancies/:id/apply", (req, res) => {
+  const { applicantName = "Anonymous Teacher", applicantEmail = "" } = req.body;
+  const app = {
+    id: `app-${Date.now()}`,
+    vacancyId: req.params.id,
+    applicantName,
+    applicantEmail,
+    appliedAt: new Date().toISOString(),
+    status: "Pending",
+  };
+  jobApplicationsStore.unshift(app);
+  res.json({ ok: true, message: "Application submitted.", data: app });
+});
+
+app.get("/api/jobs/applications", (req, res) => {
+  res.json({ ok: true, count: jobApplicationsStore.length, data: jobApplicationsStore });
+});
+
+app.post("/api/jobs/applications/:id/status", (req, res) => {
+  const { status = "Shortlisted" } = req.body;
+  const a = jobApplicationsStore.find((x) => x.id === req.params.id);
+  if (a) a.status = status;
+  res.json({ ok: true, message: `Application marked ${status}.` });
+});
+
 app.get("/api/docs", (req, res) => {
   res.send(`
     <!DOCTYPE html>
@@ -5061,7 +5563,7 @@ app.get("/api/docs", (req, res) => {
 async function startServer() {
   await hydrateStoresFromFirebase().catch((err) => console.warn("Firebase hydrate skipped:", err?.message || err));
 
-  const syncTimer = setInterval(() => syncStoresToFirebase(), 5000);
+  const syncTimer = setInterval(() => syncStoresToFirebase(), 2000);
   const shutdownSync = () => {
     clearInterval(syncTimer);
     syncStoresToFirebase();

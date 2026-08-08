@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { UserRole } from "../types";
+import { Logo } from "./Logo";
 import {
   GraduationCap,
   Sun,
@@ -21,7 +22,6 @@ import {
   PhoneCall,
   LogOut,
   Settings,
-  Download,
 } from "lucide-react";
 
 interface HeaderProps {
@@ -63,58 +63,13 @@ export const Header: React.FC<HeaderProps> = ({
   onLogout,
 }) => {
   const [roleMenuOpen, setRoleMenuOpen] = useState(false);
-  const [installPrompt, setInstallPrompt] = useState<any>(null);
   const activeRoleObj = ALL_ROLES.find((r) => r.role === currentRole) || ALL_ROLES[1];
-
-  useEffect(() => {
-    const syncInstall = () => {
-      const prompt = (window as any).__livingstoneInstallPrompt || null;
-      setInstallPrompt(prompt);
-    };
-    syncInstall();
-    window.addEventListener("app:installable", syncInstall);
-    window.addEventListener("app:installed", syncInstall);
-    return () => {
-      window.removeEventListener("app:installable", syncInstall);
-      window.removeEventListener("app:installed", syncInstall);
-    };
-  }, []);
-
-  const handleInstall = async () => {
-    const prompt = installPrompt || (window as any).__livingstoneInstallPrompt;
-    if (!prompt) return;
-    try {
-      prompt.prompt();
-      const choice = await prompt.userChoice;
-      if (choice && choice.outcome === "accepted") setInstallPrompt(null);
-    } catch (err) {
-      console.warn("Install prompt rejected", err);
-    }
-    setInstallPrompt((window as any).__livingstoneInstallPrompt || null);
-  };
 
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between h-16 px-4 md:px-6 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800 transition-colors">
       {/* Left: Brand Identity & Search */}
       <div className="flex items-center gap-4">
-        <div className="flex items-center gap-2.5">
-          <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 via-indigo-600 to-indigo-500 text-white shadow-md shadow-indigo-500/20">
-            <GraduationCap className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-blue-700 via-indigo-700 to-purple-700 dark:from-blue-400 dark:to-indigo-300 bg-clip-text text-transparent">
-                LIVINGSTONE
-              </span>
-              <span className="text-xs font-bold uppercase tracking-widest px-1.5 py-0.5 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300">
-                EDU
-              </span>
-            </div>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium hidden sm:block">
-              SaaS School Management & AI Platform
-            </p>
-          </div>
-        </div>
+        <Logo variant="full" size="md" />
 
         {/* Global Search */}
         <div className="relative hidden lg:block w-64 xl:w-80">
@@ -197,18 +152,6 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <GraduationCap className="w-3.5 h-3.5" />
             <span className="hidden sm:inline">Portal Login</span>
-          </button>
-        )}
-
-        {/* Install App (PWA) */}
-        {installPrompt && (
-          <button
-            onClick={handleInstall}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:opacity-90 rounded-lg text-xs font-semibold shadow-sm active:scale-95 transition-all"
-            title="Install LIVINGSTONEEDU as an app on this device"
-          >
-            <Download className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Install App</span>
           </button>
         )}
 
