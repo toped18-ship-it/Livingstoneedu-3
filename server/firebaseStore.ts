@@ -7,6 +7,7 @@ interface RegisteredStore {
 }
 
 const registeredStores: RegisteredStore[] = [];
+let syncSuccessLogged = false;
 
 function encodeKey(key: string): string {
   return key
@@ -38,7 +39,10 @@ export function registerStore(
 
 export async function hydrateStoresFromFirebase(): Promise<void> {
   const db = getAdminDatabase();
-  if (!db) return;
+  if (!db) {
+    console.warn("[Firebase RTDB] hydrateStores: Admin Database unavailable — skipping hydration");
+    return;
+  }
 
   await Promise.all(
     registeredStores.map(async (store) => {
@@ -47,20 +51,23 @@ export async function hydrateStoresFromFirebase(): Promise<void> {
         const val = snap.val();
         if (val === undefined || val === null) return;
         const current = store.getData();
+        let restored = false;
         if (Array.isArray(current)) {
           const items = Array.isArray(val) ? val : Object.values(val);
-          if (Array.isArray(items) && items.length > 0) store.setData(items);
+          if (Array.isArray(items) && items.length > 0) { store.setData(items); restored = true; }
         } else if (current && typeof current === "object") {
           if (typeof val === "object" && val !== null) {
-            const restored: Record<string, unknown> = {};
+            const restoredObj: Record<string, unknown> = {};
             Object.entries(val as Record<string, unknown>).forEach(([k, v]) => {
-              restored[decodeKey(k)] = v;
+              restoredObj[decodeKey(k)] = v;
             });
-            store.setData(restored);
+            store.setData(restoredObj);
+            restored = true;
           }
         }
+        if (restored) console.log(`[Firebase RTDB] Hydrated "${store.name}" from live/`);
       } catch (err) {
-        console.warn(`Firebase hydrate failed for "${store.name}":`, (err as any)?.message || err);
+        console.error(`[Firebase RTDB] hydrate failed for "${store.name}":`, (err as any)?.message || err);
       }
     })
   );
@@ -68,7 +75,10 @@ export async function hydrateStoresFromFirebase(): Promise<void> {
 
 export function syncStoresToFirebase(): void {
   const db = getAdminDatabase();
-  if (!db) return;
+  if (!db) {
+    console.warn("[Firebase RTDB] syncStores: Admin Database unavailable — skipping sync");
+    return;
+  }
 
   const updates: Record<string, unknown> = {};
   for (const store of registeredStores) {
@@ -95,13 +105,20 @@ export function syncStoresToFirebase(): void {
         updates[store.name] = keyed;
       }
     } catch (err) {
-      console.warn(`Firebase sync failed for "${store.name}":`, (err as any)?.message || err);
+      console.error(`[Firebase RTDB] sync failed for "${store.name}":`, (err as any)?.message || err);
     }
   }
 
   try {
-    db.ref("live").update(updates).catch(() => {});
+    db.ref("live").update(updates).then(() => {
+      if (!syncSuccessLogged) {
+        console.log("[Firebase RTDB] First successful sync —", Object.keys(updates).length, "stores written to live/");
+        syncSuccessLogged = true;
+      }
+    }).catch((err) => {
+      console.error("[Firebase RTDB] live update failed:", err?.message || err);
+    });
   } catch (err) {
-    console.warn("Firebase snapshot sync unavailable:", (err as any)?.message || err);
+    console.error("[Firebase RTDB] live update threw:", (err as any)?.message || err);
   }
 }
