@@ -1,8 +1,23 @@
 import express from "express";
 import path from "path";
+import crypto from "crypto";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import { getFirebaseAdmin, getAdminAuth, getAdminDatabase } from "./server/firebaseAdmin";
+
+// --- PASSWORD HASHING (Node.js built-in scrypt) ---
+function hashPassword(password: string): string {
+  const salt = crypto.randomBytes(16).toString("hex");
+  const hash = crypto.scryptSync(password, salt, 64).toString("hex");
+  return `${salt}:${hash}`;
+}
+
+function verifyPassword(password: string, stored: string): boolean {
+  if (!stored || !stored.includes(":")) return false;
+  const [salt, hash] = stored.split(":");
+  const verify = crypto.scryptSync(password, salt, 64).toString("hex");
+  return hash === verify;
+}
 import { registerStore, hydrateStoresFromFirebase, syncStoresToFirebase } from "./server/firebaseStore";
 
 const app = express();
@@ -59,21 +74,21 @@ const getGeminiAI = () => {
 // --- IN-MEMORY DATABASE SCHEMA & DATA STORES ---
 
 const usersStore: any[] = [
-  { id: "usr-1", name: "Dr. Emmanuel Livingstone", email: "admin@livingstone.edu", role: "Super Admin", schoolId: "SCH-001" },
-  { id: "usr-2", name: "Mrs. Okonkwo Beatrice", email: "principal@livingstone.edu", role: "Principal", schoolId: "SCH-001" },
-  { id: "usr-3", name: "Mr. David Alabi", email: "david.alabi@livingstone.edu", role: "Teacher", schoolId: "SCH-001" },
+  { id: "usr-1", name: "Dr. Emmanuel Livingstone", email: "admin@livingstone.edu", password: hashPassword("admin123"), role: "Super Admin", schoolId: "SCH-001" },
+  { id: "usr-2", name: "Mrs. Okonkwo Beatrice", email: "principal@livingstone.edu", password: hashPassword("principal123"), role: "Principal", schoolId: "SCH-001" },
+  { id: "usr-3", name: "Mr. David Alabi", email: "david.alabi@livingstone.edu", password: hashPassword("teacher123"), role: "Teacher", schoolId: "SCH-001" },
 ];
 
 const studentsStore: any[] = [
-  { id: "STD-2026-001", name: "Adeyemi Chinedu", admissionNo: "LIV/2026/089", class: "SS2 Gold", gender: "Male", parentName: "Chief Adeyemi Tunde", parentPhone: "+234 803 123 4567", status: "Active" },
-  { id: "STD-2026-002", name: "Fatima Abubakar", admissionNo: "LIV/2026/112", class: "JSS3 Diamond", gender: "Female", parentName: "Alhaji Abubakar Musa", parentPhone: "+234 802 987 6543", status: "Active" },
-  { id: "STD-2026-003", name: "Eze Chukwuemeka", admissionNo: "LIV/2026/045", class: "SS1 Silver", gender: "Male", parentName: "Chief Eze Nnamdi", parentPhone: "+234 805 123 4567", status: "Active" },
-  { id: "STD-2026-006", name: "Kalu Samuel", admissionNo: "LIV/2026/301", class: "Primary 1 Gold", gender: "Male", parentName: "Mr. Kalu Obinna", parentPhone: "+234 802 111 4455", status: "Active" },
+  { id: "STD-2026-001", name: "Adeyemi Chinedu", admissionNo: "LIV/2026/089", class: "SS2 Gold", gender: "Male", parentName: "Chief Adeyemi Tunde", parentPhone: "+234 803 123 4567", status: "Active", password: hashPassword("student123") },
+  { id: "STD-2026-002", name: "Fatima Abubakar", admissionNo: "LIV/2026/112", class: "JSS3 Diamond", gender: "Female", parentName: "Alhaji Abubakar Musa", parentPhone: "+234 802 987 6543", status: "Active", password: hashPassword("student123") },
+  { id: "STD-2026-003", name: "Eze Chukwuemeka", admissionNo: "LIV/2026/045", class: "SS1 Silver", gender: "Male", parentName: "Chief Eze Nnamdi", parentPhone: "+234 805 123 4567", status: "Active", password: hashPassword("student123") },
+  { id: "STD-2026-006", name: "Kalu Samuel", admissionNo: "LIV/2026/301", class: "Primary 1 Gold", gender: "Male", parentName: "Mr. Kalu Obinna", parentPhone: "+234 802 111 4455", status: "Active", password: hashPassword("student123") },
 ];
 
 const teachersStore: any[] = [
-  { id: "TCH-001", name: "Mrs. Okonkwo Beatrice", staffId: "STF-LIV-012", subjectSpecialization: "Mathematics & Statistics", assignedClass: "SS2 Gold", email: "beatrice.okonkwo@livingstone.edu", status: "Active" },
-  { id: "TCH-002", name: "Mr. David Alabi", staffId: "STF-LIV-034", subjectSpecialization: "Physics & Basic Science", assignedClass: "SS3 Emerald", email: "david.alabi@livingstone.edu", status: "Active" },
+  { id: "TCH-001", name: "Mrs. Okonkwo Beatrice", staffId: "STF-LIV-012", subjectSpecialization: "Mathematics & Statistics", assignedClass: "SS2 Gold", email: "beatrice.okonkwo@livingstone.edu", status: "Active", password: hashPassword("teacher123") },
+  { id: "TCH-002", name: "Mr. David Alabi", staffId: "STF-LIV-034", subjectSpecialization: "Physics & Basic Science", assignedClass: "SS3 Emerald", email: "david.alabi@livingstone.edu", status: "Active", password: hashPassword("teacher123") },
 ];
 
 const questionBank: any[] = [
@@ -2720,6 +2735,7 @@ app.post("/api/auth/login", (req, res) => {
   const school = verifiedSchoolsStore.find(s => s.id === schoolId) || verifiedSchoolsStore[0];
   const inputClean = String(emailOrId).trim();
   const inputLower = inputClean.toLowerCase();
+  const inputPassword = String(password).trim();
 
   // Audit activity log
   const loginLog = {
@@ -2730,6 +2746,14 @@ app.post("/api/auth/login", (req, res) => {
     schoolName: school.name,
     ipAddress: "192.168.1.104"
   };
+
+  // Reject empty credentials early
+  if (!inputClean || !inputPassword) {
+    return res.status(401).json({
+      success: false,
+      message: "Email/ID and password are required."
+    });
+  }
 
   // Check if student exists in studentProfilesStore or studentsStore
   const foundStudent = studentProfilesStore.find(s =>
@@ -2754,13 +2778,27 @@ app.post("/api/auth/login", (req, res) => {
     inputLower.startsWith("sch/") ||
     inputLower.includes("student") ||
     inputLower.includes("parent") ||
-    inputLower.includes("pupil") ||
-    inputLower.includes("chinedu") ||
-    inputLower.includes("adeyemi") ||
-    inputLower.includes("david");
+    inputLower.includes("pupil");
 
   if (isStudentLogin) {
     const student = foundStudent || studentProfilesStore[0];
+
+    if (!student) {
+      return res.status(401).json({
+        success: false,
+        message: "Student account not found. Please check your email or admission number."
+      });
+    }
+
+    // Verify password against the student record
+    const storedPassword = student.password || student.passwordHash || "";
+    if (!verifyPassword(inputPassword, storedPassword)) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid password. Please try again."
+      });
+    }
+
     const studentSchool = verifiedSchoolsStore.find(s => s.id === student?.schoolId) || school;
     const matchedRecord = validSchoolAdmissionRecords[inputClean.toUpperCase()] || {
       studentName: student?.fullName || student?.name || "Adeyemi Chinedu",
@@ -2797,72 +2835,91 @@ app.post("/api/auth/login", (req, res) => {
       audit: loginLog
     });
   } else {
-    // Staff / Teacher / Admin / Principal / Vice Principal / Owner / Super Admin Role Detection
-    let detectedRole: any = "Teacher";
+    // Staff / Teacher / Admin login — check usersStore, staffAccountsStore, teachersStore
+    let detectedRole: any = null;
     let redirectTab = "teacher-portal";
+    let matchedUser: any = null;
 
-    // Prefer a self-service registered staff account so the registered name & role are used
+    // 1. Check staffAccountsStore (registered staff)
     const registeredStaff = staffAccountsStore.find(s =>
       (s.email && s.email.toLowerCase() === inputLower) ||
       (s.staffId && s.staffId.toLowerCase() === inputLower) ||
       (s.staffId && s.staffId.toLowerCase() === inputClean.toUpperCase())
     );
 
-    if (registeredStaff?.assignedRole) {
-      detectedRole = registeredStaff.assignedRole;
+    if (registeredStaff) {
+      const storedPassword = registeredStaff.password || registeredStaff.passwordHash || "";
+      if (!verifyPassword(inputPassword, storedPassword)) {
+        return res.status(401).json({
+          success: false,
+          message: "Invalid password. Please try again."
+        });
+      }
+      detectedRole = registeredStaff.assignedRole || registeredStaff.role || "Teacher";
       redirectTab = redirectTabForStaffRole(detectedRole);
-    } else if (inputLower.includes("superadmin") || inputLower === "sa-001") {
-      detectedRole = "Super Admin";
-      redirectTab = "superadmin";
-     } else if (inputLower.includes("owner") || inputLower.includes("proprietor")) {
-      detectedRole = "School Owner";
-      redirectTab = "school-portal";
-    } else if (inputLower.includes("principal") || inputLower === "prn-001") {
-      detectedRole = "Principal";
-      redirectTab = "school-portal";
-    } else if (inputLower.includes("vice") || inputLower.includes("vp-")) {
-      detectedRole = "Vice Principal";
-      redirectTab = "school-portal";
-    } else if (inputLower.includes("admin") || inputLower === "adm-101") {
-      detectedRole = "School Administrator";
-      redirectTab = "school-portal";
-    } else if (inputLower.includes("bursar") || inputLower.includes("finance") || inputLower === "acc-001") {
-      detectedRole = "Account Officer";
-      redirectTab = "finance";
-    } else if (inputLower.includes("exam") || inputLower === "exm-001") {
-      detectedRole = "Exam Officer";
-      redirectTab = "academic-ai-exam-generator";
-    } else if (inputLower.includes("library") || inputLower === "lib-001") {
-      detectedRole = "Librarian";
-      redirectTab = "library";
-    } else {
-      const staffRecord = validSchoolStaffRecords[inputClean.toUpperCase()];
-      if (staffRecord) {
-        detectedRole = staffRecord.defaultRole;
+      matchedUser = registeredStaff;
+    }
+
+    // 2. Check usersStore (seed users)
+    if (!matchedUser) {
+      const seedUser = usersStore.find(u =>
+        (u.email && u.email.toLowerCase() === inputLower) ||
+        (u.id && u.id.toLowerCase() === inputLower)
+      );
+      if (seedUser) {
+        const storedPassword = seedUser.password || seedUser.passwordHash || "";
+        if (!verifyPassword(inputPassword, storedPassword)) {
+          return res.status(401).json({
+            success: false,
+            message: "Invalid password. Please try again."
+          });
+        }
+        detectedRole = seedUser.role;
         if (detectedRole === "Super Admin") redirectTab = "superadmin";
-        else if (
-          detectedRole === "School Administrator" ||
-          detectedRole === "Principal" ||
-          detectedRole === "Vice Principal" ||
-          detectedRole === "School Owner"
-        ) redirectTab = "school-portal";
-        else if (detectedRole === "Account Officer") redirectTab = "finance";
-        else if (detectedRole === "Exam Officer") redirectTab = "academic-ai-exam-generator";
-        else if (detectedRole === "Librarian") redirectTab = "library";
+        else if (detectedRole === "Principal" || detectedRole === "School Administrator") redirectTab = "school-portal";
         else redirectTab = "teacher-portal";
+        matchedUser = seedUser;
       }
     }
 
+    // 3. Check teachersStore (by email or staffId)
+    if (!matchedUser) {
+      const teacher = teachersStore.find(t =>
+        (t.email && t.email.toLowerCase() === inputLower) ||
+        (t.staffId && t.staffId.toLowerCase() === inputLower)
+      );
+      if (teacher) {
+        const storedPassword = teacher.password || teacher.passwordHash || "";
+        if (!verifyPassword(inputPassword, storedPassword)) {
+          return res.status(401).json({
+            success: false,
+            message: "Invalid password. Please try again."
+          });
+        }
+        detectedRole = teacher.role || "Teacher";
+        redirectTab = "teacher-portal";
+        matchedUser = teacher;
+      }
+    }
+
+    // 4. No matching account found
+    if (!matchedUser) {
+      return res.status(401).json({
+        success: false,
+        message: "No account found with that email or ID. Please check your credentials or register first."
+      });
+    }
+
     const staffUser = {
-      id: registeredStaff?.id || "TCH-2026-001",
-      name: registeredStaff?.name || registeredStaff?.fullName || validSchoolStaffRecords[inputClean.toUpperCase()]?.staffName || "Mrs. Okonkwo Beatrice",
-      fullName: registeredStaff?.name || registeredStaff?.fullName || validSchoolStaffRecords[inputClean.toUpperCase()]?.staffName || "Mrs. Okonkwo Beatrice",
-      email: registeredStaff?.email || (inputLower.includes("@") ? inputLower : "okonkwo.b@livingstone.edu.ng"),
-      staffId: registeredStaff?.staffId || inputClean.toUpperCase() || "STF-9921",
+      id: matchedUser.id,
+      name: matchedUser.name || matchedUser.fullName,
+      fullName: matchedUser.name || matchedUser.fullName,
+      email: matchedUser.email,
+      staffId: matchedUser.staffId || inputClean.toUpperCase(),
       assignedRole: detectedRole,
       role: detectedRole,
-      schoolId: school.id,
-      schoolName: school.name
+      schoolId: matchedUser.schoolId || school.id,
+      schoolName: matchedUser.schoolName || school.name
     };
 
     return res.json({
@@ -3180,6 +3237,7 @@ app.post("/api/auth/register/student", (req, res) => {
     schoolId: school.id,
     schoolName: registeredSchoolName,
     email: email || "student@livingstone.edu.ng",
+    password: password ? hashPassword(password) : "",
     classLevel: classLevel || "SS2",
     class: classLevel || "SS2",
     admissionNumber: finalAdmissionNo,
@@ -3217,6 +3275,7 @@ app.post("/api/auth/register/student", (req, res) => {
     parentPhone: "+234 803 000 0000",
     status: "Active",
     email,
+    password: password ? hashPassword(password) : "",
     schoolId: school.id,
     schoolName: registeredSchoolName,
     role: "student",
@@ -3314,7 +3373,7 @@ app.post("/api/auth/register/teacher", (req, res) => {
     name: fullName || record?.staffName || "Mrs. Okonkwo Beatrice",
     fullName: fullName || record?.staffName || "Mrs. Okonkwo Beatrice",
     email: email || "",
-    password: password || "",
+    password: password ? hashPassword(password) : "",
     assignedRole: detectedRole,
     role: detectedRole,
     schoolId: school.id,
@@ -3382,7 +3441,7 @@ app.post("/api/auth/register/school", (req, res) => {
       email: adminEmail,
       phone: adminPhone,
       role: adminRole,
-      password: password || ""
+      password: password ? hashPassword(password) : ""
     }
   };
   verifiedSchoolsStore.unshift(newSchool);
@@ -3394,7 +3453,7 @@ app.post("/api/auth/register/school", (req, res) => {
     name: adminName || cleanSchoolName + " Admin",
     fullName: adminName || cleanSchoolName + " Admin",
     email: adminEmail || "",
-    password: password || "",
+    password: password ? hashPassword(password) : "",
     assignedRole: adminRole,
     role: adminRole,
     schoolId: newSchool.id,
@@ -5562,6 +5621,39 @@ app.get("/api/docs", (req, res) => {
 // Mount Vite middleware for dev or static serving for production
 async function startServer() {
   await hydrateStoresFromFirebase().catch((err) => console.warn("Firebase hydrate skipped:", err?.message || err));
+
+  // Re-apply passwords to seed users that were hydrated from RTDB without password fields
+  const seedPasswords: Record<string, string> = {
+    "admin@livingstone.edu": "admin123",
+    "principal@livingstone.edu": "principal123",
+    "david.alabi@livingstone.edu": "teacher123",
+    "beatrice.okonkwo@livingstone.edu": "teacher123",
+    "LIV/2026/089": "student123",
+    "LIV/2026/112": "student123",
+    "LIV/2026/045": "student123",
+    "LIV/2026/301": "student123",
+  };
+  usersStore.forEach((u: any) => {
+    if (!u.password && seedPasswords[u.email?.toLowerCase()]) {
+      u.password = hashPassword(seedPasswords[u.email.toLowerCase()]);
+    }
+  });
+  teachersStore.forEach((t: any) => {
+    if (!t.password && seedPasswords[t.email?.toLowerCase()]) {
+      t.password = hashPassword(seedPasswords[t.email.toLowerCase()]);
+    }
+  });
+  studentsStore.forEach((s: any) => {
+    if (!s.password && seedPasswords[s.admissionNo?.toUpperCase()]) {
+      s.password = hashPassword(seedPasswords[s.admissionNo.toUpperCase()]);
+    }
+  });
+  studentProfilesStore.forEach((s: any) => {
+    if (!s.password && seedPasswords[s.admissionNo?.toUpperCase()]) {
+      s.password = hashPassword(seedPasswords[s.admissionNo.toUpperCase()]);
+    }
+  });
+  console.log("[Auth] Seed passwords applied to hydrated users");
 
   const syncTimer = setInterval(() => syncStoresToFirebase(), 2000);
   const shutdownSync = () => {

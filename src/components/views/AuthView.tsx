@@ -350,8 +350,8 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           portalType: "admin",
-          email: loginEmail || "admin@livingstone.edu.ng",
-          role: "Super Admin",
+          emailOrId: loginEmail || "admin@livingstone.edu",
+          password: loginPassword,
           rememberMe
         })
       });
@@ -359,16 +359,17 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
       const data = await response.json();
       setIsLoading(false);
 
-      setSuccessMessage("✓ Authenticated as Super Admin & App Owner! Accessing HQ Control Panel...");
-      setTimeout(() => {
-        onLoginSuccess("Super Admin", "superadmin", data.user || { name: "Dr. Emmanuel Livingstone", email: loginEmail || "admin@livingstone.edu.ng", role: "Super Admin" });
-      }, 600);
+      if (data.success) {
+        setSuccessMessage("✓ Authenticated as Super Admin & App Owner! Accessing HQ Control Panel...");
+        setTimeout(() => {
+          onLoginSuccess(data.userRole, data.redirectTab, data.user);
+        }, 600);
+      } else {
+        setErrorMessage(data.message || "Authentication failed. Check your credentials.");
+      }
     } catch (err) {
       setIsLoading(false);
-      setSuccessMessage("✓ Authenticated as Super Admin! Accessing HQ Control Panel...");
-      setTimeout(() => {
-        onLoginSuccess("Super Admin", "superadmin", { name: "Dr. Emmanuel Livingstone", email: loginEmail || "admin@livingstone.edu.ng", role: "Super Admin" });
-      }, 600);
+      setErrorMessage("Unable to connect to server. Please check your connection and try again.");
     }
   };
 
@@ -405,10 +406,7 @@ export function AuthView({ onLoginSuccess, isDark, onToggleTheme, initialAdminVi
       }
     } catch (err) {
       setIsLoading(false);
-       // Seamless offline fallback
-      const fallbackRole = activePortalTab === "student" ? "Student" : activePortalTab === "school" ? "School Owner" : "Teacher";
-      const fallbackTab = activePortalTab === "student" ? "student-parent-portal" : activePortalTab === "school" ? "school-portal" : "teacher-portal";
-      onLoginSuccess(fallbackRole as UserRole, fallbackTab);
+      setErrorMessage("Unable to connect to server. Please check your connection and try again.");
     }
   };
 
